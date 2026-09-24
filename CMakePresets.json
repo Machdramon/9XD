@@ -1,0 +1,11 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "base-debug",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}
+    }
+  ]
+}

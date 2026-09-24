@@ -1,0 +1,62 @@
+{
+    "rules": [
+        {
+            "anchor": "34",
+            "background": "#fff6d365",
+            "bold": false,
+            "border": "",
+            "cursor": "41",
+            "enabled": true,
+            "foreground": "#ff202020",
+            "italic": false,
+            "length": "1",
+            "name": "Selección 1",
+            "rectangular": false,
+            "repetitions": "1",
+            "selectionRule": true,
+            "start": "0",
+            "step": "1",
+            "stride": 16,
+            "underline": false
+        },
+        {
+            "anchor": "-1",
+            "background": "#fff6d365",
+            "bold": false,
+            "border": "#ffe89323",
+            "cursor": "-1",
+            "enabled": true,
+            "foreground": "#ff202020",
+            "italic": false,
+            "length": "4",
+            "name": "Secuencia",
+            "rectangular": false,
+            "repetitions": "4",
+            "selectionRule": false,
+            "start": "64",
+            "step": "16",
+            "stride": 16,
+            "underline": false
+        },
+        {
+            "anchor": "-1",
+            "background": "#fff6d365",
+            "bold": false,
+            "border": "#ffe89323",
+            "cursor": "-1",
+            "enabled": true,
+            "foreground": "#ff202020",
+            "italic": false,
+            "length": "8",
+            "name": "Selección 1",
+            "rectangular": false,
+            "repetitions": "1",
+            "selectionRule": false,
+            "start": "34",
+            "step": "8",
+            "stride": 16,
+            "underline": false
+        }
+    ],
+    "version": 1
+}

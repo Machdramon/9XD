@@ -1,0 +1,35 @@
+{
+  "magic": "BWS1",
+  "endianness": "little",
+  "vertex_count": 128,
+  "index_count": 402,
+  "triangle_count": 252,
+  "position_scale": 0.0001,
+  "blocks": {
+    "vertices": {
+      "offset": 128,
+      "bytes": 1536,
+      "stride": 12
+    },
+    "indices": {
+      "offset": 1664,
+      "bytes": 804,
+      "stride": 2
+    },
+    "uv": {
+      "offset": 2480,
+      "bytes": 512,
+      "stride": 4
+    },
+    "normals_float32": {
+      "offset": 2992,
+      "bytes": 1536,
+      "stride": 12
+    },
+    "normals_snorm16": {
+      "offset": 4528,
+      "bytes": 768,
+      "stride": 6
+    }
+  }
+}
