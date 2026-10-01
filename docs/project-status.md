@@ -36,7 +36,7 @@ Se añadió una prueba con eventos continuos. No modifica el esquema del archivo
 4. Descompresión/desempaquetado. Reconocer una firma no descomprime su contenido.
 5. Acceso a RAM de procesos, captura, edición y refresco de regiones.
 6. Vincular texturas y materiales al visor 3D/UV; GLB admite un material mate de color de prueba.
-7. Windows/Linux: superficie Vulkan nativa, compilación y pruebas reales; empaquetado sin
+7. Linux: superficie Vulkan nativa, compilación y pruebas reales. Windows ya se validó (véase abajo). Falta empaquetado sin
    depender de las rutas de Qt, Python, compilador y SDK instaladas en este equipo.
 8. Gradientes por offset/strip/UV/coordenadas y editor libre de puntos del gradiente.
    Actualmente solo hay tres colores editables y mapeo por índice de vértice/cara.
@@ -69,3 +69,10 @@ al crecimiento del visor, sin confundir las pruebas sin pantalla con validación
 Revisión de exportación: compilación correcta y ambas suites automatizadas completas pasan.
 Diálogo inspeccionado mediante captura sin GPU; exportación de la esfera a los tres formatos
 verificada. No se ha validado aún su importación en Blender u otra aplicación externa.
+
+
+## Preparación Windows · 2026-09-24
+
+La superficie Win32 compila y presenta imagen en una RTX 4060 Ti. Ambas suites pasan en Windows; también la prueba nativa con GPU, docking y selección/UV.
+Entorno instalado: MSVC 2022 x64, Qt 6.11.2, Vulkan SDK 1.4.357.0 y Python 3.13.15. Blender 4.5.1 importa la esfera GLB/OBJ/STL con 128 vértices y 252 caras.
+Pasos y resultados: [Windows](windows.md). Las verificaciones macOS anteriores no acreditan Windows.

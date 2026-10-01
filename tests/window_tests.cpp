@@ -20,6 +20,67 @@ class WindowTests : public QObject {
         });
     }
 private slots:
+    void nativeVulkanSmoke() {
+        if(!qEnvironmentVariableIsSet("WORKBENCH_GPU_TEST"))
+            QSKIP("Opt-in test: requires a native desktop and Vulkan GPU.");
+        QVERIFY(QGuiApplication::platformName()=="windows" || QGuiApplication::platformName()=="cocoa");
+        QTemporaryDir temporary;
+        QString output=qEnvironmentVariable("WORKBENCH_GPU_OUTPUT",temporary.path());
+        QVERIFY(QDir().mkpath(output));
+        QMainWindow host;auto *dock=new QDockWidget("GPU test",&host);auto *renderer=new VulkanPanel;dock->setWidget(renderer);host.addDockWidget(Qt::RightDockWidgetArea,dock);host.resize(920,740);host.show();auto &panel=*renderer;
+        auto source=readPage({WORKBENCH_SPHERE,0,-1,{},0});
+        auto result=readMesh({WORKBENCH_SPHERE,0,source.size,source.modified,0},{},MeshSpec{});
+        QVERIFY2(result.error.isEmpty(),qPrintable(result.error));
+        QCOMPARE(result.mesh->vertices.size(),128);QCOMPARE(result.mesh->triangles.size()/3,252);
+        panel.setMesh(result.mesh);
+        auto *surface=panel.findChild<QWidget *>("vulkanSurface");
+        auto *status=panel.findChild<QLabel *>("vulkanStatus");
+        auto *mode=panel.findChild<QComboBox *>("meshSelectionMode");
+        auto *labels=panel.findChild<QCheckBox *>("meshLabels");
+        QTRY_VERIFY_WITH_TIMEOUT(status->text().startsWith("Vulkan ·"),15000);
+        QTRY_VERIFY(status->text().contains("252 triángulos"));
+        qInfo().noquote()<<status->text();
+        auto capture=[&](QString name){qInfo().noquote()<<name;QTest::qWait(400);return status->text().startsWith("Vulkan ·");}; // Capture GPU frames with VK_LAYER_LUNARG_screenshot; QWidget grabs omit native Vulkan.
+        QVERIFY(capture("sphere-initial"));
+        mode->setCurrentIndex(1);labels->setChecked(true);
+        QTest::mouseClick(surface,Qt::LeftButton,Qt::NoModifier,surface->rect().center());
+        QVERIFY(panel.scene()->selection().index>=0);
+        QVERIFY(capture("sphere-selected"));
+        QPoint center=surface->rect().center();
+        QTest::mousePress(surface,Qt::LeftButton,Qt::NoModifier,center);
+        QMouseEvent move(QEvent::MouseMove,QPointF(center+QPoint(85,35)),QPointF(surface->mapToGlobal(center+QPoint(85,35))),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+        QApplication::sendEvent(surface,&move);
+        QTest::mouseRelease(surface,Qt::LeftButton,Qt::NoModifier,center+QPoint(85,35));
+        QWheelEvent wheel(QPointF(center),QPointF(surface->mapToGlobal(center)),QPoint(),QPoint(0,120),Qt::NoButton,Qt::NoModifier,Qt::NoScrollPhase,false);
+        QApplication::sendEvent(surface,&wheel);
+        QVERIFY(capture("sphere-camera"));
+        auto before=status->text();host.resize(1050,800);
+        QTRY_VERIFY(status->text()!=before);QVERIFY(status->text().startsWith("Vulkan ·"));
+        QVERIFY(capture("sphere-resized"));
+        panel.hide();QTest::qWait(100);panel.show();QTest::qWait(200);
+        QVERIFY(status->text().startsWith("Vulkan ·"));
+        dock->setFloating(true);dock->resize(900,680);QTest::qWait(400);
+        QVERIFY(status->text().startsWith("Vulkan ·"));
+        dock->setFloating(false);QTest::qWait(400);
+        QVERIFY(status->text().startsWith("Vulkan ·"));
+        auto second=panel.scene()->add(result.mesh,"Second");
+        QTRY_VERIFY(status->text().contains("504 triángulos"));
+        panel.scene()->setVisible(second,false);
+        QTRY_VERIFY(status->text().contains("252 triángulos"));
+        panel.scene()->remove(second);
+        panel.scene()->select(panel.scene()->active(),MeshElement::Face,94);
+        UvPanel uv(&panel);uv.resize(700,600);uv.show();QTest::qWait(200);
+        QVERIFY(uv.findChild<QLabel *>("uvSelectionInfo")->text().contains("Cara 94"));
+        QVERIFY(uv.grab().save(output+"/sphere-uv.png"));
+        for(auto format:{ModelFormat::Glb,ModelFormat::Obj,ModelFormat::Stl}) {
+            ModelExportOptions options;options.format=format;options.protectedPaths={WORKBENCH_SPHERE};
+            QString suffix=format==ModelFormat::Glb?"glb":format==ModelFormat::Obj?"obj":"stl";
+            auto exported=exportModel(output+"/sphere."+suffix,{{"Sphere",WORKBENCH_SPHERE,result.mesh}},options);
+            QVERIFY2(exported.ok,qPrintable(exported.error));QCOMPARE(exported.vertices,quint64(128));QCOMPARE(exported.faces,quint64(252));
+        }
+    }
+
+
     void recentFilesMenuAndSuccessfulOpens() {
         QTemporaryDir dir;QString a=dir.filePath("a.bin"),b=dir.filePath("b.bin");for(auto path:{a,b}){QFile f(path);QVERIFY(f.open(QIODevice::WriteOnly));f.write("1234");}
         a=QFileInfo(a).canonicalFilePath();b=QFileInfo(b).canonicalFilePath();

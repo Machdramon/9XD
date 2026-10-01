@@ -33,6 +33,13 @@
 #define VK_USE_PLATFORM_METAL_EXT
 #include "metal_surface.h"
 #endif
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <windows.h>
+#endif
 #include <vulkan/vulkan.h>
 namespace {
 void check(VkResult r,const char *operation){if(r!=VK_SUCCESS)throw std::runtime_error(QString("%1: Vulkan %2").arg(operation).arg(int(r)).toStdString());}
@@ -127,9 +134,10 @@ public:
         layer=nullptr;
     }
     void initialize(){
-#ifndef Q_OS_MACOS
-        throw std::runtime_error("La superficie nativa de Windows/Linux está pendiente; el editor sigue disponible.");
+#if !defined(Q_OS_MACOS) && !defined(Q_OS_WIN)
+        throw std::runtime_error("La superficie nativa de Linux está pendiente; el editor sigue disponible.");
 #else
+#ifdef Q_OS_MACOS
         if(QGuiApplication::platformName()!="cocoa")throw std::runtime_error("Vulkan requiere una sesión gráfica de macOS (Cocoa).");
         if(qEnvironmentVariableIsEmpty("VK_DRIVER_FILES")&&qEnvironmentVariableIsEmpty("VK_ICD_FILENAMES")&&QString(WORKBENCH_VULKAN_DRIVER).size())qputenv("VK_DRIVER_FILES",WORKBENCH_VULKAN_DRIVER);
         const auto nativeView=winId();
@@ -138,6 +146,24 @@ public:
         VkInstanceCreateInfo ci{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};ci.pApplicationInfo=&app;ci.enabledExtensionCount=3;ci.ppEnabledExtensionNames=extensions;ci.flags=VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;check(vkCreateInstance(&ci,nullptr,&instance),"Crear instancia");
         layer=createMetalLayer(nativeView);resizeMetalLayer(layer,qRound(width()*devicePixelRatioF()),qRound(height()*devicePixelRatioF()),devicePixelRatioF());
         auto create=reinterpret_cast<PFN_vkCreateMetalSurfaceEXT>(vkGetInstanceProcAddr(instance,"vkCreateMetalSurfaceEXT"));if(!create)throw std::runtime_error("VK_EXT_metal_surface no disponible.");VkMetalSurfaceCreateInfoEXT metal{VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT};metal.pLayer=static_cast<const CAMetalLayer *>(layer);check(create(instance,&metal,nullptr,&surface),"Crear superficie Metal");
+#else
+        if(QGuiApplication::platformName()!="windows")
+            throw std::runtime_error("Vulkan requiere una sesión gráfica de Windows.");
+        // Obtain the HWND before creating the instance: WinIdChange can clean up Vulkan.
+        const auto hwnd=reinterpret_cast<HWND>(winId());
+        const char *extensions[]={VK_KHR_SURFACE_EXTENSION_NAME,VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
+        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
+        app.pApplicationName="Binary Workbench";app.apiVersion=VK_API_VERSION_1_0;
+        VkInstanceCreateInfo ci{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+        ci.pApplicationInfo=&app;ci.enabledExtensionCount=2;ci.ppEnabledExtensionNames=extensions;
+        check(vkCreateInstance(&ci,nullptr,&instance),"Crear instancia");
+        auto create=reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(vkGetInstanceProcAddr(instance,"vkCreateWin32SurfaceKHR"));
+        if(!create)throw std::runtime_error("VK_KHR_win32_surface no disponible.");
+        VkWin32SurfaceCreateInfoKHR native{VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
+        native.hwnd=hwnd;
+        native.hinstance=reinterpret_cast<HINSTANCE>(GetWindowLongPtrW(hwnd,GWLP_HINSTANCE));
+        check(create(instance,&native,nullptr,&surface),"Crear superficie Win32");
+#endif
         uint32_t count=0;check(vkEnumeratePhysicalDevices(instance,&count,nullptr),"Enumerar GPU");std::vector<VkPhysicalDevice> devices(count);check(vkEnumeratePhysicalDevices(instance,&count,devices.data()),"Enumerar GPU");gpu=VK_NULL_HANDLE;
         for(auto candidate:devices){uint32_t n=0;vkGetPhysicalDeviceQueueFamilyProperties(candidate,&n,nullptr);std::vector<VkQueueFamilyProperties> props(n);vkGetPhysicalDeviceQueueFamilyProperties(candidate,&n,props.data());for(uint32_t i=0;i<n;++i){VkBool32 present=VK_FALSE;check(vkGetPhysicalDeviceSurfaceSupportKHR(candidate,i,surface,&present),"Soporte de presentación");if((props[i].queueFlags&VK_QUEUE_GRAPHICS_BIT)&&present){gpu=candidate;family=i;break;}}if(gpu)break;}
         if(!gpu)throw std::runtime_error("No se encontró una GPU con presentación Vulkan.");VkPhysicalDeviceProperties props;vkGetPhysicalDeviceProperties(gpu,&props);gpuName=QString::fromUtf8(props.deviceName);

@@ -31,6 +31,22 @@
 #include <QtConcurrentRun>
 #include <climits>
 #include <QWheelEvent>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <winioctl.h>
+#include <io.h>
+#endif
+
+// QFile::resize alone does not mark a file sparse on NTFS.
+static bool resizeSparseFile(QFile &file, qint64 size) {
+#ifdef Q_OS_WIN
+    const auto handle=reinterpret_cast<HANDLE>(_get_osfhandle(file.handle()));
+    DWORD returned=0;
+    if(handle==INVALID_HANDLE_VALUE || !DeviceIoControl(handle,FSCTL_SET_SPARSE,
+        nullptr,0,nullptr,0,&returned,nullptr))return false;
+#endif
+    return file.resize(size);
+}
 
 class ReaderTests : public QObject {
     Q_OBJECT
@@ -359,7 +375,7 @@ private slots:
         QFile file(path);
         QVERIFY(file.open(QIODevice::ReadWrite));
         constexpr qint64 size = 10LL * 1024 * 1024 * 1024;
-        QVERIFY(file.resize(size));
+        QVERIFY(resizeSparseFile(file,size));
         QVERIFY(file.seek(size - 3));
         QCOMPARE(file.write("XYZ", 3), 3);
         file.close();
@@ -472,7 +488,7 @@ private slots:
         QTemporaryDir dir;const auto path=dir.filePath("scroll.bin");QFile file(path);
         QVERIFY(file.open(QIODevice::ReadWrite));
         constexpr qint64 size=64LL*1024*1024*1024;
-        QVERIFY(file.resize(size));QVERIFY(file.seek(size-1));QCOMPARE(file.write("Z",1),1);file.close();
+        QVERIFY(resizeSparseFile(file,size));QVERIFY(file.seek(size-1));QCOMPARE(file.write("Z",1),1);file.close();
         HexView view;view.resize(1100,700);view.show();view.openFile(path);
         QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
         auto *scroll=view.findChild<QScrollBar *>("fileScroll");auto *table=view.findChild<QTableWidget *>();

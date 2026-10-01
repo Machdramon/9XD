@@ -73,7 +73,7 @@ Compartir código, pruebas, ejemplos y configuraciones generales. CMakeUserPrese
 
 Pruebas con archivos dispersos de 10 y 64 GiB: posiciones de 64 bits, últimos bytes, stride no divisor del tamaño, desplazamiento escalado, rueda y avance exacto por filas. Pruebas de la caché: cruce de bloques, reutilización sin releer datos, máximo de 20 MiB, descarte LRU, truncado y exclusión de resultados tras cambiar de archivo. También se verifican selección rectangular, copia, japonés/Unicode, floats y endianness, calculadora, cola acotada y respuesta del bucle de eventos. La edición tiene pruebas de superposición, deshacer/rehacer, selección rectangular, inspector y copia, guardado sobre el original y en otra ruta, cruce de bloques, direcciones de 64 bits y conservación del destino ante errores.
 
-Los archivos dispersos tienen gran tamaño lógico sin ocuparlo físicamente. Estas pruebas no equivalen a un benchmark de disco sobre archivos reales de ese tamaño. Compilado y probado en macOS ARM64; Windows y Linux aún no se han ejecutado.
+Los archivos dispersos tienen gran tamaño lógico sin ocuparlo físicamente. Estas pruebas no equivalen a un benchmark de disco sobre archivos reales de ese tamaño. Compilado y probado en macOS ARM64; Windows también se ha compilado y probado: véase la guía Windows. Linux aún no se ha ejecutado.
 
 ```sh
 cmake --preset mac-local
@@ -320,8 +320,7 @@ bloques de normales para comparar Float32 con SNorm16. El preset carga esos offs
 no se trata todavía de un lector automático de cabeceras.
 
 En macOS utiliza CAMetalLayer/MoltenVK, se suspende al ocultarse y recrea los recursos
-al redimensionar. Los errores se muestran en el panel con Reintentar Vulkan. Windows/
-Linux siguen pendientes de integración nativa. La compilación, lectura, topología,
+al redimensionar. Los errores se muestran en el panel con Reintentar Vulkan. Windows utiliza una superficie Win32; Linux sigue pendiente de integración nativa. La compilación, lectura, topología,
 controles y validación SPIR-V se comprueban sin GPU. La presentación real y el docking
 con GPU aún requieren comprobación en una sesión gráfica con acceso a Metal.
 
@@ -479,3 +478,10 @@ Abrir un reciente respeta el aviso de cambios pendientes.
 Las pruebas cubren formatos, transformaciones, UV, índices, cancelación y protección
 del origen, además del diálogo y persistencia del historial. La esfera de prueba
 se exporta con 128 vértices y 252 triángulos.
+
+
+## Preparación Windows · 2026-09-24
+
+La superficie Win32 compila y presenta imagen en una RTX 4060 Ti. Ambas suites pasan en Windows; también la prueba nativa con GPU, docking y selección/UV.
+Entorno instalado: MSVC 2022 x64, Qt 6.11.2, Vulkan SDK 1.4.357.0 y Python 3.13.15. Blender 4.5.1 importa la esfera GLB/OBJ/STL con 128 vértices y 252 caras.
+Pasos y resultados: [Windows](docs/windows.md). Las verificaciones macOS anteriores no acreditan Windows.

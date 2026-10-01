@@ -74,7 +74,7 @@ void ScriptPanel::execute(){
     if(!headerOpen||!writeFile(directory_->filePath("workbench.hpp"),header.readAll())||!writeFile(directory_->filePath("entry.cpp"),wrapper)){log("No se pudo preparar la API C++.");run_->setEnabled(true);language_->setEnabled(true);stop_->setEnabled(false);return;}
     QStringList args;
 #ifdef Q_OS_WIN
-    if(QString(WORKBENCH_CXX_ID)=="MSVC")args={"/nologo","/std:c++latest","/EHsc","/LD","script.cpp","entry.cpp","/Fe:script.dll"};else args={"-std=c++23","-shared","script.cpp","entry.cpp","-o","script.dll"};
+    if(QString(WORKBENCH_CXX_ID)=="MSVC")args={"/nologo","/std:c++latest","/utf-8","/EHsc","/LD","script.cpp","entry.cpp","/Fe:script.dll"};else args={"-std=c++23","-shared","script.cpp","entry.cpp","-o","script.dll"};
 #elif defined(Q_OS_MACOS)
     args={"-std=c++23","-dynamiclib","-fPIC","script.cpp","entry.cpp","-o","script.dylib"};
 #else
