@@ -1,0 +1,29 @@
+Binary Workbench Windows distribution
+
+Qt 6 (Core, Gui, Widgets, Concurrent, image plugins)
+https://www.qt.io/licensing/open-source-lgpl-obligations
+https://download.qt.io/official_releases/qt/
+Qt shared libraries and plugins are distributed under LGPL v3; see LGPL-3.0.txt.
+The libraries are dynamically linked and may be replaced with compatible builds.
+Qt image codecs include libtiff (libtiff license), libwebp (BSD-3-Clause),
+libpng, zlib and libjpeg-turbo. Codec notices are in Qt's attribution pages:
+https://doc.qt.io/qt-6/qtimageformats-attributions.html
+https://doc.qt.io/qt-6/qtgui-attribution-libpng.html
+https://doc.qt.io/qt-6/qtgui-attribution-libjpeg-turbo.html
+
+bcdec by Sergii Kudlai: MIT license, see bcdec.txt.
+https://github.com/iOrange/bcdec
+
+CPython: Python Software Foundation License and included dependency notices,
+see Python.txt. Standard library and extension modules from the matching
+official Windows Python installation; no user site-packages are included.
+https://www.python.org/downloads/source/
+
+Khronos Vulkan Loader: Apache-2.0, see Vulkan-Loader.txt.
+https://github.com/KhronosGroup/Vulkan-Loader
+The loader is not a GPU driver. Install the graphics vendor's Vulkan driver
+for 3D rendering. GPU drivers and the Vulkan SDK are not bundled.
+
+Microsoft Visual C++ runtime: redistributable runtime files from the Visual
+Studio Redist directory. The official x64 redistributable installer is included
+under prerequisites when available. Microsoft license terms apply.

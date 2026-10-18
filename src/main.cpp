@@ -415,7 +415,8 @@ private:
     void showDocs(){
         auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Documentation · Binary Workbench");
         auto *layout=new QVBoxLayout(dialog);auto *text=new QTextBrowser;layout->addWidget(text);
-        QFile file(WORKBENCH_DOCUMENTATION);
+        const auto bundledGuide=QDir(QCoreApplication::applicationDirPath()).filePath("docs/user-guide.md");
+        QFile file(QFileInfo::exists(bundledGuide)?bundledGuide:QString(WORKBENCH_DOCUMENTATION));
         if(file.open(QIODevice::ReadOnly))text->setMarkdown(QString::fromUtf8(file.readAll()));else text->setPlainText("The English user guide was not found in the project folder.");
         dialog->resize(780,680);dialog->show();
     }
@@ -428,7 +429,14 @@ private:
 #ifndef WORKBENCH_NO_MAIN
 int main(int argc,char **argv){
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
-    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");WorkspaceWindow window(UiLayout::defaultPath());window.show();const auto args=app.arguments();
+    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");
+    if(app.arguments().contains("--deployment-check")){
+        const auto formats=QImageReader::supportedImageFormats();
+        for(const auto &format:{"png","jpeg","bmp","tiff","webp"})if(!formats.contains(format))return 3;
+        const QDir folder(QCoreApplication::applicationDirPath());
+        return folder.exists("script_runner.exe")&&folder.exists("docs/user-guide.md")&&folder.exists("python/python.exe")?0:4;
+    }
+    WorkspaceWindow window(UiLayout::defaultPath());window.show();const auto args=app.arguments();
     if(args.size()>1&&!args[1].startsWith("--"))window.openFile(args[1]);
     if(args.contains("--smoke-test"))QTimer::singleShot(1000,&window,&QWidget::close);
     return app.exec();

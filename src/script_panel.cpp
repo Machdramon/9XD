@@ -17,6 +17,8 @@
 #include <QFontDatabase>
 #include <QTextCursor>
 #include <QProcessEnvironment>
+#include <QCoreApplication>
+#include <QDir>
 namespace {
 bool writeFile(QString path,const QByteArray &bytes){QSaveFile file(path);return file.open(QIODevice::WriteOnly)&&file.write(bytes)==bytes.size()&&file.commit();}
 const char *pythonExample=R"PY(import workbench as bw
@@ -91,7 +93,12 @@ void ScriptPanel::launchRunner(){QString script=current_==0?"script.py":
 #else
     "script.so";
 #endif
-    process_.start(WORKBENCH_SCRIPT_RUNNER,{current_==0?"python":"cpp",directory_->filePath("context.json"),directory_->filePath(script),directory_->filePath("result.json")});}
+    const auto bundledRunner=QDir(QCoreApplication::applicationDirPath()).filePath("script_runner"
+#ifdef Q_OS_WIN
+        ".exe"
+#endif
+    );
+    process_.start(QFileInfo::exists(bundledRunner)?bundledRunner:QString(WORKBENCH_SCRIPT_RUNNER),{current_==0?"python":"cpp",directory_->filePath("context.json"),directory_->filePath(script),directory_->filePath("result.json")});}
 void ScriptPanel::finish(int code,QProcess::ExitStatus exitStatus){
     output();if(compiling_&&!stopped_&&exitStatus==QProcess::NormalExit&&code==0){compiling_=false;log("▶ Running C++…");launchRunner();return;}
     run_->setEnabled(true);stop_->setEnabled(false);language_->setEnabled(true);

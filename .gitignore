@@ -3,3 +3,4 @@
 /.idea/
 /CMakeUserPresets.json
 .DS_Store
+/dist/

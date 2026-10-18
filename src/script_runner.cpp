@@ -9,6 +9,8 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QLibrary>
+#include <QDir>
+#include <QFileInfo>
 #include <iostream>
 namespace {
 ReadRequest source;PatchList patches;QJsonObject context;QByteArray lastError;std::shared_ptr<MeshData> published,initial;
@@ -25,7 +27,22 @@ int main(int argc,char **argv){
     try{
         QFile input(args[2]);if(!input.open(QIODevice::ReadOnly)||input.size()>64*1024*1024)throw std::runtime_error("Context unavailable or too large.");auto doc=QJsonDocument::fromJson(input.readAll());if(!doc.isObject())throw std::runtime_error("Invalid context.");context=doc.object();source={context["path"].toString(),0,context["size"].toString().toLongLong(),QDateTime::fromString(context["modified"].toString(),Qt::ISODateWithMs),0};if(context.contains("memoryBlocks")){auto memory=std::make_shared<MemoryData>();for(auto value:context["memoryBlocks"].toArray()){auto bytes=QByteArray::fromBase64(value.toString().toLatin1());memory->size+=bytes.size();memory->blocks.append(bytes);}if(memory->size!=source.expectedSize)throw std::runtime_error("Invalid RAM snapshot size.");source.memory=memory;}for(auto v:context["patches"].toArray()){auto p=v.toObject();patches.append({p["offset"].toString().toLongLong(),QByteArray::fromBase64(p["bytes"].toString().toLatin1())});}QString error;initial=scriptMeshFromJson(context["mesh"].toObject(),error);if(!initial)throw std::runtime_error(error.toStdString());
         if(args[1]=="python"){
-            if(PyImport_AppendInittab("workbench",initModule)<0)throw std::runtime_error("Could not register workbench.");PyConfig config;PyConfig_InitPythonConfig(&config);config.parse_argv=0;config.buffered_stdio=0;config.install_signal_handlers=0;auto set=PyConfig_SetBytesString(&config,&config.program_name,WORKBENCH_PYTHON_EXECUTABLE);if(PyStatus_Exception(set)){PyConfig_Clear(&config);throw std::runtime_error("Invalid Python path.");}auto status=Py_InitializeFromConfig(&config);PyConfig_Clear(&config);if(PyStatus_Exception(status))throw std::runtime_error(status.err_msg?status.err_msg:"Could not initialize Python.");
+            if(PyImport_AppendInittab("workbench",initModule)<0)throw std::runtime_error("Could not register workbench.");
+            const auto pythonHome=QDir(QCoreApplication::applicationDirPath()).filePath("python");
+            const bool bundled=QFileInfo::exists(QDir(pythonHome).filePath("python.exe"));
+            PyConfig config;if(bundled)PyConfig_InitIsolatedConfig(&config);else PyConfig_InitPythonConfig(&config);
+            config.parse_argv=0;config.buffered_stdio=0;config.install_signal_handlers=0;
+            const auto pythonExecutable=bundled?QDir(pythonHome).filePath("python.exe").toUtf8():QByteArray(WORKBENCH_PYTHON_EXECUTABLE);
+            auto set=PyConfig_SetBytesString(&config,&config.program_name,pythonExecutable.constData());
+            if(!PyStatus_Exception(set)&&bundled)set=PyConfig_SetBytesString(&config,&config.home,pythonHome.toUtf8().constData());
+            if(!PyStatus_Exception(set)&&bundled){
+                config.module_search_paths_set=1;
+                for(const auto &path:{QDir(pythonHome).filePath(QString("python%1%2.zip").arg(PY_MAJOR_VERSION).arg(PY_MINOR_VERSION)),QDir(pythonHome).filePath("DLLs"),QDir(pythonHome).filePath("Lib")}){
+                    const auto wide=path.toStdWString();set=PyWideStringList_Append(&config.module_search_paths,wide.c_str());if(PyStatus_Exception(set))break;
+                }
+            }
+            if(PyStatus_Exception(set)){PyConfig_Clear(&config);throw std::runtime_error("Invalid Python path.");}
+            auto status=Py_InitializeFromConfig(&config);PyConfig_Clear(&config);if(PyStatus_Exception(status))throw std::runtime_error(status.err_msg?status.err_msg:"Could not initialize Python.");
             auto *main=PyImport_AddModule("__main__");auto *globals=PyModule_GetDict(main);auto json=QJsonDocument(context).toJson(QJsonDocument::Compact);auto *value=PyUnicode_DecodeUTF8(json.constData(),json.size(),"strict");if(!value)throw std::runtime_error("Invalid Python context.");PyDict_SetItemString(globals,"_context_json",value);Py_DECREF(value);
             const char *bootstrap=R"PY(
 import json, copy, workbench

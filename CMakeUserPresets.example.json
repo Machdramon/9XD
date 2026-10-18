@@ -1,0 +1,28 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "windows-local",
+      "inherits": "base-debug",
+      "binaryDir": "${sourceDir}/build/windows-local",
+      "architecture": {"value": "x64", "strategy": "external"},
+      "vendor": {"jetbrains.com/clion": {"toolchain": "Visual Studio"}},
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.2/msvc2022_64",
+        "Python3_ROOT_DIR": "C:/Python313"
+      },
+      "environment": {"VULKAN_SDK": "C:/VulkanSDK/1.4.357.0"}
+    },
+    {
+      "name": "windows-release",
+      "inherits": "windows-local",
+      "binaryDir": "${sourceDir}/build/windows-release",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "BUILD_TESTING": false}
+    }
+  ],
+  "buildPresets": [
+    {"name": "windows-local", "configurePreset": "windows-local"},
+    {"name": "windows-release", "configurePreset": "windows-release"},
+    {"name": "windows-package", "configurePreset": "windows-release", "targets": ["windows_package"]}
+  ]
+}

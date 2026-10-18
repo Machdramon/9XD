@@ -21,6 +21,14 @@ class WindowTests : public QObject {
         });
     }
 private slots:
+    void imageCalculatorCompressedRamAndContainerMip(){
+        WorkspaceWindow workspace;workspace.show();auto *document=workspace.activeDocument();auto *view=document->documentView();QString error;
+        QVERIFY(view->replaceSelection(QByteArray::fromHex("00f8000000000000"),error));auto *dock=document->sessionDock("imageCalculatorDock");dock->toggleViewAction()->trigger();
+        auto *format=dock->findChild<QComboBox *>("imageFormat");format->setCurrentText("BC1");dock->findChild<QSpinBox *>("imageWidth")->setValue(3);dock->findChild<QSpinBox *>("imageHeight")->setValue(2);auto *calculate=dock->findChild<QPushButton *>("imageCalculate");calculate->click();auto *tools=dynamic_cast<ImageWorkbench *>(document->sessionDock("uvDock")->findChild<QObject *>("imageWorkbench"));QVERIFY(tools);QTRY_COMPARE(tools->imageCount(),1);QCOMPARE(tools->entry(0).image.pixelColor(2,1),QColor(Qt::red));
+        QByteArray dds(128,0);dds.replace(0,4,"DDS ");auto put=[&](int at,quint32 v){qToLittleEndian(v,reinterpret_cast<uchar *>(dds.data()+at));};put(4,124);put(12,4);put(16,4);put(28,2);put(76,32);put(80,4);dds.replace(84,4,"DXT1");dds+=QByteArray::fromHex("00f8000000000000e007000000000000");view->selectWholeDocument();QVERIFY(view->replaceSelection(dds,error));dock->findChild<QComboBox *>("imageSource")->setCurrentIndex(0);format->setCurrentText("Encoded image");auto *mip=dock->findChild<QSpinBox *>("imageMipLevel");QVERIFY(mip->isEnabled());mip->setValue(1);calculate->click();QTRY_COMPARE(tools->imageCount(),2);QCOMPARE(tools->entry(1).image.size(),QSize(2,2));QCOMPARE(tools->entry(1).image.pixelColor(0,0),QColor(Qt::green));
+        QCOMPARE(dock->parentWidget(),workspace.moduleHost("uv"));QVERIFY(dock->findChild<QComboBox *>("imageMemoryLayout")->findText("Xbox 360 tiled")>=0);QVERIFY(dock->findChild<QComboBox *>("imagePaletteFormat")->findText("PS1 BGR555")>=0);
+        view->discardEdits();workspace.close();QTRY_VERIFY(!workspace.isVisible());
+    }
     void imageLibraryUsesDocumentSnapshotsAndOwnModule(){
         WorkspaceWindow workspace;workspace.show();auto *document=workspace.activeDocument();auto *view=document->documentView();QString error;
         QVERIFY(view->replaceSelection(QByteArray::fromHex("ff0000ff00ff00ff"),error));

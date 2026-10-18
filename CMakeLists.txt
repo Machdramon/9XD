@@ -9,6 +9,7 @@ if(MSVC)
     set(WORKBENCH_MSVC_INCLUDE_PREFIX "" CACHE STRING "Override localized MSVC include prefix when automatic detection is misdecoded")
     if(WORKBENCH_MSVC_INCLUDE_PREFIX)
         set(CMAKE_CL_SHOWINCLUDES_PREFIX "${WORKBENCH_MSVC_INCLUDE_PREFIX}")
+        set(CMAKE_CXX_CL_SHOWINCLUDES_PREFIX "${WORKBENCH_MSVC_INCLUDE_PREFIX}")
     endif()
     # Source strings and scripting output use UTF-8 on every platform.
     add_compile_options(/utf-8 /Zc:__cplusplus)
@@ -24,6 +25,9 @@ qt_standard_project_setup()
 set(WORKBENCH_VULKAN_DRIVER "" CACHE FILEPATH "Optional local Vulkan driver manifest")
 configure_file(src/local_config.h.in generated/local_config.h @ONLY)
 qt_add_executable(binary_workbench src/main.cpp src/binary_reader.cpp src/binary_reader.h src/hex_view.cpp src/hex_view.h src/interpretation.cpp src/chunk_cache.cpp src/binary_document.cpp src/byte_format.cpp src/format_panel.cpp src/pattern_search.cpp src/magic_bytes.cpp src/magic_panel.cpp src/entropy.cpp src/entropy_panel.cpp src/direct_edit.cpp src/mesh_data.cpp)
+if(WIN32)
+    set_target_properties(binary_workbench PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
 if(APPLE)
     set_target_properties(binary_workbench PROPERTIES MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_GUI_IDENTIFIER "org.binaryworkbench.dev"
@@ -126,3 +130,27 @@ endif()
 add_custom_command(TARGET binary_workbench POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:binary_workbench>/licenses"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/src/bcdec-LICENSE.txt" "$<TARGET_FILE_DIR:binary_workbench>/licenses/bcdec.txt")
+
+if(WIN32)
+    find_file(WORKBENCH_PACKAGE_VULKAN_LOADER NAMES vulkan-1.dll
+        PATHS "$ENV{VULKAN_SDK}/Bin" "$ENV{SystemRoot}/System32" NO_DEFAULT_PATH)
+    if(WORKBENCH_PACKAGE_VULKAN_LOADER)
+        get_target_property(workbench_qmake Qt6::qmake IMPORTED_LOCATION)
+        get_filename_component(workbench_qt_bin "${workbench_qmake}" DIRECTORY)
+        add_custom_target(windows_package
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/package_windows.py"
+                --build-dir "${CMAKE_CURRENT_BINARY_DIR}" --qt-bin "${workbench_qt_bin}"
+                --python "${Python3_EXECUTABLE}" --version "${PROJECT_VERSION}"
+                --vulkan-loader "${WORKBENCH_PACKAGE_VULKAN_LOADER}"
+                --vulkan-license "${CMAKE_CURRENT_SOURCE_DIR}/tools/Vulkan-Loader-LICENSE.txt"
+            DEPENDS binary_workbench script_runner USES_TERMINAL
+            COMMENT "Create and verify the Windows Release ZIP (windows-release profile)")
+    endif()
+endif()
+
+# Dependency probes may reload CMakeCXXCompiler.cmake, restoring a misdecoded
+# localized prefix. Apply the explicit override again after all package probes.
+if(MSVC AND WORKBENCH_MSVC_INCLUDE_PREFIX)
+    set(CMAKE_CXX_CL_SHOWINCLUDES_PREFIX "${WORKBENCH_MSVC_INCLUDE_PREFIX}")
+    set(CMAKE_CL_SHOWINCLUDES_PREFIX "${WORKBENCH_MSVC_INCLUDE_PREFIX}")
+endif()
