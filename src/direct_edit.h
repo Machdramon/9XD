@@ -10,3 +10,5 @@ struct DirectEditSpec {
     QMap<qint64,QString> drafts;
 };
 ReadResult directEdit(const ReadRequest &,const DirectEditSpec &);
+
+QByteArray encodeInputCharacter(const QString &,const QString &);

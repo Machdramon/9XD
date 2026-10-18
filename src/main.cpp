@@ -6,12 +6,19 @@
 #include "layout_persistence.h"
 #include "vulkan_panel.h"
 #include "uv_panel.h"
+#include "image_workbench.h"
 #include "entropy_panel.h"
+#include "checksum_panel.h"
 #include "magic_panel.h"
 #include "hex_view.h"
 #include "format_panel.h"
 #include "local_config.h"
 #include <QApplication>
+#include "theme.h"
+#include "settings_dialog.h"
+#include <QClipboard>
+#include <QActionGroup>
+#include <QSpinBox>
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QFileDialog>
@@ -40,48 +47,74 @@
 
 class MainWindow final : public QMainWindow {
 public:
-    explicit MainWindow(QString uiStatePath={}) {
-        recent_=std::make_unique<RecentFiles>(uiStatePath.isEmpty()?QString():QFileInfo(uiStatePath).dir().filePath("recent-files.json"));
+    std::function<void(const QString &)> openRequested;
+    std::function<void()> newRequested,exitRequested,settingsRequested;
+    std::function<bool(const QString &)> saveDestinationAllowed;
+    HexView *documentView()const{return view_;}
+    QString untitledName()const{return untitledName_;}
+    void setUntitledName(QString name){untitledName_=std::move(name);setWindowTitle(untitledName_+"[*]");}
+    QList<QDockWidget *> sessionDocks()const{return sessionDocks_;}
+    void registerSessionDock(QDockWidget *dock,Qt::DockWidgetArea area,bool visible=false){sessionDocks_.append(dock);dock->setProperty("initialArea",int(area));dock->setProperty("sessionVisible",visible);dock->hide();}
+    QDockWidget *sessionDock(const QString &name)const{for(auto *dock:sessionDocks_)if(dock->objectName()==name)return dock;return nullptr;}
+    bool saveDocument(bool saveAs=false){return saveCurrent(saveAs);}
+    void openInPlace(const QString &path){if(view_->directEditing()){QTimer::singleShot(30,this,[this,path]{openInPlace(path);});return;}if(view_->saving())return;if(!resolvePending([this,path]{openInPlace(path);}))return;path_=path;view_->openFile(path);}
+    ~MainWindow()override{
+        view_->restoreStatusFooter();
+        disconnect(view_,nullptr,this,nullptr);
+        auto docks=sessionDocks_;
+        if(auto *script=sessionDock("scriptDock")){docks.removeOne(script);docks.prepend(script);}
+        // Delete panels in place: reparenting native graphics containers into
+        // their own ancestor document can recurse through Qt's window hierarchy.
+        for(auto *dock:docks){
+            if(auto *host=qobject_cast<QMainWindow *>(dock->parentWidget()))host->removeDockWidget(dock);
+            dock->hide();delete dock;
+        }
+        sessionDocks_.clear();
+    }
+    explicit MainWindow(QString uiStatePath={},QString recentPath={}) {
+        recentPath_=recentPath.isEmpty()?(uiStatePath.isEmpty()?QString():QFileInfo(uiStatePath).dir().filePath("recent-files.json")):recentPath;
+        recent_=std::make_unique<RecentFiles>(recentPath_);
         setWindowTitle("Binary Workbench");
         view_=new HexView(this);setCentralWidget(view_);
         menuBar()->setNativeMenuBar(false);
-        auto *file=menuBar()->addMenu("Archivo");
-        auto *open=file->addAction("Abrir archivo…");open->setShortcut(QKeySequence::Open);
-        connect(open,&QAction::triggered,this,[this]{const auto path=QFileDialog::getOpenFileName(this,"Abrir archivo binario local");if(!path.isEmpty())openFile(path);});
-        auto *recentMenu=file->addMenu("Archivos recientes");recentMenu->setObjectName("recentFilesMenu");
+        auto *file=menuBar()->addMenu("File");
+        auto *open=file->addAction("Open File…");open->setShortcut(QKeySequence::Open);
+        connect(open,&QAction::triggered,this,[this]{const auto path=QFileDialog::getOpenFileName(this,"Open local binary file");if(!path.isEmpty())openFile(path);});
+        auto *recentMenu=file->addMenu("Recent Files");recentMenu->setObjectName("recentFilesMenu");
         connect(recentMenu,&QMenu::aboutToShow,this,[this,recentMenu]{
-            recentMenu->clear();int index=0;for(const auto &path:recent_->paths()){QFileInfo info(path);QString label=QString("%1 · %2 — %3%4").arg(++index).arg(info.fileName(),info.absolutePath(),info.isFile()?QString():QString(" · no disponible"));label.replace("&","&&");auto *action=recentMenu->addAction(label);action->setData(path);action->setToolTip(path);action->setEnabled(info.isFile());connect(action,&QAction::triggered,this,[this,path]{openFile(path);});}
-            if(recent_->paths().isEmpty()){auto *empty=recentMenu->addAction("Sin archivos recientes");empty->setEnabled(false);}else{recentMenu->addSeparator();auto *clear=recentMenu->addAction("Vaciar lista");clear->setObjectName("clearRecentFiles");connect(clear,&QAction::triggered,this,[this]{if(!recent_->clear())statusBar()->showMessage("No se pudo guardar la lista de recientes.",6000);});}
+            if(!recentPath_.isEmpty())recent_=std::make_unique<RecentFiles>(recentPath_);
+            recentMenu->clear();int index=0;for(const auto &path:recent_->paths()){QFileInfo info(path);QString label=QString("%1 · %2 — %3%4").arg(++index).arg(info.fileName(),info.absolutePath(),info.isFile()?QString():QString(" · unavailable"));label.replace("&","&&");auto *action=recentMenu->addAction(label);action->setData(path);action->setToolTip(path);action->setEnabled(info.isFile());connect(action,&QAction::triggered,this,[this,path]{openFile(path);});}
+            if(recent_->paths().isEmpty()){auto *empty=recentMenu->addAction("No recent files");empty->setEnabled(false);}else{recentMenu->addSeparator();auto *clear=recentMenu->addAction("Clear list");clear->setObjectName("clearRecentFiles");connect(clear,&QAction::triggered,this,[this]{if(!recent_->clear())statusBar()->showMessage("Could not save the recent files list.",6000);});}
         });
-        auto *reload=file->addAction("Volver a abrir");
-        connect(reload,&QAction::triggered,this,[this]{if(!path_.isEmpty())openFile(path_);});
-        auto *save=file->addAction("Guardar");save->setShortcut(QKeySequence::Save);save->setEnabled(false);
+        auto *reload=file->addAction("Reload");
+        connect(reload,&QAction::triggered,this,[this]{if(!path_.isEmpty())openInPlace(path_);});
+        auto *save=file->addAction("Save");save->setShortcut(QKeySequence::Save);save->setEnabled(false);
         connect(save,&QAction::triggered,this,[this]{saveCurrent(false);});
-        auto *saveAs=file->addAction("Guardar como…");saveAs->setShortcut(QKeySequence::SaveAs);
+        auto *saveAs=file->addAction("Save As…");saveAs->setShortcut(QKeySequence::SaveAs);
         connect(saveAs,&QAction::triggered,this,[this]{saveCurrent(true);});
-        file->addSeparator();auto *options=file->addAction("Opciones…");
+        file->addSeparator();auto *options=file->addAction("Options…");
         connect(options,&QAction::triggered,this,[this]{showOptions();});
-        file->addSeparator();auto *exit=file->addAction("Salir");exit->setShortcut(QKeySequence::Quit);connect(exit,&QAction::triggered,this,&QWidget::close);
-        auto *edit=menuBar()->addMenu("Editar");
-        auto *undo=edit->addAction("Deshacer");undo->setShortcut(QKeySequence::Undo);
+        file->addSeparator();auto *exit=file->addAction("Exit");exit->setShortcut(QKeySequence::Quit);connect(exit,&QAction::triggered,this,[this]{if(exitRequested)exitRequested();else close();});
+        auto *edit=menuBar()->addMenu("Edit");
+        auto *undo=edit->addAction("Undo");undo->setShortcut(QKeySequence::Undo);
         connect(undo,&QAction::triggered,view_,&HexView::undo);
-        auto *redo=edit->addAction("Rehacer");redo->setShortcut(QKeySequence::Redo);
+        auto *redo=edit->addAction("Redo");redo->setShortcut(QKeySequence::Redo);
         connect(redo,&QAction::triggered,view_,&HexView::redo);
-        auto *replace=edit->addAction("Sobrescribir bytes…");replace->setShortcut(Qt::Key_F2);
+        auto *replace=edit->addAction("Overwrite bytes…");replace->setShortcut(Qt::Key_F2);
         connect(replace,&QAction::triggered,view_,&HexView::editSelection);
-        auto *cut=edit->addAction("Cortar");cut->setEnabled(false);
-        cut->setToolTip("La edición actual sobrescribe bytes; no cambia el tamaño ni los offsets del archivo.");
-        auto *copy=edit->addAction("Copiar selección hexadecimal");copy->setShortcut(QKeySequence::Copy);copy->setEnabled(false);
+        auto *cut=edit->addAction("Cut");cut->setEnabled(false);
+        cut->setToolTip("Cut selected bytes from a RAM document.");connect(cut,&QAction::triggered,view_,&HexView::cutSelection);
+        auto *copy=edit->addAction("Copy hexadecimal selection");copy->setShortcut(QKeySequence::Copy);copy->setEnabled(false);
         connect(copy,&QAction::triggered,view_,&HexView::copySelection);connect(view_,&HexView::selectionAvailable,copy,&QAction::setEnabled);
-        auto *paste=edit->addAction("Pegar");paste->setShortcut(QKeySequence::Paste);paste->setEnabled(false);paste->setToolTip("Sobrescribir con bytes del portapapeles o texto hexadecimal.");
+        auto *paste=edit->addAction("Paste");paste->setShortcut(QKeySequence::Paste);paste->setEnabled(false);paste->setToolTip("Overwrite with clipboard bytes or hexadecimal text.");
         connect(paste,&QAction::triggered,view_,&HexView::pasteSelection);
-        auto updateActions=[this,save,saveAs,undo,redo,paste,replace,open,reload]{
+        auto updateActions=[this,save,saveAs,undo,redo,paste,replace,open,reload,cut]{
             const bool writable=view_->hasFile()&&!view_->saving();
-            save->setEnabled(writable&&view_->dirty());saveAs->setEnabled(writable);
+            save->setEnabled(writable&&(view_->dirty()||view_->filePath().isEmpty()));saveAs->setEnabled(writable);
             undo->setEnabled(writable&&view_->dirty());redo->setEnabled(writable&&view_->canRedo());
             paste->setEnabled(writable&&view_->selection().anchor>=0);
             replace->setEnabled(writable&&view_->selection().anchor>=0);
-            open->setEnabled(!view_->saving());reload->setEnabled(writable);
+            open->setEnabled(true);reload->setEnabled(writable&&!view_->filePath().isEmpty());cut->setEnabled(writable&&view_->isMemoryDocument()&&view_->selection().count(view_->fileSize())>0);
             setWindowModified(view_->dirty());
         };
         connect(view_,&HexView::editStateChanged,this,updateActions);
@@ -90,40 +123,47 @@ public:
         connect(view_,&HexView::saveFinished,this,[this](bool success){
             auto next=std::move(afterSave_);afterSave_={};
             if(success){if(next)QTimer::singleShot(0,this,std::move(next));}
-            else QMessageBox::warning(this,"Guardado incompleto","No se ha podido guardar. Consulta el mensaje inferior. Los cambios siguen pendientes.");
+            else QMessageBox::warning(this,"Save incomplete","Could not save. Check the status message below. Your changes are still pending.");
         });
-        edit->addSeparator();auto *select=edit->addAction("Seleccionar vista");select->setShortcut(QKeySequence::SelectAll);connect(select,&QAction::triggered,view_,&HexView::selectPage);
-        auto *tools=menuBar()->addMenu("Herramientas");
-        auto *calculator=tools->addAction("Calculadora…");connect(calculator,&QAction::triggered,this,[this]{showCalculator();});
-        auto *interpret=tools->addAction("Codificación e interpretación");connect(interpret,&QAction::triggered,view_,&HexView::focusInterpretation);
+        edit->addSeparator();auto *select=edit->addAction("Select visible page");select->setShortcut(QKeySequence::SelectAll);connect(select,&QAction::triggered,view_,&HexView::selectWholeDocument);
+        auto *tools=menuBar()->addMenu("Tools");
+        auto *calculator=tools->addAction("Calculator…");connect(calculator,&QAction::triggered,this,[this]{showCalculator();});
+        auto *interpret=tools->addAction("Encoding and interpretation");connect(interpret,&QAction::triggered,view_,&HexView::focusInterpretation);
         auto *dock=new QDockWidget("Inspector",this);dock->setObjectName("inspectorDock");dock->setWidget(view_->inspector());view_->inspector()->show();addDockWidget(Qt::RightDockWidgetArea,dock);
         dock->setMinimumWidth(290);
-        auto *viewMenu=menuBar()->addMenu("Ver");viewMenu->addAction(dock->toggleViewAction());
-        auto *formatDock=new QDockWidget("Reglas de formato",this);formatDock->setObjectName("formatRulesDock");
+        auto *viewMenu=menuBar()->addMenu("View");viewMenu->addAction(dock->toggleViewAction());
+        auto *formatDock=new QDockWidget("Formatting Rules",this);formatDock->setObjectName("formatRulesDock");
         formatPanel_=new FormatPanel(view_,this);auto *formatScroll=new QScrollArea;formatScroll->setWidgetResizable(true);formatScroll->setFrameShape(QFrame::NoFrame);formatScroll->setWidget(formatPanel_);formatDock->setWidget(formatScroll);addDockWidget(Qt::RightDockWidgetArea,formatDock);
         viewMenu->addAction(formatDock->toggleViewAction());
-        auto *magicDock=new QDockWidget("Biblioteca de magic bytes",this);magicDock->setObjectName("magicDock");
+        auto *magicDock=new QDockWidget("Magic Bytes Library",this);magicDock->setObjectName("magicDock");
         magicPanel_=new MagicPanel(view_,formatPanel_,magicDock);magicDock->setWidget(magicPanel_);addDockWidget(Qt::BottomDockWidgetArea,magicDock);magicDock->hide();
-        viewMenu->addAction(magicDock->toggleViewAction());auto *magicAction=tools->addAction("Biblioteca de magic bytes");connect(magicAction,&QAction::triggered,this,[magicDock]{magicDock->show();magicDock->raise();});
-        auto *entropyDock=new QDockWidget("Entropía",this);entropyDock->setObjectName("entropyDock");entropyDock->setWidget(new EntropyPanel(view_,entropyDock));addDockWidget(Qt::RightDockWidgetArea,entropyDock);splitDockWidget(dock,entropyDock,Qt::Vertical);tabifyDockWidget(dock,formatDock);dock->raise();
-        viewMenu->addAction(entropyDock->toggleViewAction());auto *entropyAction=tools->addAction("Analizador de entropía");connect(entropyAction,&QAction::triggered,this,[entropyDock]{entropyDock->show();entropyDock->raise();});
-        auto *vulkanDock=new QDockWidget("Vista 3D · Vulkan",this);vulkanDock->setObjectName("vulkanDock");auto *vulkanPanel=new VulkanPanel(vulkanDock);vulkanDock->setWidget(vulkanPanel);addDockWidget(Qt::BottomDockWidgetArea,vulkanDock);vulkanDock->hide();viewMenu->addAction(vulkanDock->toggleViewAction());
-        auto *exportAction=new QAction("Exportar modelo 3D…",this);exportAction->setObjectName("exportModelAction");file->insertAction(options,exportAction);file->insertSeparator(options);exportAction->setEnabled(false);
+        viewMenu->addAction(magicDock->toggleViewAction());auto *magicAction=tools->addAction("Magic Bytes Library");connect(magicAction,&QAction::triggered,this,[magicDock]{magicDock->show();magicDock->raise();});
+        auto *entropyDock=new QDockWidget("Entropy",this);entropyDock->setObjectName("entropyDock");entropyDock->setWidget(new EntropyPanel(view_,entropyDock));addDockWidget(Qt::RightDockWidgetArea,entropyDock);splitDockWidget(dock,entropyDock,Qt::Vertical);tabifyDockWidget(dock,formatDock);dock->raise();
+        viewMenu->addAction(entropyDock->toggleViewAction());auto *entropyAction=tools->addAction("Entropy Analyzer");connect(entropyAction,&QAction::triggered,this,[entropyDock]{entropyDock->show();entropyDock->raise();});
+        auto *checksumDock=new QDockWidget("Checksum",this);checksumDock->setObjectName("checksumDock");
+        auto *checksumScroll=new QScrollArea;checksumScroll->setWidgetResizable(true);checksumScroll->setFrameShape(QFrame::NoFrame);
+        checksumScroll->setWidget(new ChecksumPanel(view_,checksumScroll));checksumDock->setWidget(checksumScroll);addDockWidget(Qt::RightDockWidgetArea,checksumDock);checksumDock->hide();
+        checksumDock->toggleViewAction()->setObjectName("checksumAction");viewMenu->addAction(checksumDock->toggleViewAction());
+        auto *vulkanDock=new QDockWidget("3D View · Vulkan",this);vulkanDock->setObjectName("vulkanDock");auto *vulkanPanel=new VulkanPanel(vulkanDock);vulkanDock->setWidget(vulkanPanel);addDockWidget(Qt::BottomDockWidgetArea,vulkanDock);vulkanDock->hide();viewMenu->addAction(vulkanDock->toggleViewAction());
+        auto *exportAction=new QAction("Export 3D Model…",this);exportAction->setObjectName("exportModelAction");file->insertAction(options,exportAction);file->insertSeparator(options);exportAction->setEnabled(false);
         connect(vulkanPanel->scene(),&MeshScene::collectionChanged,this,[vulkanPanel,exportAction]{exportAction->setEnabled(!vulkanPanel->scene()->entries().isEmpty());});
         connect(exportAction,&QAction::triggered,this,[this,vulkanPanel]{ExportDialog dialog(vulkanPanel->scene(),path_,vulkanPanel->visualStyle().face,this);dialog.exec();});
-        auto *meshDock=new QDockWidget("Configuración 3D",this);meshDock->setObjectName("meshControlsDock");meshDock->setWidget(vulkanPanel->createMeshControls(view_));addDockWidget(Qt::LeftDockWidgetArea,meshDock);meshDock->hide();viewMenu->addAction(meshDock->toggleViewAction());auto *meshAction=tools->addAction("Configuración de malla 3D");connect(meshAction,&QAction::triggered,this,[meshDock]{meshDock->show();meshDock->raise();});
-        auto *vulkanAction=tools->addAction("Vista 3D · Vulkan");connect(vulkanAction,&QAction::triggered,this,[vulkanDock]{vulkanDock->show();vulkanDock->raise();});
-        auto *collectionDock=new QDockWidget("Colección de mallas",this);collectionDock->setObjectName("meshCollectionDock");collectionDock->setWidget(vulkanPanel->createMeshCollection());addDockWidget(Qt::LeftDockWidgetArea,collectionDock);collectionDock->hide();viewMenu->addAction(collectionDock->toggleViewAction());
-        auto *uvDock=new QDockWidget("Vista UV",this);uvDock->setObjectName("uvDock");uvDock->setWidget(new UvPanel(vulkanPanel,uvDock));addDockWidget(Qt::BottomDockWidgetArea,uvDock);uvDock->hide();viewMenu->addAction(uvDock->toggleViewAction());auto *uvAction=tools->addAction("Vista UV");connect(uvAction,&QAction::triggered,this,[uvDock]{uvDock->show();uvDock->raise();});
+        auto *meshDock=new QDockWidget("3D Settings",this);meshDock->setObjectName("meshControlsDock");meshDock->setWidget(vulkanPanel->createMeshControls(view_));addDockWidget(Qt::LeftDockWidgetArea,meshDock);meshDock->hide();viewMenu->addAction(meshDock->toggleViewAction());auto *meshAction=tools->addAction("3D Mesh Settings");connect(meshAction,&QAction::triggered,this,[meshDock]{meshDock->show();meshDock->raise();});
+        auto *vulkanAction=tools->addAction("3D View · Vulkan");connect(vulkanAction,&QAction::triggered,this,[vulkanDock]{vulkanDock->show();vulkanDock->raise();});
+        auto *collectionDock=new QDockWidget("Mesh Collection",this);collectionDock->setObjectName("meshCollectionDock");collectionDock->setWidget(vulkanPanel->createMeshCollection());addDockWidget(Qt::LeftDockWidgetArea,collectionDock);collectionDock->hide();viewMenu->addAction(collectionDock->toggleViewAction());
+        auto *uvDock=new QDockWidget("UV View",this);uvDock->setObjectName("uvDock");auto *imageTools=new ImageWorkbench(view_,uvDock);auto *views=new QTabWidget;views->setObjectName("uvImageTabs");views->addTab(imageTools->preview,"Image Preview");views->addTab(new UvPanel(vulkanPanel,views),"UV Layout");uvDock->setWidget(views);addDockWidget(Qt::BottomDockWidgetArea,uvDock);uvDock->hide();viewMenu->addAction(uvDock->toggleViewAction());auto *uvAction=tools->addAction("UV View");connect(uvAction,&QAction::triggered,this,[uvDock]{uvDock->show();uvDock->raise();});
+        auto *imageLibraryDock=new QDockWidget("Texture / Image Collection",this);imageLibraryDock->setObjectName("imageLibraryDock");imageLibraryDock->setWidget(imageTools->collection);addDockWidget(Qt::LeftDockWidgetArea,imageLibraryDock);imageLibraryDock->hide();viewMenu->addAction(imageLibraryDock->toggleViewAction());
+        auto *imageCalculatorDock=new QDockWidget("2D Settings / Image Calculator",this);imageCalculatorDock->setObjectName("imageCalculatorDock");auto *imageScroll=new QScrollArea;imageScroll->setWidgetResizable(true);imageScroll->setWidget(imageTools->settings);imageCalculatorDock->setWidget(imageScroll);addDockWidget(Qt::RightDockWidgetArea,imageCalculatorDock);imageCalculatorDock->hide();viewMenu->addAction(imageCalculatorDock->toggleViewAction());
+        imageTools->imageSelected=[views,uvDock](const QImage &){views->setCurrentIndex(0);uvDock->show();uvDock->raise();};
         auto *scriptDock=new QDockWidget("Scripting · Python / C++",this);scriptDock->setObjectName("scriptDock");scriptPanel_=new ScriptPanel(view_,vulkanPanel,scriptDock);scriptDock->setWidget(scriptPanel_);addDockWidget(Qt::BottomDockWidgetArea,scriptDock);scriptDock->hide();viewMenu->addAction(scriptDock->toggleViewAction());auto *scriptAction=tools->addAction("Scripting · Python / C++");connect(scriptAction,&QAction::triggered,this,[scriptDock]{scriptDock->show();scriptDock->raise();});
-        auto *about=menuBar()->addMenu("Acerca de");
-        auto *docs=about->addAction("Documentación");connect(docs,&QAction::triggered,this,[this]{showDocs();});
-        auto *disclaimer=about->addAction("Acerca de Binary Workbench…");disclaimer->setMenuRole(QAction::NoRole);
-        connect(disclaimer,&QAction::triggered,this,[this]{QMessageBox::about(this,"Binary Workbench","Prototipo de análisis binario en C++ y Qt.\n\nLos valores son interpretaciones de bytes, no una identificación garantizada del formato. Edición por sobrescritura con cambios pendientes hasta Guardar.\n\nVista 3D Vulkan experimental. Scripting Python/C++ disponible. Inserción/borrado de bytes aún no implementados.");});
-        auto *toolbar=addToolBar("Acciones comunes");toolbar->setObjectName("mainToolbar");toolbar->addAction(open);toolbar->addAction(reload);toolbar->addAction(save);toolbar->addAction(exportAction);toolbar->addSeparator();toolbar->addAction(copy);toolbar->addSeparator();toolbar->addAction(calculator);toolbar->addAction(options);
-        connect(view_,&HexView::fileOpened,this,[this](const QString &path){path_=path;setWindowTitle(QFileInfo(path).fileName()+"[*] — Binary Workbench");if(!recent_->add(path))statusBar()->showMessage("No se pudo guardar la lista de recientes.",6000);});
+        auto *about=menuBar()->addMenu("About");
+        auto *docs=about->addAction("Documentation");connect(docs,&QAction::triggered,this,[this]{showDocs();});
+        auto *disclaimer=about->addAction("About Binary Workbench…");disclaimer->setMenuRole(QAction::NoRole);
+        connect(disclaimer,&QAction::triggered,this,[this]{QMessageBox::about(this,"Binary Workbench","Binary analysis prototype built with C++ and Qt.\n\nValues are interpretations of bytes, not guaranteed format identifications. Editing overwrites bytes, with changes pending until you save.\n\nExperimental Vulkan 3D view. Python/C++ scripting is available. New RAM documents support insertion, deletion and growth. Disk-backed files use overwrite editing.");});
+        auto *toolbar=addToolBar("Common Actions");toolbar->setObjectName("mainToolbar");toolbar->addAction(open);toolbar->addAction(reload);toolbar->addAction(save);toolbar->addAction(exportAction);toolbar->addSeparator();toolbar->addAction(copy);toolbar->addSeparator();toolbar->addAction(calculator);toolbar->addAction(options);
+        connect(view_,&HexView::fileOpened,this,[this](const QString &path){path_=path;if(path.isEmpty()){setWindowTitle(untitledName_+"[*]");return;}setWindowTitle(QFileInfo(path).fileName()+"[*] — Binary Workbench");if(!recent_->add(path))statusBar()->showMessage("Could not save the recent files list.",6000);});
         connect(view_,&HexView::idle,this,[this]{if(closing_){closing_=false;QTimer::singleShot(0,this,&QWidget::close);}});
-        auto *activityDock = new QDockWidget("Actividad de los hilos", this);
+        auto *activityDock = new QDockWidget("Thread Activity", this);
         activityDock->setObjectName("threadActivityDock");
         auto *activityText = new QPlainTextEdit(activityDock);
         activityText->setObjectName("threadActivityDetails");
@@ -135,7 +175,7 @@ public:
         auto *activityButton = new QToolButton(this);
         activityButton->setObjectName("threadActivityToggle");
         activityButton->setCheckable(true);
-        activityButton->setToolTip("Mostrar u ocultar el detalle de tareas en segundo plano");
+        activityButton->setToolTip("Show or hide background task details");
         view_->addStatusWidget(activityButton);
         connect(activityButton, &QToolButton::toggled, activityDock, &QWidget::setVisible);
         connect(activityDock, &QDockWidget::visibilityChanged, activityButton, &QToolButton::setChecked);
@@ -145,37 +185,37 @@ public:
             for (const auto &channel : channels) {
                 active += channel.running; pending += channel.pending;
             }
-            activityButton->setText(QString("Hilos · %1/8 ocupados · %2 pendientes · %3")
-                .arg(active).arg(pending).arg(activityDock->isVisible() ? "Ocultar detalles" : "Ver detalles"));
+            activityButton->setText(QString("Threads · %1/%2 busy · %3 pending · %4")
+                .arg(active).arg(channels.size()).arg(pending).arg(activityDock->isVisible() ? "Hide details" : "Show details"));
             if (!activityDock->isVisible()) return;
-            QString details = QString("Ocupación de tareas: %1 de 8 canales (%2 %). Pendientes: %3 de 3.\n")
-                .arg(active).arg(active * 100 / 8).arg(pending);
+            QString details = QString("Task occupancy: %1 of %2 channels (%3 %). Pending: %4 of 3.\n")
+                .arg(active).arg(channels.size()).arg(active * 100 / channels.size()).arg(pending);
             const int processors = QThread::idealThreadCount();
-            details += QString("Procesadores lógicos detectados: %1. Interfaz: hilo principal separado.\n\n")
-                .arg(processors > 0 ? QString::number(processors) : QString("no disponible"));
-            const QStringList names{"Visor", "Inspector", "Copia", "Guardado", "Búsqueda", "Firmas", "Entropía", "Edición directa"};
+            details += QString("Logical processors detected: %1. UI: separate main thread.\n\n")
+                .arg(processors > 0 ? QString::number(processors) : QString("unavailable"));
+            const QStringList names{"Viewer", "Inspector", "Copy", "Save", "Search", "Signatures", "Entropy", "Direct Editing", "Checksum"};
             for (int i = 0; i < channels.size(); ++i) {
                 const auto &c = channels[i];
-                details += QString("%1 — %2%3 · pendientes: %4\n")
-                    .arg(names[i], c.running ? "Ocupado" : "Libre", c.stopping ? " (cerrando)" : "")
+                details += QString("%1 — %2%3 · pending: %4\n")
+                    .arg(names[i], c.running ? "Busy" : "Idle", c.stopping ? " (closing)" : "")
                     .arg(c.pending ? 1 : 0);
-                if (c.running) details += QString("  Solicitud: offset 0x%1 · %2 bytes · transcurrido: %3 ms\n")
+                if (c.running) details += QString("  Request: offset 0x%1 · %2 bytes · elapsed: %3 ms\n")
                     .arg(QString::number(c.offset, 16).toUpper()).arg(c.length).arg(c.elapsedMs);
-                details += QString("  Iniciadas: %1 · terminadas: %2 · errores: %3 · última duración: %4\n")
+                details += QString("  Started: %1 · completed: %2 · errors: %3 · last duration: %4\n")
                     .arg(c.started).arg(c.completed).arg(c.errors)
                     .arg(c.completed ? QString::number(c.lastMs) + " ms" : "—");
-                details += QString("  Resultados descartados: %1 · pendientes sustituidas: %2\n\n")
+                details += QString("  Discarded results: %1 · replaced pending requests: %2\n\n")
                     .arg(c.discarded).arg(c.replaced);
             }
-            if(view_->saving())details+=QString("Guardado: %1 / %2 MiB procesados (pendiente de confirmar en disco).\n\n")
+            if(view_->saving())details+=QString("Saving: %1 / %2 MiB processed (not yet committed to disk).\n\n")
                 .arg(double(view_->saveProgress())/(1024*1024),0,'f',2).arg(double(view_->fileSize())/(1024*1024),0,'f',2);
-            details += "Cada canal tiene un pool de un hilo. Las lecturas conservan solo la última solicitud pendiente.\n"
-                "Guardado, búsqueda, firmas y entropía admiten una tarea por canal, sin cola. El guardado pausa la edición.\n"
-                "Los contadores abarcan esta sesión. Descartado: resultado ya obsoleto o recibido al cerrar.\n"
-                "Sustituida: solicitud pendiente reemplazada por otra más reciente.\n"
-                "La ocupación indica tareas en curso, no consumo de CPU ni número total de hilos del proceso.\n"
-                "Incluye esperas de disco/caché y entrega del resultado a la interfaz; los tiempos son de extremo a extremo.\n"
-                "Actualización cada 200 ms: las tareas muy breves pueden no verse activas, pero sí se contabilizan.";
+            details += "Channels share a bounded background pool. Reads keep only the latest pending request.\n"
+                "Save, search, signatures, entropy and checksum allow one task per channel, without a queue. Saving pauses editing.\n"
+                "Counters cover this session. Discarded: an obsolete result or one received while closing.\n"
+                "Replaced: a pending request replaced by a newer one.\n"
+                "Occupancy indicates running tasks, not CPU usage or the total number of process threads.\n"
+                "Includes disk/cache waits and delivery to the UI; timings are end to end.\n"
+                "Updated every 200 ms: very short tasks may not appear active, but are still counted.";
             if (activityText->toPlainText() != details) activityText->setPlainText(details);
         };
         auto *activityTimer = new QTimer(this);
@@ -187,10 +227,133 @@ public:
         resize(1450,850);
         if(!uiStatePath.isEmpty()){
             uiLayout_=new UiLayout(this,uiStatePath);
-            viewMenu->addSeparator();auto *reset=viewMenu->addAction("Restablecer distribución de paneles");reset->setObjectName("resetUiLayout");connect(reset,&QAction::triggered,this,[this]{uiLayout_->reset();});
+            viewMenu->addSeparator();auto *reset=viewMenu->addAction("Reset Panel Layout");reset->setObjectName("resetUiLayout");connect(reset,&QAction::triggered,this,[this]{uiLayout_->reset();});
         }
+        // MenuBar1 from the Xojo UI prototype. Reuse actions to retain their state and handlers.
+        for (auto *menu : {file, edit, tools, about})
+            for (auto *action : menu->actions()) menu->removeAction(action);
+        for (auto *action : menuBar()->actions()) menuBar()->removeAction(action);
+        file->setTitle("&File"); edit->setTitle("&Edit");
+        auto *searchMenu = new QMenu("Search", this);
+        auto *hexMenu = new QMenu("&Hex Viewer", this);
+        auto *analyseMenu = new QMenu("&Analyse", this);
+        tools->setTitle("E&xtras"); viewMenu->setTitle("&Windows"); about->setTitle("&Help");
+        for (auto *menu : {file, edit, searchMenu, hexMenu, analyseMenu, tools, viewMenu, about})
+            menuBar()->addMenu(menu);
+        auto pending = [](QMenu *menu, const QString &text, const QKeySequence &key = {}) {
+            auto *action = menu->addAction(text);
+            action->setShortcut(key); action->setEnabled(false);
+            action->setToolTip("Not implemented yet.");
+            return action;
+        };
+        open->setText("Open File"); recentMenu->setTitle("Open Recent");
+        save->setText("Save"); saveAs->setText("Save as"); exit->setText("Exit Program");
+        auto *newFile = file->addAction("New File");
+        newFile->setObjectName("newFileAction"); newFile->setShortcut(QKeySequence::New);
+        connect(newFile, &QAction::triggered, this, [this] { createNewFile(); });
+        connect(view_, &HexView::editStateChanged, newFile, [this, newFile] { newFile->setEnabled(!view_->saving()); });
+        file->addAction(open); file->addMenu(recentMenu); file->addSeparator();toolbar->insertAction(open,newFile);
+        file->addAction(save); file->addAction(saveAs);
+        pending(file, "Save selection", QKeySequence("Ctrl+Alt+S"));
+        file->addSeparator(); pending(file, "Close Files"); file->addAction(exit);
+        undo->setText("Undo"); cut->setText("Cut"); copy->setText("Copy"); paste->setText("Paste");
+        cut->setShortcut(QKeySequence::Cut);
+        edit->addAction(undo); edit->addSeparator(); edit->addAction(cut); edit->addAction(copy); edit->addAction(paste);
+        auto *deleteBytes=edit->addAction("Delete");deleteBytes->setShortcut(QKeySequence::Delete);deleteBytes->setEnabled(false);
+        connect(deleteBytes,&QAction::triggered,view_,&HexView::deleteSelection);edit->addSeparator();
+        auto *insertBytes=edit->addAction("Insert Bytes");insertBytes->setEnabled(false);connect(insertBytes,&QAction::triggered,view_,&HexView::insertBytes);
+        pending(edit, "Insert file"); pending(edit, "Fill selection");
+        auto updateSizeActions=[this,deleteBytes,insertBytes]{const bool allowed=view_->isMemoryDocument()&&!view_->saving();insertBytes->setEnabled(allowed);deleteBytes->setEnabled(allowed&&view_->selection().count(view_->fileSize())>0);};
+        connect(view_,&HexView::editStateChanged,this,updateSizeActions);connect(view_,&HexView::selectionAvailable,this,[updateSizeActions](bool){updateSizeActions();});updateSizeActions();
+        edit->addSeparator(); select->setText("Select All");
+        select->setToolTip("Select all bytes in this document."); edit->addAction(select);
+        pending(edit, "Select chunk"); edit->addSeparator();
+        auto *goOffset = edit->addAction("Go to Offset"); goOffset->setShortcut(QKeySequence("Ctrl+G"));
+        connect(goOffset, &QAction::triggered, this, [this] {
+            auto *address = view_->findChild<QLineEdit *>("address"); address->setFocus(); address->selectAll();
+        });
+        auto *copyOffset = edit->addAction("Copy offset");
+        connect(copyOffset, &QAction::triggered, this, [this] {
+            if (view_->selection().anchor >= 0)
+                QApplication::clipboard()->setText("0x" + QString::number(view_->selection().anchor, 16).toUpper());
+        });
+        auto updateOffset = [this, copyOffset] { copyOffset->setEnabled(view_->hasFile() && view_->selection().anchor >= 0); };
+        connect(view_, &HexView::selectionAvailable, this, [updateOffset](bool) { updateOffset(); });
+        connect(view_, &HexView::documentChanged, this, updateOffset); updateOffset();
+        edit->addSeparator(); options->setText("Settings"); edit->addAction(options);
+        auto showSearch = [this, formatDock] {
+            formatDock->show(); formatDock->raise();
+            auto *field = formatPanel_->findChild<QLineEdit *>("patternExpression"); field->setFocus(); field->selectAll();
+            if (auto *scroll = qobject_cast<QScrollArea *>(formatDock->widget())) scroll->ensureWidgetVisible(field);
+        };
+        auto *find = searchMenu->addAction("Find"); find->setShortcut(QKeySequence::Find);
+        connect(find, &QAction::triggered, this, showSearch);
+        pending(searchMenu, "Replace", QKeySequence("Ctrl+R"));
+        auto *next = searchMenu->addAction("Find next"); next->setShortcut(QKeySequence("F3"));
+        auto *previous = searchMenu->addAction("Find Previous"); previous->setShortcut(QKeySequence("Shift+F3"));
+        connect(next, &QAction::triggered, this, [this, showSearch] {
+            showSearch(); formatPanel_->findChild<QSpinBox *>("matchIndex")->stepUp();
+        });
+        connect(previous, &QAction::triggered, this, [this, showSearch] {
+            showSearch(); formatPanel_->findChild<QSpinBox *>("matchIndex")->stepDown();
+        });
+        pending(hexMenu, "Fit to window");
+        auto *bytesPerRow = hexMenu->addAction("Bytes per row");
+        connect(bytesPerRow, &QAction::triggered, this, [this] {
+            auto *stride = view_->findChild<QSpinBox *>("stride"); stride->setFocus(); stride->selectAll();
+        });
+        hexMenu->addSeparator(); auto *encodingMenu = hexMenu->addMenu("Codification");
+        auto *encodingBox = view_->findChild<QComboBox *>("encoding");
+        auto *encodingGroup = new QActionGroup(this); encodingGroup->setExclusive(true);
+        const QStringList encodings{"ASCII", "UTF-8", "UTF-16LE", "UTF-16BE", "Japanese CP932"};
+        for (int i = 0; i < encodings.size(); ++i) {
+            auto *action = encodingMenu->addAction(encodings[i]); action->setCheckable(true);
+            encodingGroup->addAction(action); action->setChecked(encodingBox->currentIndex() == i);
+            connect(action, &QAction::triggered, this, [encodingBox, i] { encodingBox->setCurrentIndex(i); });
+            connect(encodingBox, &QComboBox::currentIndexChanged, action, [action, i](int index) { action->setChecked(index == i); });
+        }
+        encodingMenu->addSeparator();
+        auto *endianBox = view_->findChild<QComboBox *>("endian");
+        auto *endianGroup = new QActionGroup(this); endianGroup->setExclusive(true);
+        for (int i = 0; i < 2; ++i) {
+            auto *action = encodingMenu->addAction(i == 0 ? "Little Endian" : "Big Endian");
+            action->setObjectName(i == 0 ? "littleEndianAction" : "bigEndianAction");
+            action->setCheckable(true); endianGroup->addAction(action);
+            action->setChecked(endianBox->currentIndex() == i);
+            connect(action, &QAction::triggered, this, [endianBox, i] { endianBox->setCurrentIndex(i); });
+            connect(endianBox, &QComboBox::currentIndexChanged, action, [action, i](int index) { action->setChecked(index == i); });
+        }
+        auto *offsetMenu = hexMenu->addMenu("Offset Format");
+        for (const auto &label : {"Hexadecimal", "Decimal", "Octal"}) pending(offsetMenu, label);
+        auto *columnsMenu = hexMenu->addMenu("Columns");
+        for (const auto &label : {"Hexadecimal + Text", "Hexadecimal", "Text"}) pending(columnsMenu, label);
+        auto *groupMenu = hexMenu->addMenu("Byte Group");
+        for (const auto &label : {"1", "2", "4", "8", "14", "32"}) pending(groupMenu, label);
+        groupMenu->addSeparator(); pending(groupMenu, "...");
+        hexMenu->addSeparator(); auto *inspectorAction = dock->toggleViewAction();
+        inspectorAction->setText("Data Inspector"); inspectorAction->setShortcut(QKeySequence("Ctrl+Shift+D"));
+        hexMenu->addAction(inspectorAction);
+        auto *matchesAction = hexMenu->addAction("Found Coincidences");
+        connect(matchesAction, &QAction::triggered, this, showSearch);
+        hexMenu->addSeparator(); reload->setText("Update Viewer"); hexMenu->addAction(reload);
+        entropyAction->setText("Statistics"); analyseMenu->addAction(entropyAction);analyseMenu->addAction(checksumDock->toggleViewAction());
+        auto *compareMenu = analyseMenu->addMenu("Compare Data");
+        for (const auto &label : {"Compare", "Next difference", "Previous difference"}) pending(compareMenu, label);
+        pending(tools, "Open RAM"); tools->addSeparator(); pending(tools, "Merge Files"); pending(tools, "Divide File");
+        // Keep the existing application tools accessible during the gradual UI migration.
+        tools->addSeparator(); auto *existingTools = tools->addMenu("Workbench Tools");
+        redo->setText("Redo"); replace->setText("Overwrite bytes…"); calculator->setText("Calculator…");
+        interpret->setText("Encoding and interpretation"); exportAction->setText("Export 3D model…");
+        for (auto *action : {redo, replace, calculator, interpret, magicAction, meshAction, vulkanAction, uvAction, scriptAction, exportAction})
+            existingTools->addAction(action);
+        disclaimer->setText("About"); about->addAction(disclaimer); about->addSeparator();
+        docs->setText("Documentation"); about->addAction(docs);
+
+        sessionDocks_=findChildren<QDockWidget *>(QString(),Qt::FindDirectChildrenOnly);
+        for(auto *dock:sessionDocks_){dock->setProperty("initialArea",int(dockWidgetArea(dock)));dock->setProperty("sessionVisible",!dock->isHidden());}
     }
     void openFile(const QString &path){
+        if(openRequested){openRequested(path);return;}
         if(view_->directEditing()){QTimer::singleShot(30,this,[this,path]{openFile(path);});return;}
         if(view_->saving())return;
         if(!resolvePending([this,path]{openFile(path);}))return;
@@ -206,22 +369,28 @@ protected:
         if(view_->busy()){
             closing_=true;menuBar()->setEnabled(false);view_->setEnabled(false);
             for(auto *toolbar:findChildren<QToolBar *>())toolbar->setEnabled(false);
-            statusBar()->showMessage("Esperando a las lecturas activas para cerrar…");view_->shutdown();event->ignore();return;
+            statusBar()->showMessage("Waiting for active reads before closing…");view_->shutdown();event->ignore();return;
         }
         if(uiLayout_)uiLayout_->saveAndStop();
         view_->shutdown();event->accept();
     }
 private:
+    void createNewFile() {
+        if(newRequested){newRequested();return;}
+        if(view_->saving()||!resolvePending([this]{createNewFile();}))return;
+        view_->newMemoryDocument();
+    }
     bool saveCurrent(bool saveAs){
         if(view_->directEditing()){QTimer::singleShot(30,this,[this,saveAs]{saveCurrent(saveAs);});return true;}
         QString destination=path_;
-        if(saveAs)destination=QFileDialog::getSaveFileName(this,"Guardar archivo como",path_);
+        if(saveAs||destination.isEmpty())destination=QFileDialog::getSaveFileName(this,"Save File As",path_.isEmpty()?untitledName_+".bin":path_);
+        if(!destination.isEmpty()&&saveDestinationAllowed&&!saveDestinationAllowed(destination))return false;
         return !destination.isEmpty()&&view_->saveFile(destination);
     }
     bool resolvePending(std::function<void()> next){
         if(!view_->dirty())return formatPanel_->confirmLeave();
-        const auto answer=QMessageBox::warning(this,"Cambios sin guardar",
-            "Hay modificaciones pendientes. ¿Quieres guardarlas antes de continuar?",
+        const auto answer=QMessageBox::warning(this,"Unsaved Changes",
+            "You have unsaved changes. Save them before continuing?",
             QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Save);
         if(answer==QMessageBox::Cancel)return false;
         if(answer==QMessageBox::Discard){if(!formatPanel_->confirmLeave())return false;view_->discardEdits();return true;}
@@ -230,36 +399,36 @@ private:
         return false;
     }
     void showOptions(){
-        QDialog dialog(this);dialog.setWindowTitle("Opciones de visualización");auto *layout=new QVBoxLayout(&dialog);
-        auto *help=new QLabel("Desplazamiento vertical continuo por todo el archivo.\nRueda: avanzar por filas. Arrastrar la barra: saltar a otra zona.\nIr: posición exacta en decimal o hexadecimal.\n\nCaché compartida: hasta 20 bloques de 1 MiB.\nSe cargan bajo demanda y se descartan los menos recientes.\n\nStride: bytes por fila (1–256). Cambiarlo conserva el cursor inicial.\nLos controles de interpretación están en la segunda barra.");help->setWordWrap(true);layout->addWidget(help);
-        auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);layout->addWidget(buttons);
-        connect(buttons,&QDialogButtonBox::accepted,&dialog,&QDialog::accept);connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
-        dialog.exec();
+        if(settingsRequested){settingsRequested();return;}
+        QSettings settings("BinaryWorkbench","Workspace");SettingsDialog dialog(settings,[this]{view_->applyDisplayPreferences();},this);dialog.exec();
     }
     void showCalculator(){
-        auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Calculadora de offsets · UInt64");
+        auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Offset Calculator · UInt64");
         auto *layout=new QVBoxLayout(dialog);auto *form=new QFormLayout;
         auto *a=new QLineEdit;auto *b=new QLineEdit;auto *op=new QComboBox;op->addItems({"+","−","×","÷","%","AND","OR","XOR"});
-        a->setPlaceholderText("Decimal o 0x…");b->setPlaceholderText("Decimal o 0x…");form->addRow("Primer valor",a);form->addRow("Operación",op);form->addRow("Segundo valor",b);layout->addLayout(form);
-        auto *run=new QPushButton("Calcular");auto *result=new QPlainTextEdit;result->setReadOnly(true);layout->addWidget(run);layout->addWidget(result);
+        a->setPlaceholderText("Decimal or 0x…");b->setPlaceholderText("Decimal or 0x…");form->addRow("First value",a);form->addRow("Operation",op);form->addRow("Second value",b);layout->addLayout(form);
+        auto *run=new QPushButton("Calculate");auto *result=new QPlainTextEdit;result->setReadOnly(true);layout->addWidget(run);layout->addWidget(result);
         auto calculate=[a,b,op,result]{result->setPlainText(calculateInteger(a->text(),op->currentText(),b->text()));};
         connect(run,&QPushButton::clicked,dialog,calculate);connect(a,&QLineEdit::returnPressed,dialog,calculate);connect(b,&QLineEdit::returnPressed,dialog,calculate);
         dialog->resize(430,320);dialog->show();
     }
     void showDocs(){
-        auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Documentación · Binary Workbench");
+        auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Documentation · Binary Workbench");
         auto *layout=new QVBoxLayout(dialog);auto *text=new QTextBrowser;layout->addWidget(text);
         QFile file(WORKBENCH_DOCUMENTATION);
-        if(file.open(QIODevice::ReadOnly))text->setMarkdown(QString::fromUtf8(file.readAll()));else text->setPlainText("No se encontró README.md en la carpeta del proyecto.");
+        if(file.open(QIODevice::ReadOnly))text->setMarkdown(QString::fromUtf8(file.readAll()));else text->setPlainText("The English user guide was not found in the project folder.");
         dialog->resize(780,680);dialog->show();
     }
+    QString recentPath_;QString untitledName_="Untitled";QList<QDockWidget *> sessionDocks_;
     std::unique_ptr<RecentFiles> recent_;
     UiLayout *uiLayout_=nullptr;
     ScriptPanel *scriptPanel_;HexView *view_;FormatPanel *formatPanel_;MagicPanel *magicPanel_;QString path_;bool closing_=false;std::function<void()> afterSave_;
 };
+#include "workspace_window.h"
 #ifndef WORKBENCH_NO_MAIN
 int main(int argc,char **argv){
-    QApplication app(argc,argv);MainWindow window(UiLayout::defaultPath());window.show();const auto args=app.arguments();
+    QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");WorkspaceWindow window(UiLayout::defaultPath());window.show();const auto args=app.arguments();
     if(args.size()>1&&!args[1].startsWith("--"))window.openFile(args[1]);
     if(args.contains("--smoke-test"))QTimer::singleShot(1000,&window,&QWidget::close);
     return app.exec();

@@ -50,26 +50,26 @@ QString decodeText(const QByteArray &bytes, const QString &encoding) {
     if (encoding == "CP932") {
 #ifdef Q_OS_WIN
         const int length = MultiByteToWideChar(932, MB_ERR_INVALID_CHARS, bytes.constData(), int(bytes.size()), nullptr, 0);
-        if (!length && !bytes.isEmpty()) return "[secuencia CP932 incompleta o no válida]";
+        if (!length && !bytes.isEmpty()) return "[incomplete or invalid CP932 sequence]";
         std::wstring output(length, L'\0');
         MultiByteToWideChar(932, MB_ERR_INVALID_CHARS, bytes.constData(), int(bytes.size()), output.data(), length);
         text = QString::fromStdWString(output);
 #else
         iconv_t converter = iconv_open("UTF-8", "CP932");
-        if (converter == (iconv_t)-1) return "[CP932 no disponible]";
+        if (converter == (iconv_t)-1) return "[CP932 unavailable]";
         QByteArray output(bytes.size()*4+8, '\0');
         char *input = const_cast<char *>(bytes.constData()); char *out = output.data();
         size_t remaining = size_t(bytes.size()), capacity = size_t(output.size());
         const bool invalid = iconv(converter, &input, &remaining, &out, &capacity) == size_t(-1);
         iconv_close(converter);
         text = QString::fromUtf8(output.constData(), output.size()-qsizetype(capacity));
-        if (invalid) text += " [secuencia incompleta o no válida]";
+        if (invalid) text += " [incomplete or invalid sequence]";
 #endif
     } else {
         QStringDecoder decoder(encoding.toLatin1().constData(), QStringConverter::Flag::Stateless);
-        if (!decoder.isValid()) return "[codificación no disponible]";
+        if (!decoder.isValid()) return "[encoding unavailable]";
         text = decoder(bytes);
-        if (decoder.hasError()) text += " [secuencia incompleta o no válida]";
+        if (decoder.hasError()) text += " [incomplete or invalid sequence]";
     }
     text.replace(QChar(0), QStringLiteral("␀"));
     text.replace('\n', QStringLiteral("↵")); text.replace('\r', QStringLiteral("␍")); text.replace('\t', QStringLiteral("⇥"));
@@ -83,7 +83,7 @@ int numberWidth(const QString &type) {
 }
 QString decodeNumber(const QByteArray &bytes, const QString &type, bool bigEndian) {
     const int width=numberWidth(type);
-    if (bytes.size()<width) return QString("Faltan %1 bytes").arg(width-bytes.size());
+    if (bytes.size()<width) return QString("Missing %1 bytes").arg(width-bytes.size());
     quint64 value=0;
     for (int i=0;i<width;++i) {
         const auto byte=quint8(bytes[i]);
@@ -109,16 +109,16 @@ QString calculateInteger(const QString &left, const QString &operation, const QS
     };
     bool aOk=false,bOk=false;
     const quint64 a=parse(left,&aOk),b=parse(right,&bOk);
-    if (!aOk || !bOk || left.trimmed().startsWith('-') || right.trimmed().startsWith('-')) return "Usa enteros sin signo de 64 bits, decimales o con 0x.";
+    if (!aOk || !bOk || left.trimmed().startsWith('-') || right.trimmed().startsWith('-')) return "Use unsigned 64-bit integers in decimal or with a 0x prefix.";
     quint64 r=0; const auto max=std::numeric_limits<quint64>::max();
-    if (operation=="+") { if (a>max-b) return "Desbordamiento"; r=a+b; }
-    else if (operation=="−") { if (b>a) return "El resultado sería negativo"; r=a-b; }
-    else if (operation=="×") { if (b && a>max/b) return "Desbordamiento"; r=a*b; }
-    else if (operation=="÷") { if (!b) return "División por cero"; r=a/b; }
-    else if (operation=="%") { if (!b) return "División por cero"; r=a%b; }
+    if (operation=="+") { if (a>max-b) return "Overflow"; r=a+b; }
+    else if (operation=="−") { if (b>a) return "The result would be negative"; r=a-b; }
+    else if (operation=="×") { if (b && a>max/b) return "Overflow"; r=a*b; }
+    else if (operation=="÷") { if (!b) return "Division by zero"; r=a/b; }
+    else if (operation=="%") { if (!b) return "Division by zero"; r=a%b; }
     else if (operation=="AND") r=a&b;
     else if (operation=="OR") r=a|b;
     else if (operation=="XOR") r=a^b;
-    else return "Operación desconocida";
-    return QString("Decimal: %1\nHexadecimal: 0x%2\nBinario: %3").arg(r).arg(r,0,16).arg(QString::number(r,2));
+    else return "Unknown operation";
+    return QString("Decimal: %1\nHexadecimal: 0x%2\nBinary: %3").arg(r).arg(r,0,16).arg(QString::number(r,2));
 }

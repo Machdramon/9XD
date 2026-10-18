@@ -7,6 +7,7 @@
 #include "pattern_search.h"
 #include "magic_bytes.h"
 #include "entropy.h"
+#include "checksum.h"
 #include "direct_edit.h"
 #include <memory>
 #include <QWidget>
@@ -23,12 +24,28 @@ class HexView final : public QWidget {
     Q_OBJECT
 public:
     explicit HexView(QWidget *parent = nullptr);
+    void applyDisplayPreferences();
     void openFile(const QString &path);
+    void newMemoryDocument();
+    bool isMemoryDocument()const{return bool(memory_);}
+    bool insertMode()const{return insertMode_;}
+    void setInsertMode(bool value){insertMode_=value;}
+    QString filePath()const{return path_;}
+    ReadRequest sourceRequest(qint64 offset=0,qint64 length=PageBytes)const{return {path_,offset,size_,modified_,length,memory_};}
+    bool spliceMemory(qint64 offset,qint64 remove,const QByteArray &insert,QString &error);
+    void deleteSelection();
+    void cutSelection();
+    void selectWholeDocument(){if(size_>0)selectMatch(0,size_);}
+    void insertBytes();
     BinaryReader *reader() { return &reader_; }
     QList<ReaderActivity> workerActivity() const {
-        return {reader_.activity(), inspectorReader_.activity(), copyReader_.activity(), writer_.activity(), searchReader_.activity(), magicReader_.activity(), entropyReader_.activity(), directReader_.activity()};
+        return {reader_.activity(), inspectorReader_.activity(), copyReader_.activity(), writer_.activity(), searchReader_.activity(), magicReader_.activity(), entropyReader_.activity(), directReader_.activity(),checksumReader_.activity()};
     }
     bool startEntropy(EntropySpec spec);
+    bool startChecksum(ChecksumSpec spec);
+    bool checksumBusy()const{return checksumReader_.busy();}
+    void cancelChecksum(){checksumState_->cancel.store(true);}
+    qint64 checksumProgress()const{return checksumState_->progress.load();}
     bool entropyBusy()const{return entropyReader_.busy();}
     void cancelEntropy(){entropyState_->cancel.store(true);}
     qint64 entropyProgress()const{return entropyState_->progress.load();}
@@ -49,16 +66,18 @@ public:
     QWidget *inspector() const;
     void copySelection();
     void addStatusWidget(QWidget *widget);
+    QWidget *statusFooter()const{return statusFooter_;}
+    void restoreStatusFooter();
     void editSelection();
     void pasteSelection();
     bool replaceSelection(const QByteArray &bytes, QString &error);
-    void discardEdits() { if(!saving()){resetDirectEdit();edits_.clear();edited();} }
+    void discardEdits();
     void undo();
     void redo();
-    bool dirty() const { return edits_.canUndo(); }
-    bool canRedo() const { return edits_.canRedo(); }
+    bool dirty() const { return memory_ ? memory_!=savedMemory_ : edits_.canUndo(); }
+    bool canRedo() const { return memory_ ? memoryCursor_<memoryHistory_.size() : edits_.canRedo(); }
     bool saving() const { return writer_.busy(); }
-    ReadRequest meshSource()const{return {path_,0,size_,modified_,0};}
+    ReadRequest meshSource()const{return sourceRequest(0,0);}
     PatchList pendingPatches()const{return edits_.patches();}
     bool hasFile() const { return size_ >= 0; }
     bool saveFile(const QString &destination);
@@ -75,6 +94,8 @@ public:
     void jumpTo(qint64 offset);
 
 signals:
+    void viewerFontSizeChanged(int points);
+    void checksumFinished(const ReadResult &result);
     void entropyFinished(const ReadResult &result);
     void magicScanFinished(const ReadResult &result);
     void patternSearchFinished(const ReadResult &result);
@@ -88,6 +109,15 @@ signals:
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 private:
+    int zoomRemainder_=0;
+    void refreshMemory();
+    void typeMemory(QString character);
+    std::shared_ptr<const MemoryData> memory_,savedMemory_;
+    struct MemoryChange {std::shared_ptr<const MemoryData> before,after;qint64 cost;};
+    QList<MemoryChange> memoryHistory_;
+    qsizetype memoryCursor_=0;
+    bool insertMode_=false;
+    int pendingNibble_=-1;
     void edited();
     void resetDirectEdit();
     void queueDirectEdit(QString character,bool broadcast);
@@ -120,6 +150,7 @@ private:
     std::shared_ptr<PatternState> searchState_;
     std::shared_ptr<MagicState> magicState_;
     std::shared_ptr<EntropyState> entropyState_;
+    std::shared_ptr<ChecksumState> checksumState_;
     BinaryReader reader_;
     BinaryReader inspectorReader_;
     BinaryReader copyReader_;
@@ -128,7 +159,9 @@ private:
     BinaryReader magicReader_;
     BinaryReader entropyReader_;
     BinaryReader directReader_;
+    BinaryReader checksumReader_;
     class QHBoxLayout *statusLayout_;
+    QWidget *statusFooter_;
     QTableWidget *table_;
     QLabel *status_;
     QLineEdit *address_;

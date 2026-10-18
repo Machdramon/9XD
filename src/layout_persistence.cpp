@@ -40,12 +40,12 @@ bool UiLayout::eventFilter(QObject *object,QEvent *event){
 }
 void UiLayout::restore(){
     QFile file(path_);if(!file.exists())return;
-    if(!file.open(QIODevice::ReadOnly)||file.size()>1024*1024){window_->statusBar()->showMessage("No se pudo leer la distribución guardada; se usará la predeterminada.",8000);return;}
+    if(!file.open(QIODevice::ReadOnly)||file.size()>1024*1024){window_->statusBar()->showMessage("Could not read the saved layout; the default will be used.",8000);return;}
     auto json=QJsonDocument::fromJson(file.readAll()).object();auto geometry=QByteArray::fromBase64(json["geometry"].toString().toLatin1()),state=QByteArray::fromBase64(json["panels"].toString().toLatin1());
     bool valid=json["version"].toInt()==layoutVersion&&!geometry.isEmpty()&&!state.isEmpty()&&json["sha256"].toString().toLatin1()==digest(geometry,state);
     if(valid&&window_->restoreGeometry(geometry)&&window_->restoreState(state,layoutVersion))return;
     window_->restoreGeometry(defaultGeometry_);window_->restoreState(defaultState_,layoutVersion);
-    window_->statusBar()->showMessage("La distribución guardada no es válida; se ha recuperado la predeterminada.",8000);
+    window_->statusBar()->showMessage("The saved layout is invalid; the default layout was restored.",8000);
 }
 void UiLayout::save(){
     if(!enabled_||!started_)return;
@@ -55,7 +55,7 @@ void UiLayout::save(){
     // Avoid repeated disk writes when layout notifications do not change the saved state.
     QFile previous(path_);if(previous.open(QIODevice::ReadOnly)&&previous.size()<=1024*1024&&previous.readAll()==bytes)return;
     previous.close();QSaveFile file(path_);
-    if(!QDir().mkpath(QFileInfo(path_).absolutePath())||!file.open(QIODevice::WriteOnly)||file.write(bytes)!=bytes.size()||!file.commit())window_->statusBar()->showMessage("No se pudo guardar la distribución de paneles.",8000);
+    if(!QDir().mkpath(QFileInfo(path_).absolutePath())||!file.open(QIODevice::WriteOnly)||file.write(bytes)!=bytes.size()||!file.commit())window_->statusBar()->showMessage("Could not save the panel layout.",8000);
 }
 void UiLayout::saveAndStop(){timer_.stop();save();enabled_=false;}
 void UiLayout::reset(){

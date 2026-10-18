@@ -4,11 +4,20 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
+    # Localized compiler detection can be misdecoded by a Windows console.
+    # Allow a machine preset to supply the exact UTF-8 /showIncludes prefix.
+    set(WORKBENCH_MSVC_INCLUDE_PREFIX "" CACHE STRING "Override localized MSVC include prefix when automatic detection is misdecoded")
+    if(WORKBENCH_MSVC_INCLUDE_PREFIX)
+        set(CMAKE_CL_SHOWINCLUDES_PREFIX "${WORKBENCH_MSVC_INCLUDE_PREFIX}")
+    endif()
     # Source strings and scripting output use UTF-8 on every platform.
     add_compile_options(/utf-8 /Zc:__cplusplus)
     add_compile_definitions(NOMINMAX)
 endif()
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets Concurrent)
+if(NOT TARGET Qt6::QTiffPlugin OR NOT TARGET Qt6::QWebpPlugin)
+    message(FATAL_ERROR "UV/2D requires the Qt Image Formats module (TIFF and WebP plugins). Install qtimageformats for this Qt version.")
+endif()
 find_package(Vulkan REQUIRED)
 find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development.Embed)
 qt_standard_project_setup()
@@ -103,3 +112,17 @@ endforeach()
 if(WIN32 AND BUILD_TESTING)
     set_target_properties(reader_tests window_tests PROPERTIES WIN32_EXECUTABLE FALSE)
 endif()
+
+if(WIN32)
+    foreach(target binary_workbench reader_tests window_tests)
+        if(TARGET ${target})
+            add_custom_command(TARGET ${target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${target}>/imageformats"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::QTiffPlugin>" "$<TARGET_FILE_DIR:${target}>/imageformats/"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::QWebpPlugin>" "$<TARGET_FILE_DIR:${target}>/imageformats/")
+        endif()
+    endforeach()
+endif()
+add_custom_command(TARGET binary_workbench POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:binary_workbench>/licenses"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/src/bcdec-LICENSE.txt" "$<TARGET_FILE_DIR:binary_workbench>/licenses/bcdec.txt")

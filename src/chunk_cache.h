@@ -11,6 +11,7 @@ public:
     static constexpr int MaxChunks = 20;
     using ReadFunction = BinaryReader::ReadFunction;
     explicit ChunkCache(ReadFunction backing = readPage);
+    ~ChunkCache();
     void reset(const QString &path);
     ReadResult read(const ReadRequest &request);
     int chunkCount() const;

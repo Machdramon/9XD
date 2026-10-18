@@ -21,7 +21,7 @@ QList<DecodedToken> decodeTokens(const QByteArray &bytes,qint64 offset,const QSt
     QList<DecodedToken> tokens;
     for(qsizetype i=0;i<bytes.size();){
         int width=1;
-        if(type!="Texto")width=numberWidth(type);
+        if(type!="Text")width=numberWidth(type);
         else if(encoding=="UTF-8"){
             const auto lead=quint8(bytes[i]);
             int candidate=lead>=0xC2&&lead<=0xDF?2:lead>=0xE0&&lead<=0xEF?3:lead>=0xF0&&lead<=0xF4?4:1;
@@ -44,9 +44,9 @@ QList<DecodedToken> decodeTokens(const QByteArray &bytes,qint64 offset,const QSt
             }
         }
         width=qMin(width,int(bytes.size()-i));
-        auto text=type=="Texto"?decodeText(bytes.mid(i,width),encoding):decodeNumber(bytes.mid(i,width),type,bigEndian);
-        if(type=="Texto"&&text.startsWith("[secuencia"))text=QString(QChar::ReplacementCharacter);
-        if(type=="Texto"&&normalizeControls)for(auto &c:text)if(c.isSpace()||c.category()==QChar::Other_Control)c=QChar('.');
+        auto text=type=="Text"?decodeText(bytes.mid(i,width),encoding):decodeNumber(bytes.mid(i,width),type,bigEndian);
+        if(type=="Text"&&text.startsWith("[incomplete"))text=QString(QChar::ReplacementCharacter);
+        if(type=="Text"&&normalizeControls)for(auto &c:text)if(c.isSpace()||c.category()==QChar::Other_Control)c=QChar('.');
         tokens.append({text,offset+i,width});i+=width;
     }
     return tokens;
@@ -88,14 +88,14 @@ bool decodeRule(const QJsonObject &j,FormatRule &r){
 void ByteFormatDelegate::paint(QPainter *p,const QStyleOptionViewItem &option,const QModelIndex &index)const{
     const auto tokens=index.data(TokensRole).toList();
     if(tokens.isEmpty()){QStyledItemDelegate::paint(p,option,index);return;}
-    p->save();p->setClipRect(option.rect);p->fillRect(option.rect,option.palette.base());
+    p->save();p->setClipRect(option.rect);p->fillRect(option.rect,index.row()%2?option.palette.alternateBase():option.palette.base());
     const bool hex=index.data(HexRole).toBool();qreal x=option.rect.left()+4;
     for(qsizetype i=0;i<tokens.size();++i){
         const auto token=tokens[i].toMap();const auto offset=token["offset"].toLongLong(),length=token["length"].toLongLong();
         const auto resolved=resolver_(offset,length);const auto &s=resolved.style;
         QFont font=option.font;font.setBold(s.bold);font.setItalic(s.italic);font.setUnderline(s.underline&&!s.underlineColor.isValid());p->setFont(font);
         const QFontMetricsF metrics(font);const auto text=token["text"].toString();
-        const qreal width=hex?option.rect.width():qMax(qreal(8),metrics.horizontalAdvance(text)+4);
+        const qreal width=hex?option.rect.width():qMax(qreal(8),metrics.horizontalAdvance(text));
         QRectF rect(hex?option.rect.left():x,option.rect.top()+1,width,option.rect.height()-2);
         if(s.background.isValid())p->fillRect(rect,s.background);
         else if(resolved.selected)p->fillRect(rect,option.palette.highlight());

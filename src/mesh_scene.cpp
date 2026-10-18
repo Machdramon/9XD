@@ -1,7 +1,7 @@
 #include "mesh_scene.h"
 #include <algorithm>
 const MeshEntry *MeshScene::entry(int id)const{for(const auto &e:entries_)if(e.id==id)return &e;return nullptr;}
-int MeshScene::add(std::shared_ptr<MeshData> data,QString name,QString source){if(!data)return -1;int id=nextId_++;if(name.trimmed().isEmpty())name=QString("Malla %1").arg(id);entries_.append({id,name,source,true,false,std::move(data)});active_=id;selection_={id,selection_.kind,-1};emit geometryChanged();emit collectionChanged();emit selectionChanged();return id;}
+int MeshScene::add(std::shared_ptr<MeshData> data,QString name,QString source){if(!data)return -1;int id=nextId_++;if(name.trimmed().isEmpty())name=QString("Mesh %1").arg(id);entries_.append({id,name,source,true,false,std::move(data)});active_=id;selection_={id,selection_.kind,-1};emit geometryChanged();emit collectionChanged();emit selectionChanged();return id;}
 bool MeshScene::replace(int id,std::shared_ptr<MeshData> data,QString source){if(!data)return false;for(auto &e:entries_)if(e.id==id){e.data=std::move(data);e.source=source;e.stale=false;selection_={id,selection_.kind,-1};active_=id;emit geometryChanged();emit collectionChanged();emit selectionChanged();return true;}return false;}
 void MeshScene::remove(int id){auto it=std::find_if(entries_.begin(),entries_.end(),[&](const auto &e){return e.id==id;});if(it==entries_.end())return;entries_.erase(it);if(active_==id)active_=entries_.isEmpty()?-1:entries_.first().id;if(selection_.mesh==id)selection_={active_,selection_.kind,-1};emit geometryChanged();emit collectionChanged();emit selectionChanged();}
 void MeshScene::clear(){entries_.clear();active_=-1;selection_={-1,selection_.kind,-1};emit geometryChanged();emit collectionChanged();emit selectionChanged();}

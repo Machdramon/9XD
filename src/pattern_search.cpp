@@ -7,24 +7,24 @@ ReadResult searchPattern(const ReadRequest &source,const PatternSpec &spec,
     ReadResult out;out.request=source;
     constexpr qint64 block=1024*1024;
     constexpr qsizetype maxMatches=10000;
-    if(spec.begin<0||spec.length<=0||spec.begin>source.expectedSize||spec.length>source.expectedSize-spec.begin){out.error="El ámbito de búsqueda no es válido.";return out;}
-    if(spec.expression.isEmpty()){out.error="Introduce un patrón.";return out;}
+    if(spec.begin<0||spec.length<=0||spec.begin>source.expectedSize||spec.length>source.expectedSize-spec.begin){out.error="Invalid search scope.";return out;}
+    if(spec.expression.isEmpty()){out.error="Enter a pattern.";return out;}
     auto read=[&](qint64 offset,qint64 length){auto r=source;r.offset=offset;r.length=length;auto result=readPage(r);applyPatches(result.bytes,offset,spec.patches);return result;};
     auto add=[&](qint64 offset,qint64 length){
         if(out.matches.size()==maxMatches){out.truncated=true;return false;}
         out.matches.append({offset,length});return true;
     };
     if(spec.regex||spec.text){
-        if(spec.length>block){out.error="Regex admite una región de hasta 1 MiB. Selecciona una región menor o utiliza comodines hexadecimales para todo el archivo.";return out;}
-        if(spec.expression.size()>4096){out.error="La expresión supera 4096 caracteres.";return out;}
+        if(spec.length>block){out.error="Regex supports regions of up to 1 MiB. Select a smaller region or use hexadecimal wildcards for the entire file.";return out;}
+        if(spec.expression.size()>4096){out.error="The expression exceeds 4096 characters.";return out;}
         // PCRE limits bound backtracking on untrusted expressions. Latin-1 preserves byte offsets.
         QRegularExpression regex("(*LIMIT_MATCH=100000)(*LIMIT_DEPTH=1000)"+(spec.regex?spec.expression:QRegularExpression::escape(spec.expression)),QRegularExpression::DotMatchesEverythingOption);
-        if(!regex.isValid()){out.error="Regex no válida: "+regex.errorString();return out;}
+        if(!regex.isValid()){out.error="Invalid regex: "+regex.errorString();return out;}
         if(cancel.load()){out.cancelled=true;return out;}
         auto data=read(spec.begin,spec.length);if(!data.error.isEmpty())return data;
         QString text;QVector<qint64> starts,ends;
         if(spec.text){
-            for(const auto &token:decodeTokens(data.bytes,spec.begin,spec.encoding,"Texto",false,false)){
+            for(const auto &token:decodeTokens(data.bytes,spec.begin,spec.encoding,"Text",false,false)){
                 auto value=token.text;
                 if(spec.encoding=="ASCII")value=QString::fromLatin1(data.bytes.mid(token.offset-spec.begin,token.length));
                 for(qsizetype i=0;i<value.size();++i){starts.append(token.offset);ends.append(token.offset+token.length);}
@@ -35,7 +35,7 @@ ReadResult searchPattern(const ReadRequest &source,const PatternSpec &spec,
         while(offset<=text.size()){
             if(cancel.load()){out.cancelled=true;out.matches.clear();return out;}
             const auto match=regex.match(text,offset);
-            if(!match.isValid()){out.error="La regex excedió los límites del motor. Simplifica la expresión o reduce la región.";out.matches.clear();return out;}
+            if(!match.isValid()){out.error="The regex exceeded the engine limits. Simplify the expression or reduce the region.";out.matches.clear();return out;}
             if(!match.hasMatch())break;
             const auto start=match.capturedStart(),length=match.capturedLength();
             if(length>0){
@@ -49,7 +49,7 @@ ReadResult searchPattern(const ReadRequest &source,const PatternSpec &spec,
     }else{
         QString expression=spec.expression;expression.remove(QRegularExpression("\\s"));
         if(expression.isEmpty()||expression.size()%2||expression.size()>8192||expression.contains(QRegularExpression("[^0-9a-fA-F?]"))){
-            out.error="Usa pares hexadecimales: 48 8B ?? A?. ? sustituye un dígito; ?? un byte. Máximo 4096 bytes.";return out;
+            out.error="Use hexadecimal pairs: 48 8B ?? A?. ? matches one digit; ?? matches one byte. Maximum 4096 bytes.";return out;
         }
         QByteArray values,masks;
         for(qsizetype i=0;i<expression.size();i+=2){unsigned value=0,mask=0;

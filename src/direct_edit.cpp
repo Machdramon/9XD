@@ -40,34 +40,36 @@ QByteArray encodeNumber(const QString &text,const QString &type,bool big){
 ReadResult directEdit(const ReadRequest &source,const DirectEditSpec &spec){
     ReadResult result;result.request=source;
     auto fail=[&](QString error){result.error=error;result.bytes.clear();result.matches.clear();result.directDrafts.clear();return result;};
-    if(source.length<=0||source.length>1048576||spec.ranges.isEmpty()||spec.ranges.size()>4096||spec.character.toUcs4().size()!=1)return fail("Selección no válida: máximo 1 MiB y 4096 filas por pulsación.");
-    if(!spec.hex&&source.length>65536)return fail("La edición interpretada admite regiones de hasta 64 KiB por pulsación.");
+    if(source.length<=0||source.length>1048576||spec.ranges.isEmpty()||spec.ranges.size()>4096||spec.character.toUcs4().size()!=1)return fail("Invalid selection: maximum 1 MiB and 4096 rows per keystroke.");
+    if(!spec.hex&&source.length>65536)return fail("Interpreted editing supports regions of up to 64 KiB per keystroke.");
     auto data=readPage(source);if(!data.error.isEmpty())return data;applyPatches(data.bytes,source.offset,spec.patches);
     result.size=data.size;result.modified=data.modified;result.directCycle=spec.hex?2:1;
-    QByteArray replacement;if(!spec.hex&&spec.type=="Texto"){replacement=encodeCharacter(spec.character,spec.encoding);if(replacement.isEmpty())return fail("Carácter no representable en esta codificación.");}
+    QByteArray replacement;if(!spec.hex&&spec.type=="Text"){replacement=encodeCharacter(spec.character,spec.encoding);if(replacement.isEmpty())return fail("This character cannot be represented in the selected encoding.");}
     for(auto range:spec.ranges){
-        if(range.offset<source.offset||range.length<=0||range.offset-source.offset>data.bytes.size()||range.length>data.bytes.size()-(range.offset-source.offset))return fail("La selección supera los bytes disponibles.");
+        if(range.offset<source.offset||range.length<=0||range.offset-source.offset>data.bytes.size()||range.length>data.bytes.size()-(range.offset-source.offset))return fail("The selection exceeds the available bytes.");
         auto part=data.bytes.mid(range.offset-source.offset,range.length);qint64 consumed=0;
-        if(spec.hex){bool ok;int digit=spec.character.toInt(&ok,16);if(!ok||digit<0||digit>15)return fail("Solo se admiten dígitos hexadecimales 0–9 y A–F.");
+        if(spec.hex){bool ok;int digit=spec.character.toInt(&ok,16);if(!ok||digit<0||digit>15)return fail("Only hexadecimal digits 0–9 and A–F are allowed.");
             for(auto &c:part)c=char(spec.digit%2?(quint8(c)&0xF0)|digit:(quint8(c)&0x0F)|(digit<<4));consumed=part.size();result.directWidth=1;
         }else{
             QByteArray changed;
             auto tokens=decodeTokens(part,range.offset,spec.encoding,spec.type,spec.bigEndian,false);
             for(const auto &token:tokens){
                 QByteArray encoded;
-                if(spec.type=="Texto"){
-                    if(replacement.size()!=token.length)return fail("La sobrescritura debe conservar el tamaño del carácter. Usa hexadecimal para cambiar su codificación o longitud.");encoded=replacement;
+                if(spec.type=="Text"){
+                    if(replacement.size()!=token.length)return fail("Overwriting must preserve the character size. Use hexadecimal editing to change its encoding or length.");encoded=replacement;
                 }else{
-                    if(token.length!=numberWidth(spec.type))return fail("Selecciona elementos numéricos completos.");
-                    QString text=spec.drafts.value(token.offset,token.text);if(text.isEmpty())return fail("Valor numérico no editable.");result.directCycle=qMax(result.directCycle,int(text.size()));
+                    if(token.length!=numberWidth(spec.type))return fail("Select complete numeric elements.");
+                    QString text=spec.drafts.value(token.offset,token.text);if(text.isEmpty())return fail("This numeric value cannot be edited.");result.directCycle=qMax(result.directCycle,int(text.size()));
                     if(spec.digit<text.size())text[spec.digit]=spec.character[0];
-                    encoded=encodeNumber(text,spec.type,spec.bigEndian);if(encoded.isEmpty())return fail("Ese dígito produciría un valor inválido o fuera de rango; no se ha aplicado la pulsación.");result.directDrafts.insert(token.offset,text);
+                    encoded=encodeNumber(text,spec.type,spec.bigEndian);if(encoded.isEmpty())return fail("This digit would produce an invalid or out-of-range value; the keystroke was not applied.");result.directDrafts.insert(token.offset,text);
                 }
                 changed+=encoded;consumed+=token.length;result.directWidth=token.length;if(!spec.broadcast)break;
             }
             part=changed;
         }
-        if(!consumed)return fail("No hay un elemento completo que editar.");result.matches.append({range.offset,consumed});result.bytes+=part;if(!spec.broadcast)break;
+        if(!consumed)return fail("There is no complete element to edit.");result.matches.append({range.offset,consumed});result.bytes+=part;if(!spec.broadcast)break;
     }
     auto check=source;check.offset=0;check.length=0;auto meta=readPage(check);if(!meta.error.isEmpty())return meta;return result;
 }
+
+QByteArray encodeInputCharacter(const QString &text,const QString &encoding){return encodeCharacter(text,encoding);}

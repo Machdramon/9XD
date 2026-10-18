@@ -14,6 +14,7 @@
 #include <bit>
 #include <cmath>
 #include "hex_view.h"
+#include "image_decode.h"
 #include <QLineEdit>
 #include <QTableWidget>
 #include <QSpinBox>
@@ -51,6 +52,118 @@ static bool resizeSparseFile(QFile &file, qint64 size) {
 class ReaderTests : public QObject {
     Q_OBJECT
 private slots:
+    void imageContainersDdsTimTim2TplGtfGnf(){
+        std::atomic_bool cancel{false};QString error;ImageRecipe selection;
+        auto le32=[](QByteArray &b,int at,quint32 v){qToLittleEndian(v,reinterpret_cast<uchar *>(b.data()+at));};auto le16=[](QByteArray &b,int at,quint16 v){qToLittleEndian(v,reinterpret_cast<uchar *>(b.data()+at));};auto be32=[](QByteArray &b,int at,quint32 v){qToBigEndian(v,reinterpret_cast<uchar *>(b.data()+at));};auto be16=[](QByteArray &b,int at,quint16 v){qToBigEndian(v,reinterpret_cast<uchar *>(b.data()+at));};
+        QByteArray dds(128,0);dds.replace(0,4,"DDS ");le32(dds,4,124);le32(dds,12,4);le32(dds,16,4);le32(dds,28,2);le32(dds,76,32);le32(dds,80,4);dds.replace(84,4,"DXT1");dds+=QByteArray::fromHex("00f8000000000000e007000000000000");auto image=decodeDds(dds,selection,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(3,3),QColor(Qt::red));selection.mipLevel=1;image=decodeDds(dds,selection,error,cancel);QCOMPARE(image.size(),QSize(2,2));QCOMPARE(image.pixelColor(1,1),QColor(Qt::green));selection.mipLevel=2;image=decodeDds(dds,selection,error,cancel);QVERIFY(!error.isEmpty());selection={};error.clear();
+        // TIM 4bpp, two banks of 16 BGR555 entries, one 4-pixel row.
+        QByteArray tim(8+12+64+12+2,0);le32(tim,0,16);le32(tim,4,8);le32(tim,8,76);le16(tim,16,16);le16(tim,18,2);le16(tim,20,31);le16(tim,52,0x3e0);le32(tim,84,14);le16(tim,92,1);le16(tim,94,1);image=decodeTim(tim,selection,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.size(),QSize(4,1));QCOMPARE(image.pixelColor(0,0),QColor(Qt::red));selection.paletteBank=1;image=decodeTim(tim,selection,error,cancel);QCOMPARE(image.pixelColor(0,0),QColor(Qt::green));selection={};
+        QByteArray tm2(16+48+8,0);tm2.replace(0,4,"TIM2");tm2[4]=4;le16(tm2,6,1);le32(tm2,16,56);le32(tm2,24,8);le16(tm2,28,48);tm2[33]=1;tm2[35]=3;le16(tm2,36,2);le16(tm2,38,1);tm2.replace(64,8,QByteArray::fromHex("ff00008000ff0080"));image=decodeTim2(tm2,selection,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(1,0),QColor(Qt::green));
+        QByteArray tpl(56+32,0);be32(tpl,0,0x20af30);be32(tpl,4,1);be32(tpl,8,12);be32(tpl,12,20);be16(tpl,20,4);be16(tpl,22,4);be32(tpl,24,4);be32(tpl,28,56);for(int i=0;i<16;++i)be16(tpl,56+i*2,0xf800);image=decodeTpl(tpl,selection,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(3,3),QColor(Qt::red));
+        QByteArray gtf(48+8,0);be32(gtf,0,0x02020000);be32(gtf,4,8);be32(gtf,8,1);be32(gtf,16,48);be32(gtf,20,8);gtf[24]=char(0xa5);gtf[25]=1;gtf[26]=2;be32(gtf,28,0xaae4);be16(gtf,32,2);be16(gtf,34,1);be16(gtf,36,1);be32(gtf,40,8);gtf.replace(48,8,QByteArray::fromHex("ffff0000ff00ff00"));image=decodeGtf(gtf,selection,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(0,0),QColor(Qt::red));QCOMPARE(image.pixelColor(1,0),QColor(Qt::green));
+        QByteArray gnf(64,0);gnf.replace(0,4,"GNF ");le32(gnf,4,40);gnf[8]=2;gnf[9]=1;le32(gnf,12,64);le32(gnf,20,10u<<20);le32(gnf,24,1|(1<<14));le32(gnf,28,(9u<<28)|(8u<<20)|4|(5<<3)|(6<<6)|(7<<9));le32(gnf,32,1<<13);for(int i=0;i<4;++i)gnf.replace(48+i*4,4,QByteArray::fromHex("ff0000ff"));image=decodeGnf(gnf,selection,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(1,1),QColor(Qt::red));le32(gnf,28,(9u<<28)|(14u<<20));image=decodeGnf(gnf,selection,error,cancel);QVERIFY(error.contains("tile mode"));
+        // Every parser rejects short inputs without inspecting outside the header.
+        for(int n=0;n<48;++n){QByteArray shortData(n,0);error.clear();QVERIFY(decodeDds(shortData,selection,error,cancel).isNull());error.clear();QVERIFY(decodeTim(shortData.left(qMin(n,19)),selection,error,cancel).isNull());error.clear();QVERIFY(decodeTpl(shortData,selection,error,cancel).isNull());error.clear();QVERIFY(decodeGtf(shortData,selection,error,cancel).isNull());error.clear();QVERIFY(decodeGnf(shortData,selection,error,cancel).isNull());}
+    }
+    void expandedPackedAndClassicConsoleFormats(){
+        std::atomic_bool cancel{false};QString error;ImageRecipe r;r.width=r.height=1;
+        auto check=[&](QString format,QByteArray data,QColor expected){r.format=format;error.clear();auto image=decodeTextureData(data,{},r,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(0,0),expected);};
+        check("ARGB8",QByteArray::fromHex("80ff0000"),QColor(255,0,0,128));check("ABGR8",QByteArray::fromHex("800000ff"),QColor(255,0,0,128));
+        check("RGBA5551",QByteArray::fromHex("01f8"),QColor(Qt::red));check("ARGB1555",QByteArray::fromHex("00fc"),QColor(Qt::red));check("PS2 RGBA16",QByteArray::fromHex("1f80"),QColor(Qt::red));check("PS2 RGBA8",QByteArray::fromHex("ff000080"),QColor(Qt::red));
+        check("RGBA4444",QByteArray::fromHex("0ff0"),QColor(255,0,0,255));check("PS1 BGR555",QByteArray::fromHex("0000"),QColor(0,0,0,0));check("PS1 BGR555",QByteArray::fromHex("1f80"),QColor(255,0,0,128));
+        QByteArray palette=QByteArray::fromHex("000000ffff0000ff00ff00ff0000ffff");r.width=r.height=8;r.format="NES CHR2";QByteArray data(16,0);data[0]=char(0x80);data[8]=char(0x40);error.clear();auto image=decodeTextureData(data,palette,r,error,cancel);QVERIFY(error.isEmpty());QCOMPARE(image.pixelColor(0,0),QColor(Qt::red));QCOMPARE(image.pixelColor(1,0),QColor(Qt::green));QCOMPARE(image.pixelColor(2,0),QColor(Qt::black));
+        r.format="SNES 2bpp";data.fill(0);data[0]=char(0x80);data[1]=char(0x40);image=decodeTextureData(data,palette,r,error,cancel);QCOMPARE(image.pixelColor(0,0),QColor(Qt::red));QCOMPARE(image.pixelColor(1,0),QColor(Qt::green));
+        palette.resize(1024);for(int i=0;i<256;++i){palette[i*4]=char(i);palette[i*4+1]=0;palette[i*4+2]=0;palette[i*4+3]=char(255);}for(auto format:{"SNES 4bpp","SNES 8bpp"}){r.format=format;data=QByteArray(imagePixelBits(format)*8,0);data[0]=char(0x80);data[16]=char(0x80);image=decodeTextureData(data,palette,r,error,cancel);QCOMPARE(image.pixelColor(0,0).red(),5);}
+        r.format="SNES Mode7";data=QByteArray(64,char(7));image=decodeTextureData(data,palette,r,error,cancel);QCOMPARE(image.pixelColor(7,7).red(),7);
+    }
+    void gamecubeFormatsAndCompressedBlocks(){
+        std::atomic_bool cancel{false};QString error;ImageRecipe r;r.width=r.height=4;r.format="GC RGB565";QByteArray bytes;for(int i=0;i<16;++i)bytes+=QByteArray::fromHex("f800");auto image=decodeTextureData(bytes,{},r,error,cancel);QVERIFY(error.isEmpty());QCOMPARE(image.pixelColor(3,3),QColor(Qt::red));
+        r.format="GC RGB5A3";bytes.fill(0);for(int i=0;i<16;++i){bytes[i*2]=char(0x3f);bytes[i*2+1]=0;}image=decodeTextureData(bytes,{},r,error,cancel);QCOMPARE(image.pixelColor(0,0),QColor(255,0,0,109));
+        r.format="GC RGBA8";bytes=QByteArray(64,0);for(int i=0;i<16;++i){bytes[i*2]=char(255);bytes[i*2+1]=char(255);}image=decodeTextureData(bytes,{},r,error,cancel);QCOMPARE(image.pixelColor(3,3),QColor(Qt::red));
+        r.format="GC IA4";bytes=QByteArray(32,char(0x8f));image=decodeTextureData(bytes,{},r,error,cancel);QCOMPARE(image.pixelColor(0,0),QColor(255,255,255,136));
+        r.width=r.height=8;r.format="GC CMPR";bytes.clear();for(int i=0;i<4;++i)bytes+=QByteArray::fromHex("f800000000000000");image=decodeTextureData(bytes,{},r,error,cancel);QVERIFY(error.isEmpty());QCOMPARE(image.pixelColor(7,7),QColor(Qt::red));
+        r.width=3;r.height=2;r.format="BC1";bytes=QByteArray::fromHex("00f8000000000000");image=decodeTextureData(bytes,{},r,error,cancel);QVERIFY(error.isEmpty());QCOMPARE(image.size(),QSize(3,2));QCOMPARE(image.pixelColor(2,1),QColor(Qt::red));
+        r.format="BC2";bytes=QByteArray(8,char(255))+QByteArray::fromHex("00f8000000000000");image=decodeTextureData(bytes,{},r,error,cancel);QCOMPARE(image.pixelColor(2,1),QColor(Qt::red));
+        r.format="BC3";bytes=QByteArray::fromHex("ff0000000000000000f8000000000000");image=decodeTextureData(bytes,{},r,error,cancel);QCOMPARE(image.pixelColor(2,1),QColor(Qt::red));
+        r.format="BC4";bytes=QByteArray::fromHex("ff00000000000000");image=decodeTextureData(bytes,{},r,error,cancel);QCOMPARE(image.pixelColor(2,1),QColor(Qt::white));
+        r.format="BC5";bytes+=QByteArray(8,0);image=decodeTextureData(bytes,{},r,error,cancel);QCOMPARE(image.pixelColor(2,1),QColor(Qt::red));
+        r.format="BC7";bytes=QByteArray(16,0);int bit=0;auto put=[&](int value,int count){for(int i=0;i<count;++i,++bit)if(value&(1<<i))bytes[bit/8]=char(quint8(bytes[bit/8])|(1<<(bit%8)));};put(64,7);for(int c=0;c<4;++c){put(c==0||c==3?127:0,7);put(c==0||c==3?127:0,7);}put(0,2);image=decodeTextureData(bytes,{},r,error,cancel);QVERIFY(error.isEmpty());QCOMPARE(image.pixelColor(2,1),QColor(254,0,0,254));
+        for(auto format:{"BC6H","BC6H signed"}){r.format=format;image=decodeTextureData(QByteArray(16,0),{},r,error,cancel);QVERIFY(error.isEmpty());QCOMPARE(image.pixelColor(2,1),QColor(Qt::black));}
+        r.format="BC1";image=decodeTextureData(QByteArray(7,0),{},r,error,cancel);QVERIFY(!error.isEmpty());
+    }
+    void consoleMemoryAddressingAndEndian(){
+        std::atomic_bool cancel{false};QString error;ImageRecipe r;r.width=r.height=4;r.format="Gray8";r.layout="PS2 GS pages";QByteArray gs(8192,0);const int offsets[4][4]={{0,4,16,20},{8,12,24,28},{33,37,49,53},{41,45,57,61}};for(int y=0;y<4;++y)for(int x=0;x<4;++x)gs[offsets[y][x]]=char(y*4+x);auto image=decodeTextureData(gs,{},r,error,cancel);QVERIFY(error.isEmpty());for(int y=0;y<4;++y)for(int x=0;x<4;++x)QCOMPARE(image.pixelColor(x,y).red(),y*4+x);
+        // Check that a complete GS page is a bijection for all supported PSM bit depths.
+        for(int bits:{4,8,16,32}){QSet<qint64> addresses;int width=bits<=8?128:64,height=bits==4?128:bits==8||bits==16?64:32;for(int y=0;y<height;++y)for(int x=0;x<width;++x){auto address=imageGsBitAddress(x,y,width,bits);QVERIFY(address>=0&&address<8192*8);QVERIFY(!addresses.contains(address));addresses.insert(address);}}
+        r.width=32;r.height=32;r.layout="Xbox 360 tiled";QString e;auto span=imageSpan(r,e);QByteArray tiled(span,0);QSet<qint64> addresses;for(int y=0;y<32;++y)for(int x=0;x<32;++x){auto address=imageXenosAddress(x,y,32,1);QVERIFY(!addresses.contains(address));addresses.insert(address);tiled[address]=char((y*32+x)%251);}image=decodeTextureData(tiled,{},r,error,cancel);QVERIFY(error.isEmpty());for(int y=0;y<32;++y)for(int x=0;x<32;++x)QCOMPARE(image.pixelColor(x,y).red(),(y*32+x)%251);
+        QCOMPARE(imageXenosAddress(0,1,32,4),qint64(16));QCOMPARE(imageXenosAddress(8,0,32,4),qint64(64));QCOMPARE(imageXenosAddress(0,16,32,4),qint64(2048));
+        r.width=8;r.height=4;r.layout="Morton rectangular";QByteArray morton(32,0);for(int y=0;y<4;++y)for(int x=0;x<8;++x)morton[imageMorton(x,y,8,4)]=char(y*8+x);image=decodeTextureData(morton,{},r,error,cancel);QCOMPARE(image.pixelColor(7,3).red(),31);
+        r.width=r.height=1;r.format="RGBA8";r.layout="Linear";r.byteSwap="Swap 8 in 32";image=decodeTextureData(QByteArray::fromHex("ff0000ff"),{},r,error,cancel);QCOMPARE(image.pixelColor(0,0),QColor(Qt::red));
+    }
+    void encodedImagesTgaAndUnswizzle(){
+        std::atomic_bool cancel{false};QImage original(2,2,QImage::Format_ARGB32);original.fill(Qt::red);
+        auto decode=[&](const QByteArray &bytes,ImageRecipe recipe){auto memory=std::make_shared<MemoryData>();memory->blocks={bytes};memory->size=bytes.size();ReadRequest source;source.memory=memory;source.expectedSize=bytes.size();return decodeBinaryImage(source,{},recipe,cancel);};
+        ImageRecipe recipe;recipe.format="Encoded image";
+        for(const auto &format:{"PNG","BMP","JPG","TIFF","WEBP"}){QByteArray bytes;QBuffer buffer(&bytes);QVERIFY(buffer.open(QIODevice::WriteOnly));QVERIFY2(original.save(&buffer,format),format);auto result=decode(bytes,recipe);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.image.size(),original.size());QVERIFY(result.image.pixelColor(0,0).red()>240);}
+        // 2x1, top origin, 24-bit uncompressed BGR: red then green.
+        QByteArray tga=QByteArray::fromHex("0000020000000000000000000200010018200000ff00ff00");
+        auto result=decode(tga,recipe);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::red));QCOMPARE(result.image.pixelColor(1,0),QColor(Qt::green));
+        tga[2]=10;tga.replace(18,6,QByteArray::fromHex("810000ff"));result=decode(tga,recipe);QVERIFY(result.error.isEmpty());QCOMPARE(result.image.pixelColor(1,0),QColor(Qt::red));
+        tga[18]=char(0x82);result=decode(tga,recipe);QVERIFY(!result.error.isEmpty());tga.truncate(19);result=decode(tga,recipe);QVERIFY(!result.error.isEmpty());
+        // Indexed 8-bit with a palette starting at index 5, a 24-bit green entry.
+        tga=QByteArray::fromHex("00010105000100180000000001000100082000ff0005");result=decode(tga,recipe);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::green));
+        // Grayscale with alpha.
+        tga=QByteArray::fromHex("0000030000000000000000000100010010288040");result=decode(tga,recipe);QVERIFY(result.error.isEmpty());QCOMPARE(result.image.pixelColor(0,0),QColor(128,128,128,64));
+        recipe.format="Gray8";recipe.width=4;recipe.height=4;recipe.layout="Morton Z-order";QByteArray morton(16,0);
+        for(int y=0;y<4;++y)for(int x=0;x<4;++x){int index=(x&1)|((y&1)<<1)|((x&2)<<1)|((y&2)<<2);morton[index]=char(y*4+x);}
+        result=decode(morton,recipe);QVERIFY(result.error.isEmpty());for(int y=0;y<4;++y)for(int x=0;x<4;++x)QCOMPARE(result.image.pixelColor(x,y).red(),y*4+x);
+        recipe.width=3;result=decode(morton,recipe);QVERIFY(!result.error.isEmpty());
+        recipe.width=16;recipe.height=8;recipe.layout="Tiled 8x8";QByteArray tiled(128,0);for(int y=0;y<8;++y)for(int x=0;x<16;++x)tiled[(x/8)*64+y*8+x%8]=char(y*16+x);
+        result=decode(tiled,recipe);QVERIFY(result.error.isEmpty());for(int y=0;y<8;++y)for(int x=0;x<16;++x)QCOMPARE(result.image.pixelColor(x,y).red(),y*16+x);
+        recipe.rowStride=16;result=decode(tiled,recipe);QVERIFY(!result.error.isEmpty());
+    }
+    void rawImageFormatsRangesAndSnapshots(){
+        std::atomic_bool cancel{false};auto memory=std::make_shared<MemoryData>();auto data=QByteArray::fromHex("ff0000ff00ff00ff");memory->blocks={data};memory->size=data.size();ReadRequest source;source.memory=memory;source.expectedSize=memory->size;
+        ImageRecipe recipe;recipe.width=2;recipe.height=1;
+        auto result=decodeBinaryImage(source,{},recipe,cancel);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::red));QCOMPARE(result.image.pixelColor(1,0),QColor(Qt::green));
+        recipe.flipX=true;result=decodeBinaryImage(source,{},recipe,cancel);QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::green));recipe.flipX=false;
+        recipe.format="BGRA8";result=decodeBinaryImage(source,{},recipe,cancel);QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::blue));
+        recipe.format="RGB565";recipe.width=1;recipe.bigEndian=true;PatchList patches{{0,QByteArray::fromHex("f800")}};result=decodeBinaryImage(source,patches,recipe,cancel);QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::red));
+        recipe.bigEndian=false;patches={{0,QByteArray::fromHex("00f8")}};result=decodeBinaryImage(source,patches,recipe,cancel);QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::red));
+        recipe.format="Gray8";recipe.width=2;recipe.height=2;recipe.rowStride=4;result=decodeBinaryImage(source,{},recipe,cancel);QCOMPARE(result.image.pixelColor(0,1),QColor(Qt::black));QCOMPARE(result.image.pixelColor(1,1),QColor(Qt::white));
+        recipe.offset=7;result=decodeBinaryImage(source,{},recipe,cancel);QVERIFY(!result.error.isEmpty());recipe.offset=0;recipe.rowStride=1;result=decodeBinaryImage(source,{},recipe,cancel);QVERIFY(!result.error.isEmpty());
+        recipe.rowStride=0;cancel=true;result=decodeBinaryImage(source,{},recipe,cancel);QVERIFY(result.cancelled);cancel=false;
+        QByteArray indexed(66,0);indexed[0]=char(0x12);indexed.replace(6,4,QByteArray::fromHex("ff0000ff"));indexed.replace(10,4,QByteArray::fromHex("00ff00ff"));memory->blocks={indexed};memory->size=indexed.size();source.expectedSize=memory->size;recipe.width=2;recipe.height=1;recipe.format="Indexed4";recipe.paletteOffset=2;result=decodeBinaryImage(source,{},recipe,cancel);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.image.pixelColor(0,0),QColor(Qt::red));QCOMPARE(result.image.pixelColor(1,0),QColor(Qt::green));
+    }
+    void checksumKnownVectors(){
+        MemoryData empty;auto memory=empty.splice(0,0,"123456789");ReadRequest source{"",0,9,{},0,memory};
+        ChecksumSpec spec;spec.length=9;spec.algorithms=checksumAlgorithms();std::atomic<bool> cancel{false};std::atomic<qint64> progress{0};
+        const auto result=calculateChecksums(source,spec,cancel,progress);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));
+        QCOMPARE(result.checksums.size(),8);QCOMPARE(progress.load(),qint64(9));
+        QCOMPARE(result.checksums.value("Checksum-8"),QString("DD"));QCOMPARE(result.checksums.value("Checksum-16"),QString("01DD"));
+        QCOMPARE(result.checksums.value("Checksum-32"),QString("000001DD"));QCOMPARE(result.checksums.value("CRC-32"),QString("CBF43926"));
+        QCOMPARE(result.checksums.value("MD5"),QString("25F9E794323B453885F5181F1B624D0B"));
+        QCOMPARE(result.checksums.value("SHA-1"),QString("F7C3BC1D808E04732ADF679965CCC34CA7AE3441"));
+        QCOMPARE(result.checksums.value("SHA-256"),QString("15E2B0D3C33891EBB0F1EF609EC419420C20E320CE94C65FBC8C3312448EB225"));
+        QCOMPARE(result.checksums.value("SHA-512"),QString("D9E6762DD1C8EAF6D61B3C6192FC408D4D6D5F1176D0C29169BC24E71C3F274AD27FCD5811B313D681F7E55EC02D73D499C95455B6B5BB503ACF574FBA8FFE85"));
+        spec.length=0;auto zero=calculateChecksums(source,spec,cancel,progress);QVERIFY(zero.error.isEmpty());
+        QCOMPARE(zero.checksums.value("CRC-32"),QString("00000000"));QCOMPARE(zero.checksums.value("MD5"),QString("D41D8CD98F00B204E9800998ECF8427E"));
+        cancel.store(true);QVERIFY(calculateChecksums(source,spec,cancel,progress).cancelled);
+        cancel.store(false);spec.begin=10;QVERIFY(!calculateChecksums(source,spec,cancel,progress).error.isEmpty());
+    }
+    void checksumDiskPatchesAndBlockBoundaries(){
+        QTemporaryDir directory;QVERIFY(directory.isValid());QFile file(directory.filePath("checksum.bin"));
+        const QByteArray bytes=QByteArray(1048576,'A')+QByteArray("BC");QVERIFY(file.open(QIODevice::WriteOnly));QCOMPARE(file.write(bytes),qint64(bytes.size()));file.close();
+        auto metadata=readPage({file.fileName(),0,-1,{},0});QVERIFY(metadata.error.isEmpty());
+        ReadRequest source{file.fileName(),0,metadata.size,metadata.modified,0};ChecksumSpec spec;spec.length=bytes.size();spec.algorithms={"SHA-256","CRC-32"};
+        spec.patches={{1048575,QByteArray("XYZ")}};std::atomic<bool> cancel{false};std::atomic<qint64> progress{0};
+        auto patched=bytes;patched.replace(1048575,3,"XYZ");auto result=calculateChecksums(source,spec,cancel,progress);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));
+        QCOMPARE(result.checksums.value("SHA-256"),QString::fromLatin1(QCryptographicHash::hash(patched,QCryptographicHash::Sha256).toHex().toUpper()));
+        spec.begin=1048575;spec.length=3;result=calculateChecksums(source,spec,cancel,progress);QVERIFY(result.error.isEmpty());
+        QCOMPARE(result.checksums.value("SHA-256"),QString::fromLatin1(QCryptographicHash::hash("XYZ",QCryptographicHash::Sha256).toHex().toUpper()));
+        source.expectedModified=source.expectedModified.addSecs(-1);QVERIFY(!calculateChecksums(source,spec,cancel,progress).error.isEmpty());
+        cancel.store(true);QVERIFY(calculateChecksums(source,spec,cancel,progress).cancelled);
+    }
     void recentFilesPersistence() {
         QTemporaryDir dir;QString settings=dir.filePath("prefs/recent.json");RecentFiles recent(settings);QStringList files;
         for(int i=0;i<14;++i){QString path=dir.filePath(QString("file%1.bin").arg(i));QFile f(path);QVERIFY(f.open(QIODevice::WriteOnly));f.write("test");f.close();files.append(QFileInfo(path).canonicalFilePath());QVERIFY(recent.add(path));}
@@ -76,7 +189,7 @@ private slots:
     }
     void meshCollectionIdentityAndOcclusion() {
         auto front=std::make_shared<MeshData>();for(auto point:{QVector3D(-1,-1,1),QVector3D(1,-1,1),QVector3D(0,1,1)}){MeshVertex v{};for(int j=0;j<3;++j)v.position[j]=point[j];front->vertices.append(v);}front->triangles={0,1,2};auto back=std::make_shared<MeshData>(*front);for(auto &v:back->vertices)v.position[2]=-1;
-        MeshScene scene;int a=scene.add(front,"Frente","example.bin"),b=scene.add(back,"Fondo","example.bin");auto all=scene.assemble();QCOMPARE(all.data->triangles,QVector<quint32>({0,1,2,3,4,5}));QCOMPARE(all.spans[1].id,b);MeshDebug debug(*all.data);QVERIFY(!debug.visible({0,0,3},debug.positions[3]));
+        MeshScene scene;int a=scene.add(front,"Frente","example.bin"),b=scene.add(back,"Background","example.bin");auto all=scene.assemble();QCOMPARE(all.data->triangles,QVector<quint32>({0,1,2,3,4,5}));QCOMPARE(all.spans[1].id,b);MeshDebug debug(*all.data);QVERIFY(!debug.visible({0,0,3},debug.positions[3]));
         scene.setVisible(a,false);auto visible=scene.assemble();MeshDebug exposed(*visible.data,all.data.get());QCOMPARE(exposed.positions[0],debug.positions[3]);QVERIFY(exposed.visible({0,0,3},exposed.positions[0]));scene.select(b,MeshElement::Vertex,2);scene.remove(a);QCOMPARE(scene.selection().mesh,b);QCOMPARE(scene.selection().index,2);
         int c=scene.add(front);QVERIFY(c>b);scene.markStale();QVERIFY(scene.entry(b)->stale);QVERIFY(!scene.entry(c)->stale);scene.replace(b,front,"new.bin");QVERIFY(!scene.entry(b)->stale);QCOMPARE(scene.entry(b)->id,b);scene.setVisible(b,false);scene.select(b,MeshElement::Vertex,0);QCOMPARE(scene.selection().index,-1);scene.clear();QVERIFY(scene.entries().isEmpty());QCOMPARE(scene.active(),-1);
     }
@@ -99,13 +212,13 @@ private slots:
         DataInspector inspector;inspector.resize(440,850);inspector.show();
         auto value=[&](QString type){auto *table=inspector.findChild<QTableWidget *>("inspectorValues");for(int i=0;i<table->rowCount();++i)if(table->item(i,0)->text()==type)return table->item(i,1)->text();return QString();};
         inspector.setData(QByteArray::fromHex("0102030405060708"),{0,7,16,false},8,"ASCII",false);
-        QCOMPARE(value("UInt16"),QString("513"));QCOMPARE(value("Binario (8 bits)"),QString("00000001"));
+        QCOMPARE(value("UInt16"),QString("513"));QCOMPARE(value("Binary (8 bits)"),QString("00000001"));
         inspector.findChild<QComboBox *>("inspectorEndian")->setCurrentIndex(1);QCOMPARE(value("UInt16"),QString("258"));
         inspector.findChild<QCheckBox *>("inspectorHex")->setChecked(true);QCOMPARE(value("UInt64"),QString("0x0102030405060708"));
         inspector.findChild<QCheckBox *>("inspectorHex")->setChecked(false);
         inspector.setData(QByteArray(8,char(0xff)),{0,0,16,false},8,"ASCII",false);QCOMPARE(value("UInt64"),QString("18446744073709551615"));QCOMPARE(value("Int64"),QString("-1"));
         inspector.setData(QByteArray(8,0),{0,0,16,false},8,"ASCII",false);QCOMPARE(value("Unix Int64"),QString("1970-01-01 00:00:00 UTC"));QCOMPARE(value("FILETIME"),QString("1601-01-01 00:00:00 UTC"));
-        inspector.setData(QByteArray(1,'A'),{0,0,16,false},1,"ASCII",false);QVERIFY(value("UInt16").contains("insuficientes"));QCOMPARE(value("ASCII"),QString("A"));
+        inspector.setData(QByteArray(1,'A'),{0,0,16,false},1,"ASCII",false);QVERIFY(value("UInt16").contains("insufficient"));QCOMPARE(value("ASCII"),QString("A"));
         inspector.setData(QByteArray::fromHex("73cc2a0000000000"),{0,7,16,false},8,"ASCII",false);
         if(qEnvironmentVariableIsSet("WORKBENCH_INSPECTOR_SCREENSHOT"))inspector.grab().save(qEnvironmentVariable("WORKBENCH_INSPECTOR_SCREENSHOT"));
     }
@@ -137,7 +250,7 @@ private slots:
         spec={};spec.hex=false;spec.type="UInt16";spec.ranges={{2,2}};spec.character="1";source.offset=2;source.length=2;r=directEdit(source,spec);QVERIFY(r.error.isEmpty());QCOMPARE(decodeNumber(r.bytes,"UInt16",false),QString("13330"));
         spec.type="UInt8";spec.ranges={{2,1}};spec.character="9";source.length=1;r=directEdit(source,spec);QVERIFY(r.error.isEmpty());QCOMPARE(quint8(r.bytes[0]),98);spec.digit=1;spec.drafts=r.directDrafts;spec.character="0";r=directEdit(source,spec);QCOMPARE(quint8(r.bytes[0]),90);
         spec.type="Int8";spec.character="9";spec.digit=0;spec.drafts={{2,"127"}};QVERIFY(!directEdit(source,spec).error.isEmpty());
-        spec.type="Texto";spec.drafts.clear();spec.encoding="ASCII";spec.character="Q";r=directEdit(source,spec);QCOMPARE(r.bytes,QByteArray("Q"));spec.character=QString::fromUtf8("日");QVERIFY(!directEdit(source,spec).error.isEmpty());
+        spec.type="Text";spec.drafts.clear();spec.encoding="ASCII";spec.character="Q";r=directEdit(source,spec);QCOMPARE(r.bytes,QByteArray("Q"));spec.character=QString::fromUtf8("日");QVERIFY(!directEdit(source,spec).error.isEmpty());
         spec.encoding="UTF-8";QVERIFY(!directEdit(source,spec).error.isEmpty());
         QVERIFY(file.open(QIODevice::WriteOnly|QIODevice::Truncate));file.write(QByteArray::fromHex("00004841"));file.close();meta=readPage({path,0,-1,{},0});source={path,0,meta.size,meta.modified,4};spec={};spec.hex=false;spec.type="Float32";spec.ranges={{0,4}};spec.character="2";r=directEdit(source,spec);QVERIFY(r.error.isEmpty());QCOMPARE(decodeNumber(r.bytes,"Float32",false),QString("22.5"));
     }
@@ -148,7 +261,7 @@ private slots:
         view.selectMatch(0,1);QTest::keyClicks(table,"1234");QTRY_VERIFY(!view.busy());QCOMPARE(table->item(0,1)->text(),QString("12"));QCOMPARE(table->item(0,2)->text(),QString("34"));QCOMPARE(view.selection().anchor,qint64(2));
         QTest::keyClicks(table,"g");QCOMPARE(table->item(0,3)->text(),QString("12"));
         auto *type=view.findChild<QComboBox *>("interpretation");type->setCurrentText("UInt8");QTRY_VERIFY(!view.busy());auto rect=table->visualItemRect(table->item(0,17));QTest::mouseClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,rect.topLeft()+QPoint(8,10));QTest::keyClicks(table,"09");QTRY_VERIFY(!view.busy());QCOMPARE(table->item(0,1)->text(),QString("09"));QCOMPARE(view.selection().anchor,qint64(1));
-        type->setCurrentText("Texto");QTRY_VERIFY(!view.busy());rect=table->visualItemRect(table->item(0,17));QTest::mouseClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,rect.topLeft()+QPoint(8,10));QTest::keyClicks(table,"Z");QTRY_VERIFY(!view.busy());QCOMPARE(table->item(0,1)->text(),QString("5A"));
+        type->setCurrentText("Text");QTRY_VERIFY(!view.busy());rect=table->visualItemRect(table->item(0,17));QTest::mouseClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,rect.topLeft()+QPoint(8,10));QTest::keyClicks(table,"Z");QTRY_VERIFY(!view.busy());QCOMPARE(table->item(0,1)->text(),QString("5A"));
         view.shutdown();
     }
     void entropyKnownDistributions() {
@@ -226,11 +339,11 @@ private slots:
         FormatRule rectangle;rectangle.selectionRule=true;rectangle.selection={1,19,8,true};
         QVERIFY(rectangle.matches(9));QVERIFY(!rectangle.matches(12));
         QVERIFY(decodeRule(encodeRule(rectangle),restored));QVERIFY(restored.matches(17));
-        auto utf8=decodeTokens(QString::fromUtf8("A日😀").toUtf8(),100,"UTF-8","Texto",false);
+        auto utf8=decodeTokens(QString::fromUtf8("A日😀").toUtf8(),100,"UTF-8","Text",false);
         QCOMPARE(utf8.size(),3);QCOMPARE(utf8[1].offset,qint64(101));QCOMPARE(utf8[1].length,qint64(3));QCOMPARE(utf8[2].length,qint64(4));
-        auto utf16=decodeTokens(QByteArray::fromHex("41003dd800de"),0,"UTF-16LE","Texto",false);
+        auto utf16=decodeTokens(QByteArray::fromHex("41003dd800de"),0,"UTF-16LE","Text",false);
         QCOMPARE(utf16.size(),2);QCOMPARE(utf16[1].length,qint64(4));
-        auto japanese=decodeTokens(QByteArray::fromHex("93fa967b"),0,"CP932","Texto",false);
+        auto japanese=decodeTokens(QByteArray::fromHex("93fa967b"),0,"CP932","Text",false);
         QCOMPARE(japanese.size(),2);QCOMPARE(japanese[0].text,QString::fromUtf8("日"));QCOMPARE(japanese[1].offset,qint64(2));
         auto floats=decodeTokens(QByteArray::fromHex("0000803f00000040"),0,"ASCII","Float32",false);
         QCOMPARE(floats.size(),2);QCOMPARE(floats[0].length,qint64(4));QCOMPARE(floats[1].text,QString("2"));
@@ -485,36 +598,38 @@ private slots:
         QVERIFY(waiting);QCOMPARE(cache.chunkCount(),0);QCOMPARE(future.result().bytes,QByteArray("x"));
     }
     void continuousScrollAndHugeOffsets() {
+        // This checks 64 GiB sparse-file navigation correctness, not a latency target.
+        constexpr int idleTimeout=10000;
         QTemporaryDir dir;const auto path=dir.filePath("scroll.bin");QFile file(path);
         QVERIFY(file.open(QIODevice::ReadWrite));
         constexpr qint64 size=64LL*1024*1024*1024;
         QVERIFY(resizeSparseFile(file,size));QVERIFY(file.seek(size-1));QCOMPARE(file.write("Z",1),1);file.close();
         HexView view;view.resize(1100,700);view.show();view.openFile(path);
-        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
+        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);
         auto *scroll=view.findChild<QScrollBar *>("fileScroll");auto *table=view.findChild<QTableWidget *>();
         QCOMPARE(scroll->maximum(),INT_MAX);
         scroll->triggerAction(QAbstractSlider::SliderSingleStepAdd);
-        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);QCOMPARE(view.firstVisibleOffset(),16);
+        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);QCOMPARE(view.firstVisibleOffset(),16);
         QWheelEvent wheel(QPointF(80,80),QPointF(80,80),QPoint(),QPoint(0,-120),Qt::NoButton,Qt::NoModifier,Qt::NoScrollPhase,false);
         QApplication::sendEvent(table->viewport(),&wheel);
-        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);QCOMPARE(view.firstVisibleOffset(),64);
+        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);QCOMPARE(view.firstVisibleOffset(),64);
         scroll->setValue(scroll->maximum());
-        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
+        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);
         QCOMPARE(view.firstVisibleOffset()+qint64(table->rowCount())*16,size);
         QCOMPARE(table->item(table->rowCount()-1,16)->text(),QString("5A"));
         const auto end=view.firstVisibleOffset();
         scroll->triggerAction(QAbstractSlider::SliderSingleStepSub);
-        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);QCOMPARE(view.firstVisibleOffset(),end-16);
+        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);QCOMPARE(view.firstVisibleOffset(),end-16);
         for(int i=0;i<1000;++i)scroll->setValue(i*1000000);
-        scroll->setValue(0);QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),5000);
+        scroll->setValue(0);QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);
         QCOMPARE(view.firstVisibleOffset(),0);QVERIFY(view.cachedBytes()<=20*ChunkCache::ChunkBytes);
         QVERIFY(table->rowCount()<100);
         auto *stride=view.findChild<QSpinBox *>("stride");stride->setValue(3);
-        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
-        scroll->setValue(scroll->maximum());QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
+        QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);
+        scroll->setValue(scroll->maximum());QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);
         const auto row=table->rowCount()-1;
         const int tail=int((size-1)%3)+1;QCOMPARE(table->item(row,tail)->text(),QString("5A"));
-        view.shutdown();QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
+        view.shutdown();QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),idleTimeout);
     }
     void interpretationsAndCalculator() {
         QCOMPARE(decodeText(QByteArray::fromHex("e697a5e69cac"),"UTF-8"),QString::fromUtf8("日本"));
@@ -525,10 +640,10 @@ private slots:
         QCOMPARE(decodeNumber(QByteArray::fromHex("ffff"),"Int16",false),QString("-1"));
         QCOMPARE(decodeNumber(QByteArray::fromHex("0102"),"UInt16",false),QString("513"));
         QCOMPARE(decodeNumber(QByteArray::fromHex("0102"),"UInt16",true),QString("258"));
-        QVERIFY(decodeNumber(QByteArray(3,'\0'),"Float32",false).startsWith("Faltan"));
+        QVERIFY(decodeNumber(QByteArray(3,'\0'),"Float32",false).startsWith("Missing"));
         QVERIFY(calculateInteger("0x100","+","16").contains("272"));
-        QCOMPARE(calculateInteger("1","÷","0"),QString("División por cero"));
-        QCOMPARE(calculateInteger("18446744073709551615","+","1"),QString("Desbordamiento"));
+        QCOMPARE(calculateInteger("1","÷","0"),QString("Division by zero"));
+        QCOMPARE(calculateInteger("18446744073709551615","+","1"),QString("Overflow"));
     }
     void selectionGeometry() {
         ByteSelection sequential{14,18,16,false};

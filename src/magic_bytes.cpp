@@ -13,7 +13,7 @@ struct Compiled {
 };
 bool compile(const MagicSignature &s,Compiled &c,QString &error){
     QString text=s.pattern;text.remove(QRegularExpression("\\s"));
-    if(s.name.trimmed().isEmpty()||s.name.size()>200||s.notes.size()>2000||s.relativeOffset<0||text.isEmpty()||text.size()%2||text.size()>8192||text.contains(QRegularExpression("[^0-9a-fA-F?]"))){error="Nombre obligatorio, desplazamiento positivo o cero y pares hexadecimales (hasta 4096 bytes). Se admite ??, A? o ?F.";return false;}
+    if(s.name.trimmed().isEmpty()||s.name.size()>200||s.notes.size()>2000||s.relativeOffset<0||text.isEmpty()||text.size()%2||text.size()>8192||text.contains(QRegularExpression("[^0-9a-fA-F?]"))){error="A name, nonnegative offset and hexadecimal pairs (up to 4096 bytes) are required. ??, A? and ?F are supported.";return false;}
     bool fixed=false;QByteArray run;qsizetype runStart=0;
     for(qsizetype i=0;i<text.size();i+=2){unsigned value=0,mask=0;
         for(int j=0;j<2;++j){value<<=4;mask<<=4;if(text[i+j]!='?'){value|=QString(text[i+j]).toUInt(nullptr,16);mask|=15;}}
@@ -21,7 +21,7 @@ bool compile(const MagicSignature &s,Compiled &c,QString &error){
         if(mask==255){if(run.isEmpty())runStart=i/2;run.append(char(value));if(run.size()>c.anchor.size()){c.anchor=run;c.anchorOffset=runStart;}}
         else run.clear();
     }
-    if(!fixed){error="La firma necesita al menos un dígito fijo; no puede contener solo comodines.";return false;}
+    if(!fixed){error="A signature needs at least one fixed digit; it cannot contain only wildcards.";return false;}
     c.relativeOffset=s.relativeOffset;return true;
 }
 bool matches(const QByteArray &bytes,qsizetype at,const Compiled &c){
@@ -32,16 +32,16 @@ bool matches(const QByteArray &bytes,qsizetype at,const Compiled &c){
 }
 bool validateMagic(const MagicSignature &s,QString &error){Compiled c;return compile(s,c,error);}
 QList<MagicSignature> defaultMagicLibrary(){
-    return {{"PNG","89 50 4E 47 0D 0A 1A 0A","Firma PNG; comprobar IHDR, longitudes y CRC para validar el contenido.",0,true},
-        {"DDS","44 44 53 20","Cabecera DDS; la firma no determina el tamaño de la textura.",0,true},
-        {"gzip / DEFLATE","1F 8B 08","Cabecera gzip con método DEFLATE. Descompresión aún no implementada.",0,true}};
+    return {{"PNG","89 50 4E 47 0D 0A 1A 0A","PNG signature; check IHDR, lengths and CRCs to validate the content.",0,true},
+        {"DDS","44 44 53 20","DDS header; the signature does not determine the texture size.",0,true},
+        {"gzip / DEFLATE","1F 8B 08","gzip header using DEFLATE. Decompression is not yet implemented.",0,true}};
 }
 QJsonDocument encodeMagicLibrary(const QList<MagicSignature> &signatures){
     QJsonArray entries;for(const auto &s:signatures)entries.append(QJsonObject{{"name",s.name},{"pattern",s.pattern},{"offset",QString::number(s.relativeOffset)},{"notes",s.notes},{"enabled",s.enabled}});
     return QJsonDocument(QJsonObject{{"kind","binary-workbench-magic"},{"version",1},{"signatures",entries}});
 }
 bool decodeMagicLibrary(const QByteArray &json,QList<MagicSignature> &signatures,QString &error){
-    auto fail=[&]{error="Biblioteca no válida: máximo 64 firmas y 1 MiB. No se ha cambiado la biblioteca actual.";return false;};
+    auto fail=[&]{error="Invalid library: maximum 64 signatures and 1 MiB. The current library was not changed.";return false;};
     if(json.size()>1024*1024)return fail();QJsonParseError parse;auto doc=QJsonDocument::fromJson(json,&parse);
     if(parse.error!=QJsonParseError::NoError||!doc.isObject()||doc["kind"].toString()!="binary-workbench-magic"||doc["version"].toInt()!=1||!doc["signatures"].isArray()||doc["signatures"].toArray().size()>64)return fail();
     QList<MagicSignature> loaded;
@@ -54,15 +54,15 @@ bool decodeMagicLibrary(const QByteArray &json,QList<MagicSignature> &signatures
 }
 ReadResult scanMagic(const ReadRequest &source,const MagicSpec &spec,std::atomic<bool> &cancel,std::atomic<qint64> &progress){
     ReadResult out;out.request=source;
-    if(spec.signatures.size()>64||source.expectedSize<0||spec.regions.size()>10000){out.error="El análisis supera los límites de firmas o regiones.";return out;}
+    if(spec.signatures.size()>64||source.expectedSize<0||spec.regions.size()>10000){out.error="The analysis exceeds the signature or region limits.";return out;}
     QList<Compiled> patterns;qsizetype maxLength=1;
     for(int i=0;i<spec.signatures.size();++i)if(spec.signatures[i].enabled){Compiled c;c.id=i;if(!compile(spec.signatures[i],c,out.error))return out;maxLength=qMax(maxLength,c.values.size());patterns.append(c);}
-    if(patterns.isEmpty()){out.error="Activa al menos una firma.";return out;}
+    if(patterns.isEmpty()){out.error="Enable at least one signature.";return out;}
     auto read=[&](qint64 offset,qint64 length){auto request=source;request.offset=offset;request.length=length;auto r=readPage(request);applyPatches(r.bytes,offset,spec.patches);return r;};
     auto add=[&](qint64 offset,const Compiled &c){if(out.matches.size()>=10000){out.truncated=true;return false;}out.matches.append({offset,c.values.size()});out.matchTypes.append(c.id);return true;};
     if(spec.anchored){
         for(const auto &region:spec.regions){
-            if(region.offset<0||region.length<0||region.offset>source.expectedSize||region.length>source.expectedSize-region.offset){out.error="Una región está fuera del archivo.";out.matches.clear();out.matchTypes.clear();return out;}
+            if(region.offset<0||region.length<0||region.offset>source.expectedSize||region.length>source.expectedSize-region.offset){out.error="A region is outside the file.";out.matches.clear();out.matchTypes.clear();return out;}
             for(const auto &c:patterns){
                 if(cancel.load()){out.cancelled=true;out.matches.clear();out.matchTypes.clear();return out;}
                 if(c.relativeOffset>region.length||c.values.size()>region.length-c.relativeOffset)continue;

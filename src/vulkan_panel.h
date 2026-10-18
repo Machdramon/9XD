@@ -2,7 +2,7 @@
 #include <QWidget>
 #include "mesh_scene.h"
 class HexView;
-struct MeshVisualStyle {QColor face,vertex,text;bool faceGradient,vertexGradient;QVector<QColor> stops;};
+struct MeshVisualStyle {QColor face,vertex,text;bool faceGradient,vertexGradient;QVector<QColor> stops;QColor background,grid,selection;};
 class VulkanPanel final:public QWidget {
     Q_OBJECT
 public:

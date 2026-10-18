@@ -7,6 +7,16 @@
 #include <QElapsedTimer>
 #include <functional>
 #include <optional>
+#include <memory>
+
+// Immutable block snapshots: edits share unaffected blocks with readers and undo history.
+struct MemoryData {
+    static constexpr qsizetype BlockSize = 64 * 1024;
+    QList<QByteArray> blocks;
+    qint64 size = 0;
+    QByteArray read(qint64 offset, qint64 length) const;
+    std::shared_ptr<const MemoryData> splice(qint64 offset, qint64 remove, const QByteArray &insert) const;
+};
 
 inline constexpr qint64 PageBytes = 4096;
 struct ReadRequest {
@@ -15,9 +25,11 @@ struct ReadRequest {
     qint64 expectedSize = -1;
     QDateTime expectedModified;
     qint64 length = PageBytes;
+    std::shared_ptr<const MemoryData> memory;
 };
 struct EntropyPoint { qint64 offset,length;double entropy,zeros,printable; };
 struct ReadResult {
+    QMap<QString,QString> checksums;
     QMap<qint64,QString> directDrafts;
     int directCycle=1,directWidth=1;
     QList<EntropyPoint> entropy;
@@ -46,6 +58,7 @@ class BinaryReader final : public QObject {
 public:
     using ReadFunction = std::function<ReadResult(const ReadRequest &)>;
     explicit BinaryReader(QObject *parent = nullptr, ReadFunction read = readPage);
+    ~BinaryReader()override;
     void request(ReadRequest request);
     void shutdown();
     void invalidate();
