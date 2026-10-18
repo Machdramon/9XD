@@ -1,3 +1,4 @@
+#include "compare_data.h"
 #include "data_inspector.h"
 #include <QCheckBox>
 #include "binary_reader.h"
@@ -292,6 +293,23 @@ private slots:
         QVERIFY(!decodeMagicLibrary("{}",decoded,error));QCOMPARE(decoded.size(),1);
         auto bad=decoded[0];bad.pattern="??";QVERIFY(!validateMagic(bad,error));bad.pattern="A";QVERIFY(!validateMagic(bad,error));
     }
+    void advancedSearchFilters(){
+        auto memory=std::make_shared<MemoryData>();memory->size=6;memory->blocks={QByteArray("aaaaAb")};ReadRequest source{"",0,6,{},0,memory};
+        std::atomic<bool> cancel{false};std::atomic<qint64> progress{0};PatternSpec spec;spec.text=true;spec.expression="AA";spec.length=6;spec.caseSensitive=false;spec.overlap=true;
+        auto result=searchPattern(source,spec,cancel,progress);QVERIFY(result.error.isEmpty());QCOMPARE(result.matches.size(),4);
+        spec.alignment=2;result=searchPattern(source,spec,cancel,progress);QCOMPARE(result.matches.size(),2);QCOMPARE(result.matches[1].first,qint64(2));
+        spec.maxMatches=1;result=searchPattern(source,spec,cancel,progress);QCOMPARE(result.matches.size(),1);QVERIFY(result.truncated);
+        spec={};spec.expression="61 61";spec.length=6;spec.overlap=false;result=searchPattern(source,spec,cancel,progress);QCOMPARE(result.matches.size(),2);QCOMPARE(result.matches[1].first,qint64(2));
+    }
+    void compareSnapshotsAcrossBlocksAndLengths(){
+        QTemporaryDir dir;auto path=dir.filePath("reference.bin");QByteArray bytes(1024*1024+8,'A'),reference=bytes;reference.replace(1024*1024-2,5,QByteArray(5,'B'));reference.chop(2);
+        QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));file.write(reference);file.close();auto meta=readPage({path,0,-1,{},0});ReadRequest right{path,0,meta.size,meta.modified,0};
+        auto memory=std::make_shared<MemoryData>();memory->size=bytes.size();for(int i=0;i<bytes.size();i+=MemoryData::BlockSize)memory->blocks.append(bytes.mid(i,MemoryData::BlockSize));ReadRequest left{"",0,bytes.size(),{},0,memory};CompareState state;
+        auto result=compareDocuments(left,right,{{4,"C"}},state);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.differentBytes,qint64(8));QCOMPARE(result.ranges.size(),3);QCOMPARE(result.ranges[1].offset,qint64(1024*1024-2));QCOMPARE(result.ranges[1].length,qint64(5));
+        auto equal=compareDocuments(left,left,{},state);QVERIFY(equal.ranges.isEmpty());QVERIFY(equal.error.isEmpty());
+        state.cancel=true;QVERIFY(compareDocuments(left,right,{},state).cancelled);state.cancel=false;
+        auto reverse=compareDocuments(right,left,{},state);QCOMPARE(reverse.differentBytes,qint64(7));
+    }
     void patternSearchAcrossBlocksAndTextOffsets() {
         QTemporaryDir dir;const auto path=dir.filePath("search.bin");
         QByteArray bytes(1024*1024+30,'Z');bytes.replace(1024*1024-1,4,QByteArray::fromHex("488b01af"));
@@ -504,7 +522,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!view.busy(), 3000);
         auto *table = view.findChild<QTableWidget *>();
         QVERIFY(table->rowCount()>0); QVERIFY(table->rowCount()<100);
-        auto *address = view.findChild<QLineEdit *>("address");
+        auto *address = view.findChild<QLineEdit *>("offsetHeaderEditor");
         address->setText("0x" + QString::number(size - 3, 16));
         QTest::keyClick(address, Qt::Key_Return);
         QTRY_VERIFY_WITH_TIMEOUT(!view.busy(), 3000);
@@ -675,7 +693,7 @@ private slots:
         QVERIFY(view.selection().rectangular);QCOMPARE(view.selection().count(5000),9);
         view.copySelection();QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
         QCOMPARE(QApplication::clipboard()->text(),QString("01 02 03\n09 0A 0B\n11 12 13"));
-        auto *address=view.findChild<QLineEdit *>("address");address->setText("4094");QTest::keyClick(address,Qt::Key_Return);
+        auto *address=view.findChild<QLineEdit *>("offsetHeaderEditor");address->setText("0d4094");QTest::keyClick(address,Qt::Key_Return);
         QTRY_VERIFY_WITH_TIMEOUT(!view.busy(),3000);
         QCOMPARE(view.selection().anchor,4094);
         auto *type=view.findChild<QComboBox *>("interpretation");type->setCurrentText("UInt32");

@@ -59,17 +59,25 @@ HexView::HexView(QWidget *parent) : QWidget(parent), directSpec_(std::make_share
     format->addWidget(new QLabel("Text")); format->addWidget(encoding_);
     format->addWidget(new QLabel("Interpret")); format->addWidget(type_); format->addWidget(endian_); format->addStretch();
     layout->addLayout(format);
-    auto *bar=new QHBoxLayout;
-    address_=new QLineEdit; address_->setObjectName("address");
-    address_->setPlaceholderText("Decimal or hexadecimal offset: 0x1000"); go_=new QPushButton("Go");
-    bar->addWidget(new QLabel("Go to Offset")); bar->addWidget(address_,1); bar->addWidget(go_); layout->addLayout(bar);
     table_=new QTableWidget; table_->setObjectName("bytes");
-    auto font=QFontDatabase::systemFont(QFontDatabase::FixedFont); font.setPointSize(qApp->property("editorFontSize").isValid()?qBound(8,qApp->property("editorFontSize").toInt(),24):10); table_->setFont(font);
+    auto font=qApp->font(); font.setPointSize(qApp->property("editorFontSize").isValid()?qBound(8,qApp->property("editorFontSize").toInt(),24):10); table_->setFont(font);table_->horizontalHeader()->setFont(font);table_->verticalHeader()->setFont(font);
     table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table_->setSelectionMode(QAbstractItemView::NoSelection);table_->setAlternatingRowColors(!qApp->property("editorAlternatingRows").isValid()||qApp->property("editorAlternatingRows").toBool());
     table_->setItemDelegate(new ByteFormatDelegate(table_,[this](qint64 offset,qint64 length){return formatAt(offset,length);}));
     table_->verticalHeader()->hide(); table_->setShowGrid(false);
     table_->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    auto *header=table_->horizontalHeader();header->setSectionsClickable(true);
+    table_->setFrameShape(QFrame::NoFrame);
+    header->setHighlightSections(false);
+    header->setStyleSheet("QHeaderView { background: palette(base); border: none; }"
+        "QHeaderView::section, QHeaderView::section:hover, QHeaderView::section:pressed {"
+        " background: palette(base); color: palette(text); border: none; padding: 3px; }");
+    offsetEditor_=new QLineEdit(header->viewport());offsetEditor_->setObjectName("offsetHeaderEditor");offsetEditor_->hide();
+    offsetEditor_->setToolTip("Decimal: no prefix. Hexadecimal: 0x. Octal: 0c.");
+    connect(header,&QHeaderView::sectionClicked,this,[this](int section){if(section==0)focusOffsetHeader();});
+    connect(offsetEditor_,&QLineEdit::returnPressed,this,[this]{if(goToText(offsetEditor_->text())){offsetEditor_->hide();table_->setFocus();}});
+    connect(offsetEditor_,&QLineEdit::editingFinished,offsetEditor_,&QWidget::hide);
+    offsetEditor_->installEventFilter(this);
     table_->viewport()->installEventFilter(this); table_->installEventFilter(this);
     table_->setMouseTracking(true);table_->setAttribute(Qt::WA_InputMethodEnabled,true);
     table_->verticalHeader()->setDefaultSectionSize(qMax(22,table_->fontMetrics().height()+6));
@@ -122,13 +130,6 @@ HexView::HexView(QWidget *parent) : QWidget(parent), directSpec_(std::make_share
         status_->setText("File saved · Read and write");
         emit saveFinished(true);
     });
-    auto go=[this]{
-        const auto text=address_->text().trimmed(); bool ok=false;
-        const auto offset=text.startsWith("0x",Qt::CaseInsensitive)?text.mid(2).toLongLong(&ok,16):text.toLongLong(&ok,10);
-        if(!ok||offset<0||offset>=size_){status_->setText("Invalid offset for this file.");return;}
-        selection_={offset,offset,stride_->value(),false}; navigate(offset); updateInspector();
-    };
-    connect(go_,&QPushButton::clicked,this,go); connect(address_,&QLineEdit::returnPressed,this,go);
     connect(scrollbar_,&QScrollBar::valueChanged,this,[this](int value){
         if(size_<=0)return;
         const auto maxRow=maxTopRow();
@@ -214,7 +215,7 @@ bool HexView::busy()const{return reader_.busy()||inspectorReader_.busy()||copyRe
 void HexView::shutdown(){reader_.shutdown();inspectorReader_.shutdown();copyReader_.shutdown();writer_.shutdown();cancelPatternSearch();searchReader_.shutdown();cancelMagicScan();magicReader_.shutdown();cancelEntropy();entropyReader_.shutdown();resetDirectEdit();directReader_.shutdown();cancelChecksum();checksumReader_.shutdown();}
 QWidget *HexView::inspector()const{return inspector_;}
 void HexView::focusInterpretation(){type_->setFocus();type_->showPopup();}
-void HexView::setNavigationEnabled(bool enabled){address_->setEnabled(enabled);go_->setEnabled(enabled);scrollbar_->setEnabled(enabled);}
+void HexView::setNavigationEnabled(bool enabled){offsetEditor_->setEnabled(enabled);scrollbar_->setEnabled(enabled);}
 void HexView::openFile(const QString &path){
     if(saving())return;
     resetDirectEdit();cancelPatternSearch();cancelMagicScan();cancelEntropy();emit documentChanged();
@@ -240,13 +241,13 @@ void HexView::showResult(const ReadResult &r){
     if(first&&size_>0)selection_={0,0,stride_->value(),false};
     if(first)emit fileOpened(path_);rebuild();setNavigationEnabled(size_>0||bool(memory_));
     configureScrollBar();
-    address_->setText("0x"+QString::number(desiredOffset_,16).toUpper());
+    updateOffsetHeader();
     status_->setText(size_==0?"Empty file · 0 bytes":QString("%1 bytes · View from 0x%2 · Cache: %3 / 20 blocks (%4 MiB) · %5").arg(size_).arg(desiredOffset_,0,16).arg(cache_->chunkCount()).arg(double(cache_->retainedBytes())/(1024*1024),0,'f',3).arg(dirty()?"Unsaved Changes":"Read and write"));
     emit editStateChanged();
     if(size_==0)inspector_->setPlainText("Empty file.");else if(first)updateInspector();
 }
 void HexView::applyDisplayPreferences(){
-    auto font=table_->font();font.setPointSize(qBound(8,qApp->property("editorFontSize").toInt(),24));table_->setFont(font);
+    auto font=table_->font();font.setPointSize(qBound(8,qApp->property("editorFontSize").toInt(),24));table_->setFont(font);table_->horizontalHeader()->setFont(font);table_->verticalHeader()->setFont(font);
     table_->verticalHeader()->setDefaultSectionSize(qMax(22,table_->fontMetrics().height()+6));
     table_->setAlternatingRowColors(qApp->property("editorAlternatingRows").toBool());
     if(size_>=0){rebuild();configureScrollBar();if(size_>0)navigate(desiredOffset_);}
@@ -254,15 +255,17 @@ void HexView::applyDisplayPreferences(){
 void HexView::rebuild(){
     const int stride=stride_->value();QSignalBlocker block(table_);table_->setUpdatesEnabled(false);
     table_->clear();table_->setColumnCount(stride+2);table_->setRowCount(int((bytes_.size()+stride-1)/stride)+(memory_&&loadedOffset_+bytes_.size()==size_&&bytes_.size()%stride==0?1:0));
-    QStringList labels{"Offset (h)"};for(int i=0;i<stride;++i)labels<<QString::number(i,16).toUpper();labels<<"Decoded Text / Values";
-    table_->setHorizontalHeaderLabels(labels);table_->setColumnWidth(0,qMax(96,table_->fontMetrics().horizontalAdvance(QString(qMax(8,int(QString::number(qMax(qint64(0),size_),16).size())),'0'))+18));
-    for(int col=1;col<=stride;++col)table_->setColumnWidth(col,table_->fontMetrics().horizontalAdvance("00")+12+(col%8==0?8:0));
+    QStringList labels{"Offset"};for(int i=0;i<stride;++i)labels<<QString::number(i,16).toUpper();labels<<"Decoded Text / Values";
+    table_->setHorizontalHeaderLabels(labels);table_->setColumnWidth(0,qMax(150,table_->fontMetrics().horizontalAdvance("Offset (h): 0x"+QString(qMax(8,int(QString::number(qMax(qint64(0),size_),offsetBase_).size())),'0'))+22));
+    for(int col=1;col<=stride;++col)table_->setColumnWidth(col,table_->fontMetrics().horizontalAdvance("00 ")+(byteGroup_>1&&col%byteGroup_==0?table_->fontMetrics().horizontalAdvance(" "):0));
     table_->setColumnWidth(stride+1,300);
+    for(int col=1;col<=stride;++col)table_->setColumnHidden(col,columnMode_==2);
+    table_->setColumnHidden(stride+1,columnMode_==1);
     const auto encoding=encoding_->currentIndex()==4?QString("CP932"):encoding_->currentText();
     auto displayed=bytes_; applyPatches(displayed,loadedOffset_,edits_.patches());
     for(int row=0;row<table_->rowCount();++row){
         const auto part=displayed.mid(row*stride,stride);
-        table_->setItem(row,0,new QTableWidgetItem(QString("%1").arg(loadedOffset_+row*stride,qMax(8,int(QString::number(qMax(qint64(0),size_),16).size())),16,QChar('0')).toUpper()));
+        table_->setItem(row,0,new QTableWidgetItem(offsetText(loadedOffset_+row*stride,true)));
         auto tokenData=[](const QString &text,qint64 offset,qint64 length){return QVariantMap{{"text",text},{"offset",offset},{"length",length}};};
         for(int col=0;col<part.size();++col){
             auto *item=new QTableWidgetItem(QString("%1").arg(quint8(part[col]),2,16,QChar('0')).toUpper());
@@ -278,6 +281,7 @@ void HexView::rebuild(){
             if(!interpreted.isEmpty()&&type_->currentText()!="Text")interpreted+=" · ";interpreted+=token.text;
         }
         auto *item=new QTableWidgetItem(interpreted);
+        item->setFont(table_->font());
         item->setData(ByteFormatDelegate::TokensRole,tokens);
         item->setToolTip(interpreted+"\nCharacter/value formatting covers all its bytes. When rules overlap, the last rule takes precedence.");table_->setItem(row,stride+1,item);
         qreal decodedWidth=12;
@@ -288,15 +292,20 @@ void HexView::rebuild(){
         const int row=int((size_-loadedOffset_)/stride),col=int((size_-loadedOffset_)%stride)+1;
         if(row<table_->rowCount())table_->setItem(row,col,new QTableWidgetItem("·"));
     }
+    // Explicit fonts also cover offsets, headers and empty RAM insertion cells.
+    // These otherwise use Qt's default item font instead of the decoded font.
+    for(int col=0;col<table_->columnCount();++col)if(auto *item=table_->horizontalHeaderItem(col))item->setFont(table_->font());
+    for(int row=0;row<table_->rowCount();++row)for(int col=0;col<table_->columnCount();++col)if(auto *item=table_->item(row,col))item->setFont(table_->font());
     table_->setUpdatesEnabled(true);updateSelection();
 }
 void HexView::updateSelection(){
     const int stride=stride_->value();
+    updateOffsetHeader();
     for(int row=0;row<table_->rowCount();++row)for(int col=1;col<=stride;++col){
         auto *item=table_->item(row,col);if(!item)continue;const qint64 offset=loadedOffset_+row*stride+col-1;
         const bool selected=selection_.contains(offset);
         item->setBackground(selected?palette().highlight():QBrush());item->setForeground(selected?palette().highlightedText():palette().text());
-        auto font=table_->font();font.setBold(offset==selection_.anchor);item->setFont(font);
+        item->setFont(table_->font());
         item->setToolTip(QString("0x%1%2").arg(offset,0,16).arg(offset==selection_.anchor?" · selection anchor":""));
     }
     table_->viewport()->update();
@@ -325,6 +334,7 @@ qint64 HexView::byteAt(const QPoint &point)const{
     return offset<loadedOffset_+bytes_.size()||(memory_&&offset==size_)?offset:-1;
 }
 bool HexView::eventFilter(QObject *watched,QEvent *event){
+    if(watched==offsetEditor_&&event->type()==QEvent::KeyPress&&static_cast<QKeyEvent *>(event)->key()==Qt::Key_Escape){offsetEditor_->hide();table_->setFocus();return true;}
     if(watched==table_&&event->type()==QEvent::InputMethod&&interpretedFocus_&&type_->currentText()=="Text"){
         auto *input=static_cast<QInputMethodEvent *>(event);for(char32_t c:input->commitString().toUcs4())queueDirectEdit(QString::fromUcs4(&c,1),QApplication::keyboardModifiers().testFlag(Qt::ShiftModifier));input->accept();return true;
     }
@@ -696,4 +706,37 @@ void HexView::cutSelection(){
     const auto start=qMin(selection_.anchor,selection_.cursor);auto bytes=memory_->read(start,count);
     auto *mime=new QMimeData;mime->setData("application/octet-stream",bytes);mime->setText(QString::fromLatin1(bytes.toHex(' ').toUpper()));
     QApplication::clipboard()->setMimeData(mime);QString error;if(!spliceMemory(start,count,{},error))status_->setText(error);
+}
+
+QString HexView::offsetText(qint64 offset,bool padded)const{
+    auto digits=QString::number(offset,offsetBase_).toUpper();
+    if(padded)digits=digits.rightJustified(qMax(8,int(QString::number(qMax(qint64(0),size_),offsetBase_).size())),QChar('0'));
+    return (offsetBase_==16?QString("0x"):offsetBase_==8?QString("0c"):QString())+digits;
+}
+void HexView::updateOffsetHeader(){
+    const auto offset=qMax(qint64(0),selection_.cursor);
+    if(auto *item=table_->horizontalHeaderItem(0)){
+        item->setText(QString("Offset (%1): %2").arg(offsetBase_==16?"h":offsetBase_==8?"o":"d",offsetText(offset)));
+        item->setToolTip("Click to enter an offset. Decimal has no prefix; hexadecimal uses 0x and octal uses 0c. Unprefixed input uses the selected base.");
+    }
+}
+bool HexView::goToText(const QString &input){
+    auto text=input.trimmed();int base=offsetBase_;
+    for(auto entry:{qMakePair(QString("0x"),16),qMakePair(QString("0d"),10),qMakePair(QString("0c"),8)})if(text.startsWith(entry.first,Qt::CaseInsensitive)){base=entry.second;text=text.mid(2);break;}
+    bool ok=false;const auto offset=text.toLongLong(&ok,base);
+    if(!ok||offset<0||offset>size_||(!memory_&&offset==size_)){status_->setText("Invalid offset for this document.");return false;}
+    resetDirectEdit();selection_={offset,offset,stride_->value(),false};navigate(offset);updateSelection();updateInspector();return true;
+}
+void HexView::setOffsetBase(int base){if(base!=8&&base!=10&&base!=16)return;offsetBase_=base;rebuild();}
+void HexView::setColumnMode(int mode){if(mode<0||mode>2)return;columnMode_=mode;interpretedFocus_=mode==2;rebuild();}
+void HexView::setByteGroup(int bytes){if(bytes<1||bytes>256)return;byteGroup_=bytes;rebuild();}
+void HexView::chooseBytesPerRow(){bool ok=false;int n=QInputDialog::getInt(this,"Bytes per row","Bytes per row:",stride_->value(),1,256,1,&ok);if(ok)stride_->setValue(n);}
+void HexView::chooseByteGroup(){bool ok=false;int n=QInputDialog::getInt(this,"Byte group","Bytes per group:",byteGroup_,1,256,1,&ok);if(ok)setByteGroup(n);}
+
+void HexView::focusOffsetHeader(){
+    if(size_<0)return;
+    auto *header=table_->horizontalHeader();table_->horizontalScrollBar()->setValue(0);
+    offsetEditor_->setGeometry(header->sectionViewportPosition(0),0,header->sectionSize(0),header->height());
+    offsetEditor_->setFont(table_->font());offsetEditor_->setText(offsetText(qMax(qint64(0),selection_.cursor)));
+    offsetEditor_->show();offsetEditor_->setFocus();offsetEditor_->selectAll();
 }

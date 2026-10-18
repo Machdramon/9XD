@@ -49,7 +49,7 @@ inline void configureModuleMenus(MainWindow *document,const std::function<void(c
     QObject::connect(searchActions[3],&QAction::triggered,document,[showSearch,searchPanel]{showSearch();searchPanel->findChild<QSpinBox *>("matchIndex")->stepDown();});
     auto *structure=hexModule->addMenu("Structure / Formatting Rules");dockAction(structure,"Formatting Rules","formatRulesDock");dockAction(structure,"Magic Bytes Library","magicDock");
     dockAction(hexModule,"Statistics","entropyDock");
-    for(auto *action:analyse->actions())if(action->menu()&&action->menu()->title()=="Compare Data")hexModule->addMenu(action->menu());
+    for(auto *action:analyse->actions())if(action->menu()&&action->menu()->title()=="Compare Data"){hexModule->addMenu(action->menu());for(auto *entry:action->menu()->actions())QObject::connect(entry,&QAction::triggered,document,[selectModule]{selectModule("hex");});}
     dockAction(hexModule,"Checksum","checksumDock");
     auto *three=new QMenu("3D",document);three->setObjectName("module3dMenu");
     dockAction(three,"3D View","vulkanDock");dockAction(three,"Mesh Collection","meshCollectionDock");dockAction(three,"3D Settings / Geometry Calculator","meshControlsDock");

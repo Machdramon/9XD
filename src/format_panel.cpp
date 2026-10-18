@@ -23,6 +23,8 @@
 #include <QTimer>
 #include <QCheckBox>
 #include <QRegularExpression>
+#include <QApplication>
+#include <QClipboard>
 
 FormatPanel::FormatPanel(HexView *view,QWidget *parent):QWidget(parent),view_(view){
     auto *layout=new QVBoxLayout(this);layout->setContentsMargins(8,8,8,8);layout->setSpacing(6);
@@ -77,25 +79,37 @@ FormatPanel::FormatPanel(HexView *view,QWidget *parent):QWidget(parent),view_(vi
     auto *searchBox=new QGroupBox("Find Patterns");searchBox->setObjectName("patternSearchPanel");auto *searchLayout=new QVBoxLayout(searchBox);auto *searchForm=new QFormLayout;
     searchMode_=new QComboBox;searchMode_->setObjectName("patternMode");searchMode_->addItems({"Hex + wildcards","Byte regex","Literal text","Text regex"});
     pattern_=new QLineEdit;pattern_->setObjectName("patternExpression");pattern_->setMaxLength(4096);pattern_->setPlaceholderText("48 8B ?? A?");
-    searchScope_=new QComboBox;searchScope_->addItems({"Entire file (hex)","Specified region"});
+    searchScope_=new QComboBox;searchScope_->setObjectName("patternScope");searchScope_->addItems({"Entire document","Specified region","Contiguous selection","Cursor to end"});
     searchStart_=new QLineEdit("0");searchLength_=new QLineEdit("4096");searchStart_->setObjectName("patternStart");searchLength_->setObjectName("patternLength");
     searchForm->addRow("Type",searchMode_);searchForm->addRow("Pattern",pattern_);searchForm->addRow("Scope",searchScope_);searchForm->addRow("Start",searchStart_);searchForm->addRow("Bytes",searchLength_);searchLayout->addLayout(searchForm);
+    caseSensitive_=new QCheckBox("Case sensitive");caseSensitive_->setChecked(true);caseSensitive_->setEnabled(false);caseSensitive_->setObjectName("patternCaseSensitive");searchForm->addRow(caseSensitive_);
+    overlap_=new QCheckBox("Include overlapping matches");overlap_->setChecked(false);overlap_->setObjectName("patternOverlap");searchForm->addRow(overlap_);
+    alignment_=new QSpinBox;alignment_->setRange(1,1048576);alignment_->setObjectName("patternAlignment");searchForm->addRow("Absolute byte alignment",alignment_);
+    resultLimit_=new QSpinBox;resultLimit_->setRange(1,10000);resultLimit_->setValue(10000);resultLimit_->setObjectName("patternResultLimit");searchForm->addRow("Maximum results",resultLimit_);
     auto *hint=new QLabel("Hex: ?? = byte, A? = wildcard digit. Byte regex: \\x48. Text uses the viewer encoding. Text/regex: region ≤ 1 MiB; ^ and $ are the region boundaries.");hint->setWordWrap(true);searchLayout->addWidget(hint);
     auto *searchButtons=new QHBoxLayout;
     button(searchButtons,"Selection","Search selection",[this]{auto s=view_->selection();if(s.anchor>=0){searchScope_->setCurrentIndex(1);searchStart_->setText(QString::number(qMin(s.anchor,s.cursor)));searchLength_->setText(QString::number(qAbs(s.cursor-s.anchor)+1));}});
     button(searchButtons,"Find","Find Pattern",[this]{startSearch();});button(searchButtons,"Stop","Cancel search",[this]{view_->cancelPatternSearch();});searchLayout->addLayout(searchButtons);
     searchStatus_=new QLabel("No search");searchStatus_->setWordWrap(true);searchLayout->addWidget(searchStatus_);
+    searchResults_=new QTreeWidget;searchResults_->setObjectName("patternResults");searchResults_->setHeaderLabels({"Offset","Bytes"});searchResults_->setRootIsDecorated(false);searchLayout->addWidget(searchResults_);
+    connect(searchResults_,&QTreeWidget::currentItemChanged,this,[this](QTreeWidgetItem *item){if(item)matchIndex_->setValue(searchResults_->indexOfTopLevelItem(item)+1);});
+    auto *copySearch=new QPushButton("Copy results");searchLayout->addWidget(copySearch);connect(copySearch,&QPushButton::clicked,this,[this]{QString text="Offset\tBytes\n";for(auto m:matches_)text+=QString("0x%1\t%2\n").arg(m.first,0,16).arg(m.second);QApplication::clipboard()->setText(text);});
     auto *matchesRow=new QHBoxLayout;matchIndex_=new QSpinBox;matchIndex_->setObjectName("matchIndex");matchIndex_->setRange(0,0);matchesRow->addWidget(matchIndex_);
     button(matchesRow,"←","Previous match",[this]{matchIndex_->stepDown();});button(matchesRow,"→","Next match",[this]{matchIndex_->stepUp();});
     button(matchesRow,"Mark","Create rule from matches",[this]{markMatches();});searchLayout->addLayout(matchesRow);layout->addWidget(searchBox);
-    connect(matchIndex_,&QSpinBox::valueChanged,this,[this](int value){if(value>0&&value<=matches_.size())view_->selectMatch(matches_[value-1].first,matches_[value-1].second);});
-    connect(searchMode_,&QComboBox::currentIndexChanged,this,[this](int mode){if(mode)searchScope_->setCurrentIndex(1);searchScope_->setEnabled(mode==0);pattern_->setPlaceholderText(mode==0?"48 8B ?? A?":mode==1?"\\x48.{2}\\x41":mode==2?"Text to find":"Name[0-9]+ ");});
-    connect(view_,&HexView::documentChanged,this,[this]{searchStale_=true;matches_.clear();matchIndex_->setRange(0,0);searchStatus_->setText("The content changed; search again.");});
+    connect(matchIndex_,&QSpinBox::valueChanged,this,[this](int value){if(value>0&&value<=matches_.size()){QSignalBlocker block(searchResults_);searchResults_->setCurrentItem(searchResults_->topLevelItem(value-1));view_->selectMatch(matches_[value-1].first,matches_[value-1].second);}});
+    connect(searchMode_,&QComboBox::currentIndexChanged,this,[this](int mode){caseSensitive_->setEnabled(mode!=0);pattern_->setPlaceholderText(mode==0?"48 8B ?? A?":mode==1?"\\x48.{2}\\x41":mode==2?"Text to find":"Name[0-9]+");});
+    auto invalidate=[this]{searchStale_=true;view_->cancelPatternSearch();matches_.clear();searchResults_->clear();matchIndex_->setRange(0,0);searchStatus_->setText("Options changed; search again.");};
+    for(auto *field:{pattern_,searchStart_,searchLength_})connect(field,&QLineEdit::textChanged,this,invalidate);
+    for(auto *box:{searchMode_,searchScope_})connect(box,&QComboBox::currentIndexChanged,this,invalidate);
+    for(auto *box:{caseSensitive_,overlap_})connect(box,&QCheckBox::toggled,this,invalidate);
+    for(auto *spin:{alignment_,resultLimit_})connect(spin,&QSpinBox::valueChanged,this,invalidate);
+    connect(view_,&HexView::documentChanged,this,[this]{searchStale_=true;matches_.clear();searchResults_->clear();matchIndex_->setRange(0,0);searchStatus_->setText("The content changed; search again.");});
     connect(view_,&HexView::patternSearchFinished,this,[this](const ReadResult &r){
         if(searchStale_){searchStatus_->setText("Results discarded: the document changed.");return;}
         if(r.cancelled){searchStatus_->setText("Search canceled.");return;}
         if(!r.error.isEmpty()){searchStatus_->setText(r.error);return;}
-        matches_=r.matches;searchStatus_->setText(QString("%1 matches%2").arg(matches_.size()).arg(r.truncated?" · 10,000 limit reached; search incomplete":""));
+        matches_=r.matches;searchResults_->clear();for(auto m:matches_)new QTreeWidgetItem(searchResults_,{QString("0x%1").arg(m.first,0,16),QString::number(m.second)});searchStatus_->setText(QString("%1 matches%2").arg(matches_.size()).arg(r.truncated?" · Result limit reached; search incomplete":""));
         QSignalBlocker block(matchIndex_);matchIndex_->setRange(matches_.isEmpty()?0:1,matches_.size());
         if(!matches_.isEmpty()){matchIndex_->setValue(1);view_->selectMatch(matches_[0].first,matches_[0].second);}
     });
@@ -111,9 +125,12 @@ void FormatPanel::beginRule(bool replace){
 void FormatPanel::startSearch(){
     if(view_->searchBusy()){searchStatus_->setText("A search is running. Stop it before starting another.");return;}
     PatternSpec spec;int mode=searchMode_->currentIndex();spec.regex=mode==1||mode==3;spec.text=mode>=2;spec.encoding=view_->selectedEncoding();spec.expression=pattern_->text();
-    if(mode==0&&searchScope_->currentIndex()==0){spec.begin=0;spec.length=view_->fileSize();}
-    else{auto read=[](QString text,bool &ok){text=text.trimmed();return text.startsWith("0x",Qt::CaseInsensitive)?text.mid(2).toLongLong(&ok,16):text.toLongLong(&ok,10);};bool a,b;spec.begin=read(searchStart_->text(),a);spec.length=read(searchLength_->text(),b);if(!a||!b){searchStatus_->setText("Start and length must be valid numbers.");return;}}
-    matches_.clear();matchIndex_->setRange(0,0);searchStale_=false;matchedPattern_=spec.expression;
+    spec.caseSensitive=caseSensitive_->isChecked();spec.overlap=overlap_->isChecked();spec.alignment=alignment_->value();spec.maxMatches=resultLimit_->value();
+    if(searchScope_->currentIndex()==0){spec.begin=0;spec.length=view_->fileSize();}
+    else if(searchScope_->currentIndex()==2){auto selection=view_->selection();if(selection.rectangular||selection.anchor<0){searchStatus_->setText("Select a contiguous byte range.");return;}spec.begin=qMin(selection.anchor,selection.cursor);spec.length=selection.count(view_->fileSize());}
+    else if(searchScope_->currentIndex()==3){spec.begin=qMax(qint64(0),view_->selection().cursor);spec.length=view_->fileSize()-spec.begin;}
+    else{auto read=[](QString text,bool &ok){text=text.trimmed();return text.startsWith("0x",Qt::CaseInsensitive)?text.mid(2).toLongLong(&ok,16):text.startsWith("0c",Qt::CaseInsensitive)?text.mid(2).toLongLong(&ok,8):text.toLongLong(&ok,10);};bool a,b;spec.begin=read(searchStart_->text(),a);spec.length=read(searchLength_->text(),b);if(!a||!b){searchStatus_->setText("Start and length must be valid numbers.");return;}}
+    matches_.clear();searchResults_->clear();matchIndex_->setRange(0,0);searchStale_=false;matchedPattern_=spec.expression;
     if(!view_->startPatternSearch(spec))searchStatus_->setText("Open a file and wait for saving to finish.");else searchStatus_->setText("Searching…");
 }
 void FormatPanel::markMatches(){
@@ -153,7 +170,7 @@ void FormatPanel::addRule(bool replace){
     if(replace&&(view_->formatRules()[index].selectionRule||!view_->formatRules()[index].matchRanges.isEmpty())){
         auto rules=view_->formatRules();rules[index].style=selectedStyle();rules[index].name=name_->text();publish(rules);editor_->hide();return;
     }
-    auto read=[](QLineEdit *field,qint64 &value){bool ok;auto text=field->text().trimmed();value=text.startsWith("0x",Qt::CaseInsensitive)?text.mid(2).toLongLong(&ok,16):text.toLongLong(&ok,10);return ok;};
+    auto read=[](QLineEdit *field,qint64 &value){bool ok;auto text=field->text().trimmed();value=text.startsWith("0x",Qt::CaseInsensitive)?text.mid(2).toLongLong(&ok,16):text.startsWith("0c",Qt::CaseInsensitive)?text.mid(2).toLongLong(&ok,8):text.toLongLong(&ok,10);return ok;};
     FormatRule r;r.name=name_->text();r.style=selectedStyle();
     if(!read(start_,r.start)||!read(length_,r.length)||!read(step_,r.step)||!read(repetitions_,r.repetitions)||r.start<0||r.length<1||r.step<r.length||r.repetitions<1||view_->fileSize()<r.length||r.start>view_->fileSize()-r.length||(r.repetitions-1)>(view_->fileSize()-r.start-r.length)/r.step){
         QMessageBox::warning(this,"Invalid Rule","Use a positive length, step ≥ length and at least one repetition. All sequences must fit in the file.");return;

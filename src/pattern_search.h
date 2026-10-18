@@ -4,6 +4,8 @@
 struct PatternSpec {
     QString expression;
     bool regex=false, text=false;
+    bool caseSensitive=true,overlap=false;
+    int alignment=1,maxMatches=10000;
     QString encoding="UTF-8";
     qint64 begin=0, length=0;
     PatchList patches;

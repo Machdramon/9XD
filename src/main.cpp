@@ -9,6 +9,7 @@
 #include "image_workbench.h"
 #include "entropy_panel.h"
 #include "checksum_panel.h"
+#include "compare_panel.h"
 #include "magic_panel.h"
 #include "hex_view.h"
 #include "format_panel.h"
@@ -144,6 +145,8 @@ public:
         auto *checksumScroll=new QScrollArea;checksumScroll->setWidgetResizable(true);checksumScroll->setFrameShape(QFrame::NoFrame);
         checksumScroll->setWidget(new ChecksumPanel(view_,checksumScroll));checksumDock->setWidget(checksumScroll);addDockWidget(Qt::RightDockWidgetArea,checksumDock);checksumDock->hide();
         checksumDock->toggleViewAction()->setObjectName("checksumAction");viewMenu->addAction(checksumDock->toggleViewAction());
+        auto *compareDock=new QDockWidget("Compare Data",this);compareDock->setObjectName("compareDock");
+        auto *comparePanel=new ComparePanel(view_,compareDock);compareDock->setWidget(comparePanel);addDockWidget(Qt::RightDockWidgetArea,compareDock);compareDock->hide();
         auto *vulkanDock=new QDockWidget("3D View · Vulkan",this);vulkanDock->setObjectName("vulkanDock");auto *vulkanPanel=new VulkanPanel(vulkanDock);vulkanDock->setWidget(vulkanPanel);addDockWidget(Qt::BottomDockWidgetArea,vulkanDock);vulkanDock->hide();viewMenu->addAction(vulkanDock->toggleViewAction());
         auto *exportAction=new QAction("Export 3D Model…",this);exportAction->setObjectName("exportModelAction");file->insertAction(options,exportAction);file->insertSeparator(options);exportAction->setEnabled(false);
         connect(vulkanPanel->scene(),&MeshScene::collectionChanged,this,[vulkanPanel,exportAction]{exportAction->setEnabled(!vulkanPanel->scene()->entries().isEmpty());});
@@ -270,7 +273,7 @@ public:
         pending(edit, "Select chunk"); edit->addSeparator();
         auto *goOffset = edit->addAction("Go to Offset"); goOffset->setShortcut(QKeySequence("Ctrl+G"));
         connect(goOffset, &QAction::triggered, this, [this] {
-            auto *address = view_->findChild<QLineEdit *>("address"); address->setFocus(); address->selectAll();
+            view_->focusOffsetHeader();
         });
         auto *copyOffset = edit->addAction("Copy offset");
         connect(copyOffset, &QAction::triggered, this, [this] {
@@ -300,7 +303,7 @@ public:
         pending(hexMenu, "Fit to window");
         auto *bytesPerRow = hexMenu->addAction("Bytes per row");
         connect(bytesPerRow, &QAction::triggered, this, [this] {
-            auto *stride = view_->findChild<QSpinBox *>("stride"); stride->setFocus(); stride->selectAll();
+            view_->chooseBytesPerRow();
         });
         hexMenu->addSeparator(); auto *encodingMenu = hexMenu->addMenu("Codification");
         auto *encodingBox = view_->findChild<QComboBox *>("encoding");
@@ -324,12 +327,18 @@ public:
             connect(endianBox, &QComboBox::currentIndexChanged, action, [action, i](int index) { action->setChecked(index == i); });
         }
         auto *offsetMenu = hexMenu->addMenu("Offset Format");
-        for (const auto &label : {"Hexadecimal", "Decimal", "Octal"}) pending(offsetMenu, label);
-        auto *columnsMenu = hexMenu->addMenu("Columns");
-        for (const auto &label : {"Hexadecimal + Text", "Hexadecimal", "Text"}) pending(columnsMenu, label);
-        auto *groupMenu = hexMenu->addMenu("Byte Group");
-        for (const auto &label : {"1", "2", "4", "8", "14", "32"}) pending(groupMenu, label);
-        groupMenu->addSeparator(); pending(groupMenu, "...");
+        auto *offsetGroup=new QActionGroup(this);
+        for(auto entry:{qMakePair(QString("Hexadecimal"),16),qMakePair(QString("Decimal"),10),qMakePair(QString("Octal"),8)}){
+            auto *action=offsetMenu->addAction(entry.first);action->setCheckable(true);offsetGroup->addAction(action);action->setChecked(view_->offsetBase()==entry.second);
+            connect(action,&QAction::triggered,this,[this,base=entry.second]{view_->setOffsetBase(base);});
+        }
+        auto *columnsMenu = hexMenu->addMenu("Columns");auto *columnsGroup=new QActionGroup(this);
+        const QStringList columnLabels{"Hexadecimal + Text","Hexadecimal","Text"};
+        for(int i=0;i<columnLabels.size();++i){auto *action=columnsMenu->addAction(columnLabels[i]);action->setCheckable(true);columnsGroup->addAction(action);action->setChecked(view_->columnMode()==i);connect(action,&QAction::triggered,this,[this,i]{view_->setColumnMode(i);});}
+        auto *groupMenu = hexMenu->addMenu("Byte Group");auto *byteGroup=new QActionGroup(this);
+        for(int n:{1,2,4,8,16,32}){auto *action=groupMenu->addAction(QString::number(n));action->setCheckable(true);byteGroup->addAction(action);action->setChecked(view_->byteGroup()==n);connect(action,&QAction::triggered,this,[this,n]{view_->setByteGroup(n);});}
+        groupMenu->addSeparator();auto *customGroup=groupMenu->addAction("...");customGroup->setCheckable(true);byteGroup->addAction(customGroup);
+        connect(customGroup,&QAction::triggered,this,[this,byteGroup]{view_->chooseByteGroup();for(auto *action:byteGroup->actions())action->setChecked(action->text()==QString::number(view_->byteGroup())||(action->text()=="..."&&!QStringList{"1","2","4","8","16","32"}.contains(QString::number(view_->byteGroup()))));});
         hexMenu->addSeparator(); auto *inspectorAction = dock->toggleViewAction();
         inspectorAction->setText("Data Inspector"); inspectorAction->setShortcut(QKeySequence("Ctrl+Shift+D"));
         hexMenu->addAction(inspectorAction);
@@ -338,7 +347,10 @@ public:
         hexMenu->addSeparator(); reload->setText("Update Viewer"); hexMenu->addAction(reload);
         entropyAction->setText("Statistics"); analyseMenu->addAction(entropyAction);analyseMenu->addAction(checksumDock->toggleViewAction());
         auto *compareMenu = analyseMenu->addMenu("Compare Data");
-        for (const auto &label : {"Compare", "Next difference", "Previous difference"}) pending(compareMenu, label);
+        auto showCompare=[compareDock]{compareDock->show();compareDock->raise();};
+        connect(compareMenu->addAction("Compare"),&QAction::triggered,this,showCompare);
+        connect(compareMenu->addAction("Next difference"),&QAction::triggered,this,[showCompare,comparePanel]{showCompare();comparePanel->step(1);});
+        connect(compareMenu->addAction("Previous difference"),&QAction::triggered,this,[showCompare,comparePanel]{showCompare();comparePanel->step(-1);});
         pending(tools, "Open RAM"); tools->addSeparator(); pending(tools, "Merge Files"); pending(tools, "Divide File");
         // Keep the existing application tools accessible during the gradual UI migration.
         tools->addSeparator(); auto *existingTools = tools->addMenu("Workbench Tools");

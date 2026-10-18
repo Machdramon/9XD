@@ -25,6 +25,15 @@ class HexView final : public QWidget {
 public:
     explicit HexView(QWidget *parent = nullptr);
     void applyDisplayPreferences();
+    int offsetBase()const{return offsetBase_;}
+    int columnMode()const{return columnMode_;}
+    int byteGroup()const{return byteGroup_;}
+    void setOffsetBase(int base);
+    void setColumnMode(int mode);
+    void setByteGroup(int bytes);
+    void focusOffsetHeader();
+    void chooseBytesPerRow();
+    void chooseByteGroup();
     void openFile(const QString &path);
     void newMemoryDocument();
     bool isMemoryDocument()const{return bool(memory_);}
@@ -109,6 +118,11 @@ signals:
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 private:
+    int offsetBase_=16,columnMode_=0,byteGroup_=1;
+    QLineEdit *offsetEditor_;
+    QString offsetText(qint64 offset,bool padded=false)const;
+    bool goToText(const QString &text);
+    void updateOffsetHeader();
     int zoomRemainder_=0;
     void refreshMemory();
     void typeMemory(QString character);
@@ -164,8 +178,6 @@ private:
     QWidget *statusFooter_;
     QTableWidget *table_;
     QLabel *status_;
-    QLineEdit *address_;
-    QPushButton *go_;
     QScrollBar *scrollbar_;
     QSpinBox *stride_;
     QComboBox *encoding_;

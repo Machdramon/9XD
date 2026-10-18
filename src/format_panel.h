@@ -40,7 +40,9 @@ private:
     QWidget *editor_;
     QComboBox *searchMode_,*searchScope_;
     QLineEdit *pattern_,*searchStart_,*searchLength_;
-    QSpinBox *matchIndex_;
+    QSpinBox *matchIndex_,*alignment_,*resultLimit_;
+    QCheckBox *caseSensitive_,*overlap_;
+    QTreeWidget *searchResults_;
     QLabel *searchStatus_;
     QList<QPair<qint64,qint64>> matches_;
     QString matchedPattern_;

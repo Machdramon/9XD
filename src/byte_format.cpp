@@ -85,7 +85,9 @@ bool decodeRule(const QJsonObject &j,FormatRule &r){
     if(!color("background",r.style.background)||!color("foreground",r.style.foreground)||!color("border",r.style.border)||!color("underlineColor",r.style.underlineColor))return false;
     r.style.bold=j["bold"].toBool();r.style.italic=j["italic"].toBool();r.style.underline=j["underline"].toBool();return true;
 }
-void ByteFormatDelegate::paint(QPainter *p,const QStyleOptionViewItem &option,const QModelIndex &index)const{
+void ByteFormatDelegate::paint(QPainter *p,const QStyleOptionViewItem &input,const QModelIndex &index)const{
+    QStyleOptionViewItem option(input);
+    initStyleOption(&option,index);
     const auto tokens=index.data(TokensRole).toList();
     if(tokens.isEmpty()){QStyledItemDelegate::paint(p,option,index);return;}
     p->save();p->setClipRect(option.rect);p->fillRect(option.rect,index.row()%2?option.palette.alternateBase():option.palette.base());

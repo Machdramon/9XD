@@ -20,13 +20,13 @@ Each major module can be dragged out into a separate window for multiple monitor
 
 | Module | Current tools |
 | --- | --- |
-| Hex Viewer | Main viewer, data inspector, pattern search and results, formatting rules, statistics and checksum inspector |
+| Hex Viewer | Main viewer, data inspector, pattern search and results, formatting rules, statistics, comparison and checksum inspectors |
 | 3D | Geometry view, mesh collection and geometry settings |
 | UV / 2D | Image view, texture/image collection and image calculator |
 | Scripting | Script editor, console and library management |
 | Other Tools | Integer calculator, thread activity and settings |
 
-Some planned actions, including Compare Data, are not yet implemented. Settings provides light/dark/system appearance and editor preferences; custom theme editing, theme import/export and additional interface languages are planned.
+Settings provides light/dark/system appearance and editor preferences; custom theme editing, theme import/export and additional interface languages are planned.
 
 ## Binary inspection and editing
 
@@ -34,8 +34,9 @@ Some planned actions, including Compare Data, are not yet implemented. Settings 
 - Navigate large files using 64-bit offsets, configurable bytes per row, selection and go-to-offset controls.
 - Inspect text and numeric values with little-endian or big-endian interpretation, including ASCII, UTF-8, UTF-16 and CP932 text.
 - Edit bytes, paste hexadecimal data, undo/redo and save through background operations. File-backed editing primarily overwrites bytes; general insertion/deletion is not implemented.
-- Search patterns, inspect signatures and entropy, and apply named formatting rules to byte ranges.
+- Search patterns with case, overlap and alignment filters, inspect signatures and entropy, and apply named formatting rules to byte ranges. Navigate and copy search results. Text/regex is limited to 1 MiB per region; hex search streams the document.
 - Calculate Checksum-8/16/32, CRC-32, MD5 and SHA-1/256/512 over a document, selection or range. Optionally compare with an expected result. Unsaved changes are included.
+- Compare the current document (including RAM and unsaved changes) against a reference file, navigate differing ranges and copy results. Comparison is positional; inserted/deleted regions are not realigned. See [search and comparison](docs/search-compare.md).
 - Zoom the hexadecimal viewer with Ctrl + mouse wheel.
 
 The viewer reads data on demand through a shared bounded chunk cache rather than loading an entire file into memory. Large-file tests include sparse files; these tests are not disk-performance benchmarks.
@@ -82,6 +83,6 @@ Windows x64 and macOS ARM64 have been built and tested during development. Linux
 
 ## Validation and documentation
 
-The latest Windows validation completed **38 reader tests and 29 interface tests**, with one optional graphics test skipped. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
+The latest Windows validation completed **40 reader tests and 31 interface tests**, with one optional graphics test skipped. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
 
 See [the user guide](docs/user-guide.md), [Windows build/release notes](docs/windows-release.md), and [third-party notices](tools/THIRD-PARTY.txt). Additional documentation may still contain older descriptions while the application evolves.

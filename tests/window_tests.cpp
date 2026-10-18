@@ -5,6 +5,8 @@
 #include <QTemporaryDir>
 #include <QTreeWidget>
 #include <QTableWidget>
+#include <QInputDialog>
+#include <QHeaderView>
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QJsonDocument>
@@ -21,6 +23,35 @@ class WindowTests : public QObject {
         });
     }
 private slots:
+    void advancedSearchAndCompareInspectors(){
+        QTemporaryDir dir;auto path=dir.filePath("reference.bin");QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));file.write("ABXDE");file.close();
+        WorkspaceWindow workspace;workspace.show();auto *document=workspace.activeDocument();auto *view=document->documentView();QString error;QVERIFY(view->replaceSelection("ABCD",error));
+        auto *dock=document->sessionDock("compareDock");QVERIFY(dock);QCOMPARE(dock->parentWidget(),workspace.moduleHost("hex"));dock->show();
+        auto *panel=dynamic_cast<ComparePanel *>(dock->widget());QVERIFY(panel);panel->findChild<QLineEdit *>("comparePath")->setText(path);panel->findChild<QPushButton *>("compareStart")->click();auto *results=panel->findChild<QTreeWidget *>("compareResults");QTRY_COMPARE(results->topLevelItemCount(),2);results->setCurrentItem(results->topLevelItem(0));QCOMPARE(view->selection().cursor,qint64(2));
+        auto *search=document->sessionDock("searchDock");search->show();auto *pattern=search->findChild<QLineEdit *>("patternExpression");pattern->setText("41");QAbstractButton *find=nullptr;for(auto *button:search->findChildren<QAbstractButton *>())if(button->text()=="Find")find=button;QVERIFY(find);find->click();auto *matches=search->findChild<QTreeWidget *>("patternResults");QTRY_COMPARE(matches->topLevelItemCount(),1);QCOMPARE(matches->topLevelItem(0)->text(0),QString("0x0"));
+        QVERIFY(view->replaceSelection("Z",error));QCOMPARE(results->topLevelItemCount(),0);QCOMPARE(matches->topLevelItemCount(),0);view->discardEdits();workspace.close();QTRY_VERIFY(!workspace.isVisible());
+    }
+    void hexDisplayControlsAndOffsetNavigation(){
+        HexView view;view.resize(1400,600);view.show();view.newMemoryDocument();QString error;
+        QVERIFY(view.replaceSelection(QByteArray(512,'A'),error));view.jumpTo(0);QTRY_VERIFY(!view.busy());
+        auto *table=view.findChild<QTableWidget *>("bytes");auto *address=view.findChild<QLineEdit *>("offsetHeaderEditor");auto *stride=view.findChild<QSpinBox *>("stride");
+        QCOMPARE(table->item(1,0)->text(),QString("0x00000010"));
+        view.setOffsetBase(10);QCOMPARE(table->item(1,0)->text(),QString("00000016"));
+        address->setText("31");QTest::keyClick(address,Qt::Key_Return);QCOMPARE(view.selection().cursor,qint64(31));
+        view.setOffsetBase(8);QVERIFY(table->horizontalHeaderItem(0)->text().contains(": 0c"));address->setText("0c40");QTest::keyClick(address,Qt::Key_Return);QCOMPARE(view.selection().cursor,qint64(32));
+        address->setText("0x2F");QTest::keyClick(address,Qt::Key_Return);QCOMPARE(view.selection().cursor,qint64(47));
+        address->setText("0d9223372036854775808");QTest::keyClick(address,Qt::Key_Return);QCOMPARE(view.selection().cursor,qint64(47));
+        view.jumpTo(0);QTRY_VERIFY(!view.busy());view.setColumnMode(2);QVERIFY(table->isColumnHidden(1));QVERIFY(!table->isColumnHidden(17));
+        auto textRect=table->visualItemRect(table->item(0,17));QTest::mouseClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,QPoint(textRect.left()+8,textRect.center().y()));QCOMPARE(view.selection().cursor,qint64(0));
+        view.setColumnMode(1);QVERIFY(!table->isColumnHidden(1));QVERIFY(table->isColumnHidden(17));
+        QTest::mouseClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,table->visualItemRect(table->item(0,4)).center());QCOMPARE(view.selection().cursor,qint64(3));QVERIFY(table->horizontalHeaderItem(0)->text().endsWith(": 0c3"));
+        view.setByteGroup(3);QVERIFY(table->columnWidth(3)>table->columnWidth(2));QCOMPARE(table->item(0,4)->font(),table->item(0,17)->font());
+        QCOMPARE(table->item(0,0)->font(),table->item(0,17)->font());QCOMPARE(table->horizontalHeaderItem(0)->font(),table->item(0,17)->font());QCOMPARE(table->horizontalHeader()->font(),table->font());
+        QTest::mouseClick(table->horizontalHeader()->viewport(),Qt::LeftButton,Qt::NoModifier,QPoint(40,10));auto *editor=view.findChild<QLineEdit *>("offsetHeaderEditor");QVERIFY(editor->isVisible());editor->setText("0d48");QTest::keyClick(editor,Qt::Key_Return);QCOMPARE(view.selection().cursor,qint64(48));QVERIFY(!editor->isVisible());
+        view.setColumnMode(0);stride->setValue(7);QTRY_VERIFY(!view.busy());QVERIFY(!table->isColumnHidden(8));QCOMPARE(view.byteGroup(),3);QCOMPARE(view.selection().cursor,qint64(48));
+        QTimer::singleShot(0,&view,[]{auto *dialog=qobject_cast<QInputDialog *>(QApplication::activeModalWidget());if(dialog){dialog->setIntValue(24);dialog->accept();}});view.chooseBytesPerRow();QCOMPARE(stride->value(),24);
+        view.discardEdits();view.close();
+    }
     void imageCalculatorCompressedRamAndContainerMip(){
         WorkspaceWindow workspace;workspace.show();auto *document=workspace.activeDocument();auto *view=document->documentView();QString error;
         QVERIFY(view->replaceSelection(QByteArray::fromHex("00f8000000000000"),error));auto *dock=document->sessionDock("imageCalculatorDock");dock->toggleViewAction()->trigger();
