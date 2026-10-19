@@ -13,6 +13,17 @@
 
 inline QRgb imagePackedColor(const uchar *p,const QString &f,bool bigEndian=false){
     int r=0,g=0,b=0,a=255;auto word=[&]{return bigEndian?qFromBigEndian<quint16>(p):qFromLittleEndian<quint16>(p);};
+    if(f=="RG8")return qRgba(p[0],p[1],0,255);
+    if(f.contains("UNORM")||f.contains("FLOAT")){
+        int channels=f.startsWith("RGBA")?4:f.startsWith("RG")?2:1,component=f.contains("32")?4:2;int values[4]={0,0,0,255};
+        for(int i=0;i<channels;++i){const auto *v=p+i*component;double value;
+            if(f.contains("UNORM"))value=double(bigEndian?qFromBigEndian<quint16>(v):qFromLittleEndian<quint16>(v))/65535.;
+            else if(component==4){auto bits=bigEndian?qFromBigEndian<quint32>(v):qFromLittleEndian<quint32>(v);float decoded;std::memcpy(&decoded,&bits,4);value=decoded;}
+            else{auto bits=bigEndian?qFromBigEndian<quint16>(v):qFromLittleEndian<quint16>(v);int exponent=(bits>>10)&31,mantissa=bits&1023;value=exponent==0?std::ldexp(double(mantissa),-24):exponent==31?(mantissa?0:INFINITY):std::ldexp(1.+double(mantissa)/1024,exponent-15);if(bits&0x8000)value=-value;}
+            values[i]=std::isnan(value)?0:qRound(qBound(0.,value,1.)*255);
+        }
+        return qRgba(values[0],values[1],values[2],values[3]);
+    }
     if(f=="RGB565"||f=="GC RGB565"){auto v=word();r=((v>>11)&31)*255/31;g=((v>>5)&63)*255/63;b=(v&31)*255/31;}
     else if(f=="GC RGB5A3"){auto v=word();if(v&0x8000){r=((v>>10)&31)*255/31;g=((v>>5)&31)*255/31;b=(v&31)*255/31;}else{a=((v>>12)&7)*255/7;r=((v>>8)&15)*17;g=((v>>4)&15)*17;b=(v&15)*17;}}
     else if(f=="PS1 BGR555"||f=="RGB555"){auto v=word();r=(v&31)*255/31;g=((v>>5)&31)*255/31;b=((v>>10)&31)*255/31;if(f=="PS1 BGR555")a=v==0?0:v&0x8000?128:255;}

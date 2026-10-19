@@ -1,3 +1,4 @@
+#include "image_recipe_io.h"
 #include "compare_data.h"
 #include "data_inspector.h"
 #include <QCheckBox>
@@ -188,6 +189,28 @@ private slots:
         QString source=QFINDTESTDATA("../examples/sphere128.bin");auto meta=readPage({source,0,-1,{},0});auto mesh=readMesh({source,0,meta.size,meta.modified,0},{},MeshSpec{});QVERIFY(mesh.error.isEmpty());QTemporaryDir temporary;QString directory=qEnvironmentVariable("WORKBENCH_EXPORT_DIR",temporary.path());QVERIFY(QDir().mkpath(directory));
         for(auto format:{ModelFormat::Obj,ModelFormat::Glb,ModelFormat::Stl}){ModelExportOptions o;o.format=format;QString extension=format==ModelFormat::Obj?"obj":format==ModelFormat::Glb?"glb":"stl";auto result=exportModel(directory+"/sphere128."+extension,{{"Sphere128",source,mesh.mesh}},o);QVERIFY2(result.ok,qPrintable(result.error));QCOMPARE(result.vertices,quint64(128));QCOMPARE(result.faces,quint64(252));}
     }
+    void meshCoordinateFormatsAndTransforms(){
+        QString path=QFINDTESTDATA("../examples/sphere128.bin");auto meta=readPage({path,0,-1,{},0});ReadRequest source{path,0,meta.size,meta.modified,0};MeshSpec spec;spec.vertexOffset=0;spec.vertexCount=3;spec.indexOffset=96;spec.indexCount=3;spec.strip=false;spec.uv=false;spec.normals=false;spec.positionScale=1;
+        auto decode=[&](const QByteArray &bytes){return readMesh(source,{{0,bytes},{96,QByteArray::fromHex("000001000200")}},spec);};
+        struct Format {const char *type;int bytes;quint32 one;float expected;};
+        for(auto format:{Format{"Int8",1,0xff,-1},Format{"UInt8",1,0xff,255},Format{"UInt16",2,0xffff,65535},Format{"UInt32",4,0x80000000,2147483648.f},Format{"SNorm8",1,0x80,-1},Format{"SNorm16",2,0x8000,-1},Format{"UNorm8",1,255,1},Format{"UNorm16",2,65535,1},Format{"Fixed16.16",4,0x18000,1.5f}}){
+            spec.positionType=format.type;spec.vertexStride=3*format.bytes;QByteArray bytes;for(int vertex=0;vertex<3;++vertex)for(int axis=0;axis<3;++axis){auto value=vertex==axis?format.one:0;for(int byte=0;byte<format.bytes;++byte)bytes.append(char(value>>(byte*8)));}auto result=decode(bytes);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.mesh->vertices[0].position[0],format.expected);}
+        spec.positionType="Float32";spec.vertexStride=16;spec.homogeneous=true;QByteArray points;for(int vertex=0;vertex<3;++vertex)for(int axis=0;axis<4;++axis){float value=axis==3?2:axis==vertex?2:0;quint32 bits=qToLittleEndian(std::bit_cast<quint32>(value));points.append(reinterpret_cast<const char *>(&bits),4);}auto base=decode(points);QVERIFY(base.error.isEmpty());QCOMPARE(base.mesh->vertices[0].position[0],1.f);
+        spec.axes={0,2,1};spec.axisScale={2,3,4};spec.rotationDegrees={0,0,90};spec.positionDelta={10,20,30};auto transformed=decode(points);QVERIFY(transformed.error.isEmpty());QVERIFY(std::abs(transformed.mesh->vertices[0].position[0])<1e-5);QCOMPARE(transformed.mesh->vertices[0].position[1],2.f);QCOMPARE(transformed.mesh->triangles,QVector<quint32>({0,2,1}));QCOMPARE(transformed.mesh->faceSources[0].offsets[1],qint64(100));QCOMPARE(transformed.positionDelta[0],10.);
+        // Geometric normals must agree with inverse-transpose transformed supplied normals.
+        spec.normals=true;spec.normalOffset=128;spec.normalStride=12;QByteArray normals;for(int i=0;i<9;++i){quint32 bits=qToLittleEndian(std::bit_cast<quint32>(1.f));normals.append(reinterpret_cast<const char *>(&bits),4);}auto explicitNormals=readMesh(source,{{0,points},{96,QByteArray::fromHex("000001000200")},{128,normals}},spec);QVERIFY(explicitNormals.error.isEmpty());for(int axis=0;axis<3;++axis)QVERIFY(std::abs(explicitNormals.mesh->vertices[0].normal[axis]-transformed.mesh->vertices[0].normal[axis])<1e-5);
+        spec.axisScale[0]=0;QVERIFY(!decode(points).error.isEmpty());spec.axisScale[0]=1;spec.axes={0,0,2};QVERIFY(!decode(points).error.isEmpty());spec.axes={0,1,2};auto zeroW=points;zeroW.replace(12,4,QByteArray(4,0));QVERIFY(!decode(zeroW).error.isEmpty());spec.positionType="Int16";QVERIFY(!decode(points).error.isEmpty());
+    }
+    void meshBinaryPositionDelta(){
+        QString path=QFINDTESTDATA("../examples/sphere128.bin");auto meta=readPage({path,0,-1,{},0});ReadRequest source{path,0,meta.size,meta.modified,0};MeshSpec spec;spec.deltaFromBinary=true;spec.deltaOffset=16;
+        auto check=[&](QByteArray bytes,double x,double y,double z){auto result=readMesh(source,{{16,bytes}},spec);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));QCOMPARE(result.positionDelta[0],x);QCOMPARE(result.positionDelta[1],y);QCOMPARE(result.positionDelta[2],z);};
+        check(QByteArray::fromHex("0000a03f000020c000007040"),1.25,-2.5,3.75);
+        spec.deltaBigEndian=true;check(QByteArray::fromHex("3fa00000c020000040700000"),1.25,-2.5,3.75);
+        spec.deltaType="Int16";spec.deltaStride=4;spec.deltaScale=.5;check(QByteArray::fromHex("00020000fffc00000006"),1,-2,3);
+        spec.deltaType="Float16";spec.deltaBigEndian=false;spec.deltaStride=2;spec.deltaScale=1;check(QByteArray::fromHex("003c00c00038"),1,-2,.5);
+        spec.deltaType="Int32";spec.deltaStride=4;check(QByteArray::fromHex("01000001feffffff03000000"),16777217,-2,3);
+        spec.deltaType="Float32";QVERIFY(!readMesh(source,{{16,QByteArray::fromHex("0000807f0000000000000000")}},spec).error.isEmpty());spec.deltaOffset=meta.size-4;QVERIFY(!readMesh(source,{},spec).error.isEmpty());spec.deltaOffset=16;spec.deltaStride=1;QVERIFY(!readMesh(source,{},spec).error.isEmpty());
+    }
     void meshCollectionIdentityAndOcclusion() {
         auto front=std::make_shared<MeshData>();for(auto point:{QVector3D(-1,-1,1),QVector3D(1,-1,1),QVector3D(0,1,1)}){MeshVertex v{};for(int j=0;j<3;++j)v.position[j]=point[j];front->vertices.append(v);}front->triangles={0,1,2};auto back=std::make_shared<MeshData>(*front);for(auto &v:back->vertices)v.position[2]=-1;
         MeshScene scene;int a=scene.add(front,"Frente","example.bin"),b=scene.add(back,"Background","example.bin");auto all=scene.assemble();QCOMPARE(all.data->triangles,QVector<quint32>({0,1,2,3,4,5}));QCOMPARE(all.spans[1].id,b);MeshDebug debug(*all.data);QVERIFY(!debug.visible({0,0,3},debug.positions[3]));
@@ -292,6 +315,15 @@ private slots:
         QString error;QList<MagicSignature> decoded;QVERIFY(decodeMagicLibrary(encodeMagicLibrary(spec.signatures).toJson(),decoded,error));QCOMPARE(decoded[0].relativeOffset,qint64(2));
         QVERIFY(!decodeMagicLibrary("{}",decoded,error));QCOMPARE(decoded.size(),1);
         auto bad=decoded[0];bad.pattern="??";QVERIFY(!validateMagic(bad,error));bad.pattern="A";QVERIFY(!validateMagic(bad,error));
+    }
+    void imageRecipesAndExtendedPixels(){
+        ImageRecipe r;r.offset=9007199254740993LL;r.paletteOffset=128;r.width=32;r.height=16;r.format="Indexed8";r.paletteFormat="PS2 RGBA8";r.layout="PS2 GS pages";r.ps2Clut=true;r.ps2Alpha=true;r.flipY=true;
+        auto json=encodeImageRecipe(r,3,4096);ImageRecipe decoded;int count=0;qint64 step=0;QString error;QVERIFY(decodeImageRecipe(json,decoded,count,step,error));QCOMPARE(decoded.offset,r.offset);QCOMPARE(decoded.layout,r.layout);QVERIFY(decoded.ps2Clut);QCOMPARE(count,3);QCOMPARE(step,qint64(4096));
+        auto invalid=json;invalid["width"]=9000;QVERIFY(!decodeImageRecipe(invalid,decoded,count,step,error));QCOMPARE(decoded.width,32);invalid=json;invalid["format"]="Unknown";QVERIFY(!decodeImageRecipe(invalid,decoded,count,step,error));
+        for(auto preset:imagePresets()){QString validation;imageSpan(preset.recipe,validation);QVERIFY2(validation.isEmpty(),qPrintable(preset.name+": "+validation));}
+        r={};r.width=r.height=1;r.format="RGBA16 FLOAT";std::atomic_bool cancel{false};error.clear();auto image=decodeTextureData(QByteArray::fromHex("003c00380000003c"),{},r,error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(0,0),QColor(255,128,0,255));
+        r.format="RG16 UNORM";error.clear();image=decodeTextureData(QByteArray::fromHex("ffff0080"),{},r,error,cancel);QCOMPARE(image.pixelColor(0,0),QColor(255,128,0,255));
+        QByteArray dds(148,0);dds.replace(0,4,"DDS ");auto put=[&](int at,quint32 value){qToLittleEndian(value,reinterpret_cast<uchar *>(dds.data()+at));};put(4,124);put(12,1);put(16,1);put(76,32);put(80,4);dds.replace(84,4,"DX10");put(128,10);put(132,3);put(140,1);dds+=QByteArray::fromHex("003c00380000003c");error.clear();image=decodeDds(dds,{},error,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(image.pixelColor(0,0),QColor(255,128,0,255));
     }
     void advancedSearchFilters(){
         auto memory=std::make_shared<MemoryData>();memory->size=6;memory->blocks={QByteArray("aaaaAb")};ReadRequest source{"",0,6,{},0,memory};

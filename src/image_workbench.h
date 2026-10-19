@@ -1,6 +1,7 @@
 #pragma once
 #include "hex_view.h"
 #include "image_decode.h"
+#include "image_recipe_io.h"
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
 #include <QWheelEvent>
@@ -47,8 +48,12 @@ public:
         auto *remove=new QPushButton("Remove Selected");layout->addWidget(remove);
         auto *libraryHint=new QLabel("Select a file, then calculate with the settings on the right. Generated images are snapshots. Libraries save image snapshots, not source binaries.");libraryHint->setWordWrap(true);layout->addWidget(libraryHint);
         settings=new QWidget;settings->setObjectName("imageCalculatorPanel");auto *controls=new QVBoxLayout(settings);auto *form=new QFormLayout;controls->addLayout(form);
+        auto *presets=new QComboBox;presets->setObjectName("imagePreset");presets->addItem("Custom settings");for(const auto &preset:imagePresets())presets->addItem(preset.name);form->addRow("Preset",presets);
+        auto *recipeButtons=new QHBoxLayout;auto *saveRecipeButton=new QPushButton("Save Recipe..."),*loadRecipeButton=new QPushButton("Load Recipe...");recipeButtons->addWidget(saveRecipeButton);recipeButtons->addWidget(loadRecipeButton);controls->addLayout(recipeButtons);
+        connect(saveRecipeButton,&QPushButton::clicked,this,[this]{auto path=QFileDialog::getSaveFileName(settings,"Save image recipe",{},"Image recipe (*.bwir)");if(!path.isEmpty())saveRecipe(path);});
+        connect(loadRecipeButton,&QPushButton::clicked,this,[this]{auto path=QFileDialog::getOpenFileName(settings,"Load image recipe",{},"Image recipe (*.bwir)");if(!path.isEmpty())loadRecipe(path);});
         source_=new QComboBox;source_->setObjectName("imageSource");source_->addItems({"Active document","Selected library file"});form->addRow("Source",source_);
-        format_=new QComboBox;format_->setObjectName("imageFormat");format_->addItems(imageFormats());format_->setMaxVisibleItems(16);form->addRow("Pixel format",format_);
+        format_=new QComboBox;format_->setObjectName("imageFormat");format_->addItems(imageFormats());format_->setCurrentText("RGBA8");format_->setMaxVisibleItems(16);form->addRow("Pixel format",format_);
         memoryLayout_=new QComboBox;memoryLayout_->setObjectName("imageMemoryLayout");memoryLayout_->addItems({"Linear","Morton Z-order","Morton rectangular","Tiled 8x8","PS2 GS pages","PS2 GS 16S","Xbox 360 tiled","PS4 1D thin"});form->addRow("Memory layout / Unswizzle",memoryLayout_);
         auto *formatsLabel=new QLabel("Encoded images: "+QString::fromLatin1(QImageReader::supportedImageFormats().join(", "))+", tga, dds, tim, tm2, tpl, gtf, gnf");formatsLabel->setWordWrap(true);form->addRow(formatsLabel);
         container_=new QComboBox;container_->setObjectName("imageContainer");container_->addItems({"Auto","GTF"});form->addRow("Container hint",container_);
@@ -69,6 +74,10 @@ public:
         footprint_=new QLabel;footprint_->setWordWrap(true);form->addRow(footprint_);
         auto *row=new QHBoxLayout;calculate_=new QPushButton("Calculate / Add to Library");calculate_->setObjectName("imageCalculate");cancel_=new QPushButton("Cancel");cancel_->setObjectName("imageCancel");row->addWidget(calculate_);row->addWidget(cancel_);controls->addLayout(row);
         progress_=new QProgressBar;progress_->setObjectName("imageProgress");controls->addWidget(progress_);status_=new QLabel("Choose a source and pixel layout.");status_->setObjectName("imageStatus");status_->setWordWrap(true);controls->addWidget(status_);controls->addStretch();
+        auto *assign=new QPushButton("Assign to active mesh");assign->setObjectName("imageAssignTexture");auto *unassign=new QPushButton("Remove active mesh texture");unassign->setObjectName("imageRemoveTexture");layout->addWidget(assign);layout->addWidget(unassign);
+        connect(assign,&QPushButton::clicked,this,[this]{int row=list_->currentRow();if(row<0||entries_[row].image.isNull()){status_->setText("Select a decoded image first.");return;}if(assignTexture)status_->setText(assignTexture(entries_[row].image,entries_[row].name)?"Texture assigned to the active mesh.":"Choose a mesh with UVs; the texture collection is limited to 64 MiB.");});
+        connect(unassign,&QPushButton::clicked,this,[this]{if(assignTexture)assignTexture({},{});});
+        connect(presets,&QComboBox::activated,this,[this](int index){if(index<1||running_)return;auto recipe=imagePresets()[index-1].recipe;recipe.width=width_->value();recipe.height=height_->value();bool ok;recipe.offset=parse(offset_->text(),ok);recipe.paletteOffset=parse(palette_->text(),ok);applyRecipe(recipe);status_->setText("Preset loaded. Check dimensions, offsets and palette against your source before calculating.");});
         connect(openFiles,&QPushButton::clicked,this,[this]{const auto paths=QFileDialog::getOpenFileNames(collection,"Open images or binary files",{},"Images (*.png *.jpg *.jpeg *.bmp *.tga *.gif *.ico *.pbm *.pgm *.ppm *.xbm *.xpm *.tif *.tiff *.webp *.dds *.tim *.tm2 *.tpl *.gtf *.gnf);;All files (*)");for(const auto &path:paths)addFile(path);});
         connect(open,&QPushButton::clicked,this,[this]{const auto path=QFileDialog::getExistingDirectory(collection,"Open image / binary folder");if(!path.isEmpty())openFolder(path);});
         connect(filter_,&QLineEdit::textChanged,this,[this](const QString &text){for(int i=0;i<list_->count();++i)list_->item(i)->setHidden(!list_->item(i)->text().contains(text,Qt::CaseInsensitive));});
@@ -87,9 +96,19 @@ public:
     ~ImageWorkbench()override{state_->cancel.store(true);reader_.shutdown();}
     ImagePreview *preview;QWidget *collection,*settings;
     std::function<void(const QImage &)> imageSelected;
+    std::function<bool(const QImage &,const QString &)> assignTexture;
     int imageCount()const{return entries_.size();}
     const Entry &entry(int index)const{return entries_[index];}
     bool busy()const{return running_;}
+    void applyRecipe(const ImageRecipe &r){
+        format_->setCurrentText(r.format);memoryLayout_->setCurrentText(r.layout);paletteFormat_->setCurrentText(r.paletteFormat);byteSwap_->setCurrentText(r.byteSwap);container_->setCurrentText(r.container);width_->setValue(r.width);height_->setValue(r.height);offset_->setText(QString::number(r.offset));stride_->setText(QString::number(r.rowStride));palette_->setText(QString::number(r.paletteOffset));mip_->setValue(r.mipLevel);surface_->setValue(r.surface);paletteBank_->setValue(r.paletteBank);paletteEntries_->setValue(r.paletteEntries);endian_->setCurrentIndex(r.bigEndian?1:0);flipX_->setChecked(r.flipX);flipY_->setChecked(r.flipY);lowNibble_->setChecked(r.lowNibbleFirst);clut_->setChecked(r.ps2Clut);alpha_->setChecked(r.ps2Alpha);if(refresh_)refresh_();
+    }
+    bool saveRecipe(const QString &path){
+        if(running_)return false;QString error;auto r=currentRecipe(error);imageSpan(r,error);bool ok=false;auto step=parse(step_->text(),ok);if(!error.isEmpty()||!ok){status_->setText(error.isEmpty()?"Invalid image step.":error);return false;}auto bytes=QJsonDocument(encodeImageRecipe(r,count_->value(),step)).toJson();QSaveFile file(path);bool saved=file.open(QIODevice::WriteOnly)&&file.write(bytes)==bytes.size()&&file.commit();status_->setText(saved?"Recipe saved; source bytes are not included.":"Could not save recipe.");return saved;
+    }
+    bool loadRecipe(const QString &path){
+        if(running_)return false;QFile file(path);if(!file.open(QIODevice::ReadOnly)||file.size()>65536){status_->setText("Cannot open recipe (maximum 64 KiB).");return false;}QJsonParseError parseError;auto document=QJsonDocument::fromJson(file.readAll(),&parseError);ImageRecipe r;int count;qint64 step;QString error;if(parseError.error!=QJsonParseError::NoError||!document.isObject()||!decodeImageRecipe(document.object(),r,count,step,error)){status_->setText(error.isEmpty()?"Invalid recipe JSON.":error);return false;}applyRecipe(r);count_->setValue(count);step_->setText(QString::number(step));status_->setText("Recipe loaded. Choose its source and calculate.");return true;
+    }
     void addFile(const QString &path){if(running_||entries_.size()>=512)return;QFileInfo info(path);if(!info.isFile())return;Entry entry;entry.name=info.fileName();entry.source={info.absoluteFilePath(),0,info.size(),info.lastModified(),0,{}};entry.recipe.format="Encoded image";append(entry);}
     void openFolder(const QString &path){
         if(running_)return;QDirIterator it(path,QDir::Files|QDir::NoDotAndDotDot,QDirIterator::NoIteratorFlags);int added=0;

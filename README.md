@@ -6,7 +6,7 @@ The project is under active development. Some tools and format variants are stil
 
 ## Download and run
 
-Get the Windows x64 portable ZIP from [Releases](https://github.com/Machdramon/binary-workbench/releases).
+Get the **v0.2.0 Windows x64 Preview** portable ZIP from [Releases](https://github.com/Machdramon/binary-workbench/releases/tag/v0.2.0). See the [release notes](docs/releases/v0.2.0.md).
 
 1. Extract the **entire ZIP** to a writable folder.
 2. Open `binary_workbench.exe` inside the extracted folder.
@@ -16,15 +16,15 @@ Windows 10/11 x64 is required. The portable package includes Qt, the Python runt
 
 ## Workspace
 
-Each major module can be dragged out into a separate window for multiple monitors. Tool panels dock within their own module. Open binary documents use individual tabs, and workspace layout and settings persist between sessions.
+Each major module can be dragged out into a separate window for multiple monitors. Tool panels dock within their own module. Open binary documents use individual tabs, and workspace layout and settings persist between sessions. New users start with the bundled standard panel arrangement; upgrades preserve personal layouts. Use Windows > Reset Panel Layout to restore the standard arrangement.
 
 | Module | Current tools |
 | --- | --- |
 | Hex Viewer | Main viewer, data inspector, pattern search and results, formatting rules, statistics, comparison and checksum inspectors |
-| 3D | Geometry view, mesh collection and geometry settings |
+| 3D | Textured geometry view, mesh collection, coordinate transforms and binary-sourced XYZ placement |
 | UV / 2D | Image view, texture/image collection and image calculator |
 | Scripting | Script editor, console and library management |
-| Other Tools | Integer calculator, thread activity and settings |
+| Other Tools | Programmer calculator, thread activity and settings |
 
 Settings provides light/dark/system appearance and editor preferences; custom theme editing, theme import/export and additional interface languages are planned.
 
@@ -58,9 +58,17 @@ This is not a universal game-archive extractor or automatic decoder for every te
 
 ## 3D and scripting
 
-The 3D workspace provides a Vulkan geometry view and mesh-oriented tools. Texture-to-mesh workflows remain in development.
+The 3D workspace provides a Vulkan geometry view, per-mesh image texture assignment and a textured UV view. Image recipes can be saved and loaded as .bwir, with console presets and additional UNORM/FLOAT raw and DDS formats. See [recipes and mesh textures](docs/image-recipes-and-textures.md) for supported paths and remaining console limitations. Image textures are not yet included in model export.
+
+Geometry settings support Int8/16/32, UInt8/16/32, Float16/32, SNorm/UNorm 8/16 and Fixed16.16 positions, plus XYZ and homogeneous XYZW. Transform axes, invert, scale and rotate each decoded part, then place it with an XYZ delta entered manually or read from a binary offset. Adjust placement later in Mesh Collection. Normals and face winding follow coordinate transformations; model export includes placement. Settings sections can be collapsed individually.
+
+The [Scripting Library Manager](docs/scripting-libraries.md) lists the active runtime libraries and supports creating, editing, pasting, importing and enabling/disabling user Python modules/packages and C++ headers shared across documents. **Default Modules** and **My Modules** clearly separate included and user code; **Add Module...** unifies creation/paste and imports, with Documentation and Code views.
 
 Python scripting uses the bundled interpreter and standard library in the Windows package. Additional third-party Python packages are not included. C++ scripting requires a compatible local compiler. Run scripts only when you trust their contents: scripts execute local code.
+
+## Programmer calculator
+
+HEX, DEC, OCT and BIN are displayed together with 8/16/32/64-bit words and optional signed two's-complement interpretation. Integer arithmetic, bitwise operations, shifts, rotations, memory and a clickable bit view work with both the keypad and keyboard. Enter calculates; Esc clears; Ctrl+C/Ctrl+V copy and paste. Operations run left to right and wrap to the selected word size. The borderless readings and grouped controls use the application's theme palette.
 
 ## Build from source
 
@@ -83,6 +91,6 @@ Windows x64 and macOS ARM64 have been built and tested during development. Linux
 
 ## Validation and documentation
 
-The latest Windows validation completed **40 reader tests and 31 interface tests**, with one optional graphics test skipped. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
+The latest Windows validation completed **43 reader tests and 38 interface tests**, with one optional graphics test skipped in the automated suite; native Vulkan textured rendering was also verified separately during development. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
 
 See [the user guide](docs/user-guide.md), [Windows build/release notes](docs/windows-release.md), and [third-party notices](tools/THIRD-PARTY.txt). Additional documentation may still contain older descriptions while the application evolves.

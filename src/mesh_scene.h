@@ -1,11 +1,15 @@
 #pragma once
 #include <QObject>
+#include <QImage>
 #include "mesh_debug.h"
 struct MeshEntry {
     int id=-1;
     QString name,source;
     bool visible=true,stale=false;
     std::shared_ptr<MeshData> data;
+    QImage texture;QString textureName;
+    std::array<double,3> positionDelta{};
+    std::shared_ptr<MeshData> placedData()const;
 };
 struct MeshSelection {int mesh=-1;MeshElement kind=MeshElement::Vertex;int index=-1;};
 struct MeshSpan {int id,vertexStart,vertexCount,faceStart,faceCount;};
@@ -20,6 +24,8 @@ public:
     MeshSelection selection()const{return selection_;}
     int add(std::shared_ptr<MeshData>,QString name={},QString source={});
     bool replace(int id,std::shared_ptr<MeshData>,QString source={});
+    bool setPositionDelta(int id,const std::array<double,3> &delta);
+    bool setTexture(int id,const QImage &image,const QString &name={});
     void remove(int id);void clear();void rename(int id,QString name);void setVisible(int id,bool visible);
     void setActive(int id);void select(int mesh,MeshElement kind,int index);void markStale();
     MeshAssembly assemble(bool includeHidden=false)const;

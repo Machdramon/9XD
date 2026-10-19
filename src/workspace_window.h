@@ -7,6 +7,7 @@
 #include <QTabBar>
 #include <QScreen>
 #include "theme.h"
+#include "default_workspace_layout.h"
 #include "module_menus.h"
 #include <QStackedWidget>
 #include <QVBoxLayout>
@@ -70,6 +71,10 @@ public:
         moduleWindowsMenu_=new QMenu("Module Windows",this);moduleWindowsMenu_->setObjectName("moduleWindowsMenu");
         for(const auto &id:ids){auto *action=moduleWindowsMenu_->addAction("Detach "+moduleNames_[id]);moduleWindowActions_.insert(id,action);connect(action,&QAction::triggered,this,[this,id]{if(isModuleDetached(id))attachModule(id);else detachModule(id);});}
         bar_=addToolBar("Common Actions");bar_->setObjectName("mainToolbar");setDockNestingEnabled(true);
+        toolbarsMenu_=new QMenu("Toolbars",this);toolbarsMenu_->setObjectName("toolbarsMenu");
+        connect(toolbarsMenu_,&QMenu::aboutToShow,this,[this]{refreshToolbarsMenu();});
+        if(!statePath_.isEmpty())bar_->setVisible(workspaceSettings().value("toolbars/mainToolbar",standardWorkspaceLayout()["toolbarVisible"].toBool(true)).toBool());
+        connect(bar_->toggleViewAction(),&QAction::triggered,this,[this](bool visible){if(!statePath_.isEmpty())workspaceSettings().setValue("toolbars/mainToolbar",visible);});
         documentsMenu_=new QMenu("Documents",this);
         auto *next=documentsMenu_->addAction("Next Document");next->setShortcut(QKeySequence("Ctrl+Tab"));connect(next,&QAction::triggered,mdi_,&QMdiArea::activateNextSubWindow);
         auto *previous=documentsMenu_->addAction("Previous Document");previous->setShortcut(QKeySequence("Ctrl+Shift+Tab"));connect(previous,&QAction::triggered,mdi_,&QMdiArea::activatePreviousSubWindow);
@@ -94,11 +99,14 @@ public:
             if(!window&&!mdi_->subWindowList().isEmpty())return;
             activate(dynamic_cast<DocumentSubWindow *>(window));
         });
-        QSettings settings("BinaryWorkbench","Workspace");loadWorkbenchPreferences(settings);
+        auto settings=workspaceSettings();loadWorkbenchPreferences(settings);
         connect(qApp->styleHints(),&QStyleHints::colorSchemeChanged,this,[this]{if(qApp->property("workbenchTheme").toString()=="system")applyWorkbenchTheme("system");});
-        if(!statePath_.isEmpty()&&!settings.value("geometryV2").toByteArray().isEmpty())restoreGeometry(settings.value("geometryV2").toByteArray());
         if(!statePath_.isEmpty()){
-            for(auto it=moduleHosts_.cbegin();it!=moduleHosts_.cend();++it)sharedLayouts_[it.key()]=settings.value("moduleLayouts/v1/"+it.key()).toByteArray();
+            auto geometry=settings.value("geometryV2").toByteArray();if(geometry.isEmpty())geometry=QByteArray::fromBase64(standardWorkspaceLayout()["windowGeometry"].toString().toLatin1());
+            if(!geometry.isEmpty())restoreGeometry(geometry);
+        }
+        if(!statePath_.isEmpty()){
+            for(auto it=moduleHosts_.cbegin();it!=moduleHosts_.cend();++it)sharedLayouts_[it.key()]=workspaceModuleLayout(settings,it.key());
             const auto suspended=settings.value("moduleLayouts/v1/suspendedFloating").toStringList();
             for(const auto &name:suspended)suspendedFloating_.insert(name);
         }
@@ -139,12 +147,12 @@ public:
         document->openInPlace(path);refreshTitle(document);
     }
     void setTheme(const QString &name){
-        applyWorkbenchTheme(name);if(!statePath_.isEmpty())QSettings("BinaryWorkbench","Workspace").setValue("theme",name);
+        applyWorkbenchTheme(name);if(!statePath_.isEmpty())workspaceSettings().setValue("theme",name);
         for(auto *action:themeMenu_->actions())action->setChecked(action->text().toLower()==name);
         for(auto *window:mdi_->subWindowList())window->update();
     }
     void showSettings(){
-        QSettings settings("BinaryWorkbench","Workspace");
+        auto settings=workspaceSettings();
         SettingsDialog dialog(settings,[this]{
             for(auto *window:mdi_->subWindowList())dynamic_cast<DocumentSubWindow *>(window)->document->documentView()->applyDisplayPreferences();
             for(auto *action:themeMenu_->actions())action->setChecked(action->text().toLower()==qApp->property("workbenchTheme").toString());
@@ -160,6 +168,13 @@ public:
             if(dock->property("moduleId").toString()!=id&&!isModuleDetached(dock->property("moduleId").toString())){if(!dock->isHidden()){dock->setProperty("floatingVisible",true);suspendedFloating_.insert(dock->objectName());}dock->hide();}
             else if(dock->property("floatingVisible").toBool()){dock->setProperty("floatingVisible",false);suspendedFloating_.remove(dock->objectName());dock->show();}
         }
+    }
+    void resetPanelLayout(){
+        const auto detached=detachedWindows_.keys();for(const auto &id:detached)attachModule(id);
+        suspendedFloating_.clear();for(auto it=moduleHosts_.cbegin();it!=moduleHosts_.cend();++it){auto state=standardModuleLayout(it.key());if(!state.isEmpty()){sharedLayouts_[it.key()]=state;it.value()->restoreState(state);}}
+        bar_->setVisible(standardWorkspaceLayout()["toolbarVisible"].toBool(true));
+        if(auto *doc=activeDocument())for(auto *dock:doc->sessionDocks())dock->setProperty("floatingVisible",false);
+        if(!statePath_.isEmpty()){auto settings=workspaceSettings();settings.setValue("toolbars/mainToolbar",!bar_->isHidden());}
     }
     QMainWindow *moduleHost(const QString &id)const{return moduleHosts_.value(id);}
     bool isModuleDetached(const QString &id)const{return detachedWindows_.contains(id);}
@@ -194,7 +209,7 @@ protected:
             return;
         }
         if(!statePath_.isEmpty()){
-            QSettings settings("BinaryWorkbench","Workspace");settings.setValue("geometryV2",saveGeometry());
+            auto settings=workspaceSettings();settings.setValue("geometryV2",saveGeometry());
             for(auto it=sharedLayouts_.cbegin();it!=sharedLayouts_.cend();++it)settings.setValue("moduleLayouts/v1/"+it.key(),it.value());
             settings.setValue("moduleLayouts/v1/suspendedFloating",QStringList(suspendedFloating_.cbegin(),suspendedFloating_.cend()));
             settings.setValue("moduleWindows/v1/detached",detachedWindows_.keys());
@@ -208,7 +223,7 @@ private:
         document->openRequested=[this](const QString &path){openFile(path);};document->newRequested=[this]{newDocument();};document->exitRequested=[this]{close();};
         document->settingsRequested=[this]{showSettings();};
         connect(document->documentView(),&HexView::viewerFontSizeChanged,this,[this,document](int points){
-            if(!statePath_.isEmpty())QSettings("BinaryWorkbench","Workspace").setValue("editor/fontSize",points);
+            if(!statePath_.isEmpty())workspaceSettings().setValue("editor/fontSize",points);
             for(auto *window:mdi_->subWindowList()){
                 auto *other=dynamic_cast<DocumentSubWindow *>(window)->document;
                 if(other!=document)other->documentView()->applyDisplayPreferences();
@@ -225,7 +240,7 @@ private:
         sessions_.removeIf([](auto session){return session.isNull();});sessions_.append(sub);
         document->menuBar()->hide();for(auto *tool:document->findChildren<QToolBar *>(QString(),Qt::FindDirectChildrenOnly)){document->removeToolBar(tool);tool->setObjectName("sessionToolbar");tool->setFloatable(false);tool->hide();}
         for(auto *action:document->findChildren<QAction *>())if(!action->shortcut().isEmpty())action->setProperty("sessionShortcut",action->shortcut());
-        auto *windows=document->findChild<QMenu *>("workspaceWindowsMenu");windows->addSeparator();windows->addMenu(documentsMenu_);windows->addMenu(moduleWindowsMenu_);windows->addMenu(themeMenu_);
+        auto *windows=document->findChild<QMenu *>("workspaceWindowsMenu");windows->addSeparator();windows->addMenu(documentsMenu_);windows->addMenu(moduleWindowsMenu_);windows->addMenu(themeMenu_);windows->addSeparator();auto *reset=windows->addAction("Reset Panel Layout");reset->setObjectName("resetWorkspaceLayout");connect(reset,&QAction::triggered,this,[this]{resetPanelLayout();});
         for(auto *action:document->menuBar()->actions()[0]->menu()->actions())if(action->text()=="Close Files"){
             action->setText("Close Document");action->setEnabled(true);action->setShortcut(QKeySequence("Ctrl+W"));action->setProperty("sessionShortcut",action->shortcut());connect(action,&QAction::triggered,sub,&QWidget::close);
         }
@@ -270,7 +285,7 @@ private:
         }
         for(auto it=moduleHosts_.cbegin();it!=moduleHosts_.cend();++it){
             const auto state=sharedLayouts_.value(it.key());
-            if(!state.isEmpty())it.value()->restoreState(state);
+            if(!state.isEmpty()&&(it.value()->restoreState(state)||(!statePath_.isEmpty()&&it.value()->restoreState(standardModuleLayout(it.key()))))){}
             else if(it.key()=="hex"){
                 auto *inspector=doc->sessionDock("inspectorDock"),*format=doc->sessionDock("formatRulesDock");
                 it.value()->tabifyDockWidget(inspector,format);inspector->raise();doc->sessionDock("entropyDock")->hide();
@@ -282,16 +297,25 @@ private:
         for(auto *dock:doc->sessionDocks())dock->setProperty("floatingVisible",suspendedFloating_.contains(dock->objectName()));
         switchingDocuments_=false;selectModule(moduleTabs_->tabData(moduleTabs_->currentIndex()).toString(),false);
         doc->menuBar()->hide();
-        for(auto *action:doc->menuBar()->actions())menuBar()->addAction(action);
+        for(auto *action:doc->menuBar()->actions()){if(QString(action->text()).remove('&')=="Windows")menuBar()->addMenu(toolbarsMenu_);menuBar()->addAction(action);}
         if(auto *tools=doc->findChild<QToolBar *>("sessionToolbar")){for(auto *action:tools->actions())bar_->addAction(action);tools->hide();}
         refreshTitle(doc);refreshDetachedWindows();
         for(auto *action:themeMenu_->actions())action->setChecked(action->text().toLower()==qApp->property("workbenchTheme").toString());
+    }
+    void refreshToolbarsMenu(){
+        toolbarsMenu_->clear();
+        for(auto *toolbar:findChildren<QToolBar *>()){
+            auto *host=qobject_cast<QMainWindow *>(toolbar->parentWidget());
+            if(!host||host->toolBarArea(toolbar)==Qt::NoToolBarArea)continue;
+            auto *action=toolbar->toggleViewAction();action->setText(toolbar->windowTitle());toolbarsMenu_->addAction(action);
+        }
+        if(toolbarsMenu_->isEmpty()){auto *empty=toolbarsMenu_->addAction("No toolbars available");empty->setEnabled(false);}
     }
     void emptyMenu(){
         for(auto *action:menuBar()->actions())menuBar()->removeAction(action);bar_->clear();
         if(!fallback_){fallback_=new QMenu("File",this);auto *create=fallback_->addAction("New File");create->setShortcut(QKeySequence::New);connect(create,&QAction::triggered,this,[this]{newDocument();});
             auto *open=fallback_->addAction("Open File…");open->setShortcut(QKeySequence::Open);connect(open,&QAction::triggered,this,[this]{auto path=QFileDialog::getOpenFileName(this,"Open File");if(!path.isEmpty())openFile(path);});fallback_->addSeparator();connect(fallback_->addAction("Settings"),&QAction::triggered,this,[this]{showSettings();});fallback_->addSeparator();connect(fallback_->addAction("Exit"),&QAction::triggered,this,&QWidget::close);}
-        menuBar()->addMenu(fallback_);menuBar()->addMenu(moduleWindowsMenu_);menuBar()->addMenu(themeMenu_);setWindowTitle("Binary Workbench");refreshDetachedWindows();
+        menuBar()->addMenu(fallback_);menuBar()->addMenu(toolbarsMenu_);menuBar()->addMenu(moduleWindowsMenu_);menuBar()->addMenu(themeMenu_);setWindowTitle("Binary Workbench");refreshDetachedWindows();
     }
     void keepModuleWindowOnScreen(QWidget *window){
         bool accessible=false;auto title=window->frameGeometry();title.setHeight(30);
@@ -327,7 +351,7 @@ private:
         *connection=connect(doc->documentView(),&HexView::saveFinished,this,[this,index,connection](bool ok){disconnect(*connection);if(ok)QTimer::singleShot(0,this,[this,index]{saveNext(index+1);});});
         if(!doc->saveDocument(false))disconnect(*connection);
     }
-    QMdiArea *mdi_;QToolBar *bar_;QMenu *documentsMenu_,*listMenu_,*themeMenu_,*fallback_=nullptr;
+    QMdiArea *mdi_;QToolBar *bar_;QMenu *toolbarsMenu_,*documentsMenu_,*listMenu_,*themeMenu_,*fallback_=nullptr;
     QPointer<DocumentSubWindow> active_;QPointer<CompactDocumentTabs> documentTabs_;QList<QPointer<DocumentSubWindow>> sessions_;QHash<QString,QByteArray> sharedLayouts_;
     QHash<QString,QMainWindow *> moduleHosts_;QSet<QString> suspendedFloating_;ModuleTabBar *moduleTabs_;
     QHash<QString,QWidget *> moduleSlots_,moduleNotices_;QHash<QString,QString> moduleNames_;

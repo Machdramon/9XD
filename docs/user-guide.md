@@ -10,7 +10,7 @@ Use **File → Open File** (Ctrl+O) to open a local binary. **File → New File*
 
 Click and drag for a sequential selection. Alt+drag selects a rectangle. Shift+click or Shift+arrow extends the selection from its anchor. **Edit → Select All** (Ctrl+A) selects the entire document.
 
-Type hexadecimal pairs in the byte columns, or characters in the decoded text column. RAM documents append at the end. Press Insert to switch between inserting and overwriting; Delete and Backspace remove bytes in RAM documents. **Edit → Insert Bytes** inserts a hexadecimal sequence. Cut and paste can also resize RAM documents. Type directly in existing disk-backed files to overwrite bytes. Double-click, or use **Extras → Workbench Tools → Overwrite bytes** (F2), to enter hexadecimal pairs such as `00 FF 2A`. A single selected byte allows writing forward from that offset. Larger or rectangular selections require exactly the same byte count. Paste accepts copied binary data or hexadecimal text. Undo and Redo are available until saving.
+Type hexadecimal pairs in the byte columns, or characters in the decoded text column. RAM documents append at the end. Press Insert to switch between inserting and overwriting; Delete and Backspace remove bytes in RAM documents. **Edit → Insert Bytes** inserts a hexadecimal sequence. Cut and paste can also resize RAM documents. Type directly in existing disk-backed files to overwrite bytes. Double-click, or use **Edit → Overwrite bytes** (F2), to enter hexadecimal pairs such as `00 FF 2A`. A single selected byte allows writing forward from that offset. Larger or rectangular selections require exactly the same byte count. Paste accepts copied binary data or hexadecimal text. Undo and Redo are available until saving.
 
 Editing is limited to 1 MiB per operation and 4096 rows for rectangular operations. History retains at most 20 MiB of replacement bytes, 1024 operations or 16384 regions. Saving resets history. Disabled menu items represent planned features.
 
@@ -22,41 +22,41 @@ Open documents appear as movable, closable tabs. Each document keeps its own con
 
 **Windows → Theme** offers Light, Dark and System modes, including graphics backgrounds and grids. Explicit custom graphics colors are preserved. Dock panels can be moved or floated; the workspace restores its layout separately from the earlier single-document layout.
 
-Rows alternate subtly, groups of eight bytes are separated, offsets use aligned hexadecimal digits, and modified bytes are highlighted.
+Row backgrounds, column visibility, byte groups and offset base can be configured. Offsets use 0x for hexadecimal, no prefix for decimal and 0c for octal. The plain-text offset header supports direct navigation; modified bytes are highlighted.
 
 ## Navigation and interpretation
 
 The vertical scrollbar covers the entire file. The wheel and arrow keys move by rows; Page Up and Page Down move by a screen. Home and End navigate to the beginning and end. Scrollbar dragging is approximate for very large files; **Edit → Go to Offset** (Ctrl+G) accepts exact decimal or `0x` hexadecimal offsets.
 
-**Stride** controls bytes per row, from 1 to 256. Changing it rearranges the view without modifying the file. **Hex Viewer → Bytes per row** focuses this control.
+The bytes-per-row setting accepts values from 1 to 256. Changing it rearranges the view without modifying the file. **Hex Viewer → Main Viewer → Bytes per row** opens a dialog for entering the row width.
 
 **Hex Viewer → Codification** offers ASCII, UTF-8, UTF-16LE, UTF-16BE and Japanese CP932. Below the separator, choose **Little Endian** or **Big Endian** for numeric interpretation. These options stay synchronized with the viewer and Data Inspector controls. Explicit UTF-16LE/BE text encodings retain their specified byte order.
 
 Numeric interpretation supports 8-, 16-, 32- and 64-bit integers, Float32 and Float64. Viewer rows are decoded independently, so a character or value split by a row boundary may appear incomplete. The inspector reads from the selection anchor even when a value crosses rows or blocks.
 
-**Hex Viewer → Data Inspector** (Ctrl+Shift+D) shows numeric values, text, dates and color interpretations. It can read subsequent bytes outside the selection. Interpretations do not guarantee that the actual file format uses those types. Ctrl+C in the inspector copies the selected value.
+**Hex Viewer → Inspector** (Ctrl+Shift+D) shows numeric values, text, dates and color interpretations. It can read subsequent bytes outside the selection. Interpretations do not guarantee that the actual file format uses those types. Ctrl+C in the inspector copies the selected value.
 
 ## Formatting and searches
 
-**Windows → Formatting Rules** opens controls for text color, background, outline, underline, bold and italic styles. Rules can describe a selection, repeated regions or search matches. If rules overlap, the last rule takes precedence. Use the arrow buttons to reorder rules.
+**Hex Viewer → Structure / Formatting Rules → Formatting Rules** opens controls for text color, background, outline, underline, bold and italic styles. Rules can describe a selection, repeated regions or search matches. If rules overlap, the last rule takes precedence. Use the arrow buttons to reorder rules.
 
 Formatting rules are stored separately from binary data. Import or export them as JSON. Export rules before leaving if you want to preserve changes. Limits are 256 rules and 10,000 marked positions.
 
-**Search → Find** (Ctrl+F) focuses the pattern field. Searches support hexadecimal wildcards (`??`, `A?`, `?F`), byte regular expressions, literal text and text regular expressions. Text uses the viewer encoding. Text and regex searches are limited to a region of 1 MiB. Hexadecimal wildcard searches can scan the entire file.
+**Hex Viewer → Find / Coincidences → Find** (Ctrl+F) focuses the pattern field. Searches support hexadecimal wildcards (`??`, `A?`, `?F`), byte regular expressions, literal text and text regular expressions. Text uses the viewer encoding. Text and regex searches are limited to a region of 1 MiB. Hexadecimal wildcard searches can scan the entire file.
 
 **Find next** (F3) and **Find Previous** (Shift+F3) navigate existing search results. **Found Coincidences** opens the same search panel. Mark results to create a formatting rule. Editing the document invalidates previous search results. Search-and-replace is not yet implemented.
 
 ## Signatures and entropy
 
-Open **Extras → Workbench Tools → Magic Bytes Library** to edit or scan signatures. PNG, DDS and gzip signatures are included as examples. A match is a clue; it does not validate a format, determine its extent or decompress its contents.
+Open **Hex Viewer → Structure / Formatting Rules → Magic Bytes Library** to edit or scan signatures. PNG, DDS and gzip signatures are included as examples. A match is a clue; it does not validate a format, determine its extent or decompress its contents.
 
 Scan the entire file, the file start, the selection start or the starts of marked regions. Signature offsets accept decimal or `0x` values. Click a result to navigate; select multiple rows to outline them using the current formatting style. Import/export the signature library separately as JSON. Limits are 64 signatures and 10,000 results.
 
-**Analyse → Statistics** opens the entropy graph. Analyze the entire file or a contiguous selection. Region sizes increase automatically for large files to keep the graph within 8192 points. Hover for entropy, zero-byte and printable ASCII statistics; click to select a region. High entropy alone does not establish compression or encryption.
+**Hex Viewer → Statistics** opens the entropy graph. Analyze the entire file or a contiguous selection. Region sizes increase automatically for large files to keep the graph within 8192 points. Hover for entropy, zero-byte and printable ASCII statistics; click to select a region. High entropy alone does not establish compression or encryption.
 
 ## 3D meshes and UVs
 
-Open **Windows → 3D Settings** to configure vertex, face index, UV and normal offsets, counts, strides and component types. Set byte order and position scale to match the source. You can add to the collection or update the active mesh.
+Open **3D → 3D Settings / Geometry Calculator** to configure vertex, face index, UV and normal offsets, counts, strides and component types. Set byte order and position scale to match the source. You can add to the collection or update the active mesh.
 
 The test sphere preset uses `examples/sphere128.bin`. Open it from File if you need to preserve or export pending formatting rules first. **Render Current File** decodes the configured regions in the background. Meshes retain snapshots when the document changes; render again to update them.
 
@@ -68,7 +68,7 @@ In **UV View**, click to select, Alt+click to cycle overlapping hits, right/midd
 
 ## Export
 
-**Extras → Workbench Tools → Export 3D model** exports selected meshes to GLB, OBJ or STL. Select active, visible or all meshes and configure scale, axis mapping, axis signs, face winding, normals and UVs.
+**3D → Export 3D model** exports selected meshes to GLB, OBJ or STL. Select active, visible or all meshes and configure scale, axis mapping, axis signs, face winding, normals and UVs.
 
 - GLB preserves separate meshes, names, geometry and optional normals, UVs and a matte color material. It uses meters and Y-up.
 - OBJ preserves separate objects, names, geometry and optional normals and UVs. This exporter does not generate MTL materials.
@@ -78,13 +78,13 @@ Exports use actual coordinates, independently of camera framing. Reflections cor
 
 ## Scripting
 
-Open **Windows → Scripting · Python / C++**. Python runs with embedded CPython; C++ is compiled and executed with the configured compiler. Each run starts in a new context. Scripts run with your local permissions.
+Open **Scripting → Scripting Window**. Python runs with embedded CPython; C++ is compiled and executed with the configured compiler. Each run starts in a new context. Scripts run with your local permissions.
 
 The examples demonstrate `workbench.read`, mesh access and mesh publication. Reads include pending edits and are limited to 1 MiB. A changed document or mesh invalidates stale script results. Stop terminates execution; output is limited to 2 MiB. Save scripts before replacing them or closing if you want to retain edits.
 
 ## Panels and background activity
 
-Use **Windows** to show or hide panels. Panels can be moved, docked, floated and tabbed. **Reset Panel Layout** restores the default layout. Layout persistence is local to the application.
+Use each module menu to show or hide its panels. Panels can be moved, docked, floated and tabbed. **Reset Panel Layout** restores the default layout. Layout persistence is local to the application.
 
 The **Threads** indicator opens background activity details. Nine task channels cover the viewer, inspector, copy, save, search, signatures, entropy, direct editing and checksums. The display shows requests, elapsed times and counters; it is not a CPU usage meter. Short tasks may finish between the 200 ms updates but are still counted.
 
@@ -94,7 +94,7 @@ Saving writes a complete temporary copy beside the destination and replaces the 
 
 ## Settings
 
-Open **Edit → Settings** or the Settings toolbar button. General selects System default or English; additional translation packs are not available yet. Appearance selects Dark, Light or System. Editor controls text size (8–24 pt) and alternate row backgrounds across existing and new documents.
+Open **Other Tools → Settings** or the Settings toolbar button. General selects System default or English; additional translation packs are not available yet. Appearance selects Dark, Light or System. Hex Viewer settings control text size (8–24 pt) and alternate row backgrounds across existing and new documents.
 
 **Apply** saves and applies preferences while keeping Settings open. **OK** applies and closes. **Cancel** discards changes made since the last Apply. **Restore Defaults** resets the controls; use Apply or OK to save the defaults. Theme creation and import/export remain planned.
 
@@ -103,7 +103,7 @@ Open **Edit → Settings** or the Settings toolbar button. General selects Syste
 
 The module strip switches between Hex Viewer, 3D, UV / 2D, Scripting and Other Tools. Each module has its own docking container: panels can move, tab together or float within their owning module, and cannot dock into another module. Floating panels hide when you leave their module and return when you switch back. The active document remains the source for all modules.
 
-Hex Viewer contains Main Viewer, Inspector, Find / Coincidences, Structure / Formatting Rules, Statistics, Compare Data and Checksum. Find / Coincidences has a dedicated search panel. 3D contains 3D View, Mesh Collection and 3D Settings / Geometry Calculator, plus model export. UV / 2D contains 2D View and planned image tools. Scripting separates Scripting Window and Console, with Library Manager planned. Other Tools contains Calculator, Thread Activity and Settings.
+Hex Viewer contains Main Viewer, Inspector, Find / Coincidences, Structure / Formatting Rules, Statistics, Compare Data and Checksum. Find / Coincidences has a dedicated search panel. 3D contains 3D View, Mesh Collection and 3D Settings / Geometry Calculator, plus model export. UV / 2D contains 2D View, Texture / Image Collection and 2D Settings / Image Calculator. Scripting separates Scripting Window, Console and Library Manager. Other Tools contains Calculator, Thread Activity and Settings.
 
 Tools whose functions are not implemented remain disabled. File, Edit, Windows and Help retain common document operations. Panel layouts are stored separately for each module and shared when switching documents.
 
@@ -156,3 +156,45 @@ Open Files adds individual images or binaries to the UV / 2D collection. Encoded
 Memory layout / Unswizzle offers Linear, Morton Z-order (X bits in even positions, Y bits in odd positions) and Tiled 8x8 (row-major tiles with row-major pixels inside each tile). Morton requires square power-of-two dimensions; 8x8 tiling requires dimensions divisible by eight. Both require row stride 0 and operate on the existing raw pixel formats, including indexed pixels. They are generic layouts, not complete PS2/Xbox 360/PS4 texture presets. Encoded images use their own decoder and ignore the raw layout setting.
 
 TIFF, WebP, DDS/BCn and additional console formats are not provided by the current decoder set and remain separate additions.
+
+## Programmer Calculator
+
+Open **Other Tools > Calculator**. Select HEX, DEC, OCT or BIN and an 8-, 16-, 32- or 64-bit word. All four representations stay visible. Signed mode uses two's complement, including arithmetic right shifts and signed division/remainder; arithmetic wraps to the selected word size.
+
+The keypad provides integer arithmetic, remainder, AND/OR/XOR/NOT, variable shifts, one-bit shifts, rotations and sign change. Operations run left to right, without expression precedence or parentheses. Show / hide bits opens a clickable bit view. MS/MR/MC store, recall and clear memory; M+ and M− update it.
+
+While the calculator has focus, type digits (A–F in HEX), +, -, *, /, %, &, |, ^ or ~. Use < and > for shifts, Enter or = for the result, Esc to clear, Delete to clear the current entry, and Backspace to remove a digit. Ctrl+C copies the displayed value; Ctrl+V accepts an integer in the selected base or with a 0x, 0b or 0c prefix. Invalid digits are disabled. The calculator operates independently of the active document.
+
+## Per-mesh Position Delta
+
+In **3D > 3D Settings / Geometry Calculator**, the **Position Delta · placement** section sets Delta X, Y and Z for the piece being decoded. Coordinates are placed as `decoded XYZ × Scale + Delta`, in model units. Positive and negative values are supported. Add successive parts to the collection with their respective deltas to assemble a model whose binary vertices use local origins.
+
+In **Mesh Collection**, select a mesh and use **Active Mesh · Position Delta > Apply Position Delta** to adjust placement without rereading the binary. **Reset to Origin** clears the translation. Updating an existing mesh from 3D Settings applies the delta currently entered there. The test-sphere preset resets the delta to zero.
+
+Local vertices, UVs, normals and source offsets are preserved; the source binary is not changed. The 3D view and its picking/labels use the placed geometry. OBJ/GLB/STL exports bake each selected mesh's translation into its exported vertices before the export scale/axis conversion. Scripts continue to access the local mesh coordinates; publishing a replacement for the active mesh retains its placement. Placement currently lasts for the active workspace session.
+
+### Read Position Delta from the binary
+
+Set **Position Delta > Source** to **Read from binary**. Enter an absolute **XYZ offset** in decimal or `0x` hexadecimal, or click **Use Hex Viewer Cursor**. The decoder reads X there, Y at `offset + component spacing`, and Z at `offset + 2 × component spacing`. Use spacing 4 for consecutive Float32/Int32 values or 2 for Float16/Int16; larger spacing supports padding.
+
+Select the component type, delta byte order and delta scale independently of the vertex stream. The final position is `decoded vertex × vertex scale + decoded delta × delta scale`. The values are read from the current document, including unsaved changes, during Render. Invalid ranges and nonfinite values stop the operation without replacing the active mesh. The resolved delta appears in the result status and in Mesh Collection, where it remains adjustable. Manual mode remains available.
+
+## Coordinate formats and transforms
+
+**3D Settings** sections fold using their arrow headers. Vertices and Faces start expanded; Coordinate Transform, Position Delta, UV, Normals and Reading start collapsed. **Expand All / Collapse All** change visibility without changing parameters or enabling/disabling decoding.
+
+Vertex component types include Int8/16/32, UInt8/16/32, Float16/32, SNorm8/16, UNorm8/16 and signed Fixed16.16. SNorm maps signed integers to [-1,1], UNorm maps unsigned integers to [0,1], and Fixed16.16 divides a signed 32-bit value by 65536. Use vertex scale and axis scales for dequantization.
+
+**Coordinates** supports XYZ and homogeneous XYZW (Float16/Float32, dividing XYZ by W). XYZ can also read a four-component record while ignoring W by keeping XYZ and setting the full stride (for example, 16 bytes for Float32). XYZW rejects zero/nonfinite W. Set a sufficient stride for the selected layout.
+
+**Coordinate Transform** provides all six axis permutations, axis inversions, independent XYZ scales and Euler rotations in degrees. The fixed order is decode → homogeneous divide if selected → vertex scale → axis permutation → axis scale/inversion → rotate X, then Y, then Z → Position Delta. Delta is expressed in final model axes; it is not rotated or scaled by this transform. Zero axis scales are rejected.
+
+Supplied normals use the inverse-transpose transformation and are normalized. Calculated normals use the transformed geometry. Reflections automatically reverse triangle winding and matching source-index metadata. UVs remain unchanged. These transforms are applied when Render decodes the piece; exported meshes use the resulting geometry. This does not interpret arbitrary binary transform matrices, skeletons or skinning.
+
+## Standard panel layout and personal preferences
+
+New user profiles start with the product's captured standard arrangement for Hex Viewer, 3D, UV / 2D, Scripting and Other Tools. Dock positions, tabs, visibility and relative sizes are embedded in the executable, so the same initial arrangement ships with development builds and Release packages. Initial window geometry is adjusted to the available screen; monitor-specific detached-window positions are not distributed.
+
+Your own saved module layouts take priority. Closing the workspace saves your panel arrangement, window geometry and detached module windows in your user profile. Updating or extracting a newer Release does not overwrite those preferences. New document tabs share the current module layout.
+
+Use **Windows > Reset Panel Layout** to restore the standard panel arrangement and toolbar visibility. Detached modules return to the main window. This does not reset documents, decoding parameters or other preferences. Subsequent changes are saved normally. Missing or invalid module layouts fall back to the shipped arrangement.

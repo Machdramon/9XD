@@ -1,4 +1,5 @@
 #include "script_panel.h"
+#include "script_library_manager.h"
 #include "hex_view.h"
 #include "vulkan_panel.h"
 #include "local_config.h"
@@ -49,6 +50,7 @@ void run() {
 )CPP";
 }
 ScriptPanel::ScriptPanel(HexView *view,VulkanPanel *renderer,QWidget *parent):QWidget(parent),view_(view),renderer_(renderer){
+    libraries_=new ScriptLibraryManager(this);libraries_->hide();
     setObjectName("scriptPanel");docs_[0].text=pythonExample;docs_[1].text=cppExample;auto *layout=new QVBoxLayout(this);auto *bar=new QHBoxLayout;layout->addLayout(bar);language_=new QComboBox;language_->setObjectName("scriptLanguage");language_->addItems({"Python · embedded CPython","C++ · compile and run"});bar->addWidget(language_);
     auto *open=new QPushButton("Open…");auto *saveButton=new QPushButton("Save…");run_=new QPushButton("Run");run_->setObjectName("scriptRun");stop_=new QPushButton("Stop");stop_->setObjectName("scriptStop");stop_->setEnabled(false);auto *clear=new QPushButton("Clear Console");for(auto *b:{open,saveButton,run_,stop_,clear})bar->addWidget(b);
     auto *split=new QSplitter(Qt::Vertical);editor_=new QPlainTextEdit;editor_->setObjectName("scriptEditor");editor_->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));editor_->setTabStopDistance(editor_->fontMetrics().horizontalAdvance(' ')*4);editor_->setPlainText(docs_[0].text);console_=new QPlainTextEdit;console_->setObjectName("scriptConsole");console_->setReadOnly(true);console_->setFont(editor_->font());console_->setMaximumBlockCount(4000);split->addWidget(editor_);split->addWidget(console_);split->setStretchFactor(0,3);split->setStretchFactor(1,1);layout->addWidget(split,1);
@@ -64,11 +66,14 @@ ScriptPanel::~ScriptPanel(){disconnect(&process_,nullptr,this,nullptr);process_.
 void ScriptPanel::log(const QString &text){console_->appendPlainText(text);if(console_->document()->characterCount()>200000){auto cursor=console_->textCursor();cursor.movePosition(QTextCursor::Start);cursor.setPosition(console_->document()->characterCount()-150000,QTextCursor::KeepAnchor);cursor.removeSelectedText();}}
 void ScriptPanel::output(){auto bytes=process_.readAllStandardOutput();outputBytes_+=bytes.size();if(outputBytes_>2*1024*1024){if(!stopped_)log("Execution stopped: output exceeds 2 MiB.");stopped_=true;process_.kill();return;}if(!bytes.isEmpty()){auto cursor=console_->textCursor();cursor.movePosition(QTextCursor::End);cursor.insertText(outputDecoder_(bytes));console_->setTextCursor(cursor);if(console_->document()->characterCount()>200000){cursor.movePosition(QTextCursor::Start);cursor.setPosition(console_->document()->characterCount()-150000,QTextCursor::KeepAnchor);cursor.removeSelectedText();}}}
 bool ScriptPanel::save(int language){auto &doc=docs_[language];auto path=QFileDialog::getSaveFileName(this,"Save Script",doc.path.isEmpty()?(language==0?"script.py":"script.cpp"):doc.path,language==0?"Python (*.py)":"C++ (*.cpp)");if(path.isEmpty())return false;if(!writeFile(path,doc.text.toUtf8())){log("Could not save the script.");return false;}doc.path=path;doc.dirty=false;return true;}
-bool ScriptPanel::confirmClose(){for(int i=0;i<2;++i)if(docs_[i].dirty){auto choice=QMessageBox::question(this,"Unsaved Script",QString("Save the %1 script before closing?").arg(i==0?"Python":"C++"),QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel);if(choice==QMessageBox::Cancel)return false;if(choice==QMessageBox::Save&&!save(i))return false;if(choice==QMessageBox::Discard)docs_[i].dirty=false;}return true;}
+QWidget *ScriptPanel::libraryManager()const{return libraries_;}
+void ScriptPanel::refreshLibraries(){libraries_->refreshRuntime();}
+bool ScriptPanel::confirmClose(){if(!libraries_->confirmClose())return false;for(int i=0;i<2;++i)if(docs_[i].dirty){auto choice=QMessageBox::question(this,"Unsaved Script",QString("Save the %1 script before closing?").arg(i==0?"Python":"C++"),QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel);if(choice==QMessageBox::Cancel)return false;if(choice==QMessageBox::Save&&!save(i))return false;if(choice==QMessageBox::Discard)docs_[i].dirty=false;}return true;}
 void ScriptPanel::execute(){
     if(process_.state()!=QProcess::NotRunning)return;if(view_->saving()||view_->directEditing()){log("Wait for editing or saving to finish.");return;}auto code=editor_->toPlainText().toUtf8();if(code.size()>1048576||code.contains('\0')){log("Invalid script or larger than 1 MiB.");return;}
     directory_=std::make_unique<QTemporaryDir>();if(!directory_->isValid()){log("Could not create the temporary workspace.");return;}auto source=view_->meshSource();auto selection=view_->selection();runMesh_=renderer_->meshSnapshot();runMeshId_=renderer_->scene()->active();QJsonArray patches;for(const auto &p:view_->pendingPatches())patches.append(QJsonObject{{"offset",QString::number(p.offset)},{"bytes",QString::fromLatin1(p.bytes.toBase64())}});
     QJsonObject context{{"path",source.path},{"size",QString::number(qMax(qint64(0),source.expectedSize))},{"modified",source.expectedModified.toString(Qt::ISODateWithMs)},{"patches",patches},{"selection",QJsonObject{{"start",QString::number(qMin(selection.anchor,selection.cursor))},{"end",QString::number(qMax(selection.anchor,selection.cursor))},{"rectangular",selection.rectangular},{"stride",selection.stride}}},{"mesh",scriptMeshJson(runMesh_)}};
+    QJsonArray libraryPaths;for(const auto &path:scriptLibraryPaths("python"))if(QFileInfo(path).isDir())libraryPaths.append(QFileInfo(path).absoluteFilePath());context["libraryPaths"]=libraryPaths;
     if(source.memory){QJsonArray blocks;for(const auto &block:source.memory->blocks)blocks.append(QString::fromLatin1(block.toBase64()));context["memoryBlocks"]=blocks;}
     auto json=QJsonDocument(context).toJson(QJsonDocument::Compact);if(json.size()>64*1024*1024||!writeFile(directory_->filePath("context.json"),json)||!writeFile(directory_->filePath(current_==0?"script.py":"script.cpp"),code)){log("Could not prepare the context (maximum 64 MiB).");return;}
     runRevision_=revision_;outputDecoder_.resetState();stopped_=false;outputBytes_=0;run_->setEnabled(false);stop_->setEnabled(true);language_->setEnabled(false);process_.setWorkingDirectory(directory_->path());process_.setStandardInputFile(QProcess::nullDevice());log(current_==0?"\n▶ Python":"\n▶ Compiling C++…");compiling_=current_==1;
@@ -83,6 +88,7 @@ void ScriptPanel::execute(){
 #else
     args={"-std=c++23","-shared","-fPIC","script.cpp","entry.cpp","-o","script.so"};
 #endif
+    for(const auto &path:scriptLibraryPaths("cpp"))if(QFileInfo(path).isDir())args.append((QString(WORKBENCH_CXX_ID)=="MSVC"?QString("/I"):QString("-I"))+QFileInfo(path).absoluteFilePath());
     process_.start(WORKBENCH_CXX_COMPILER,args);
 }
 void ScriptPanel::launchRunner(){QString script=current_==0?"script.py":

@@ -2,6 +2,7 @@
 #define WORKBENCH_NO_MAIN
 #include "../src/main.cpp"
 #include <QtTest>
+#include "../src/script_library_manager.h"
 #include <QTemporaryDir>
 #include <QTreeWidget>
 #include <QTableWidget>
@@ -23,6 +24,66 @@ class WindowTests : public QObject {
         });
     }
 private slots:
+    void standardWorkspaceLayoutAndPersonalPersistence(){
+        QTemporaryDir directory;auto previous=qApp->property("workspaceSettingsFile");qApp->setProperty("workspaceSettingsFile",directory.filePath("workspace.ini"));auto restore=qScopeGuard([previous]{qApp->setProperty("workspaceSettingsFile",previous);});auto statePath=directory.filePath("layout.json");Qt::DockWidgetArea standardArea,personalArea;QByteArray personalState;
+        {auto settings=workspaceSettings();for(auto id:{"hex","3d","uv","scripting","tools"}){QVERIFY(!standardModuleLayout(id).isEmpty());QCOMPARE(workspaceModuleLayout(settings,id),standardModuleLayout(id));}QVERIFY(settings.allKeys().isEmpty());}
+        {
+            WorkspaceWindow window(statePath);window.show();window.selectModule("3d");auto *host=window.moduleHost("3d");auto *dock=window.activeDocument()->sessionDock("meshCollectionDock");standardArea=host->dockWidgetArea(dock);QVERIFY(standardArea!=Qt::NoDockWidgetArea);personalArea=standardArea==Qt::LeftDockWidgetArea?Qt::RightDockWidgetArea:Qt::LeftDockWidgetArea;host->addDockWidget(personalArea,dock);dock->show();QCoreApplication::processEvents();personalState=host->saveState();window.close();QVERIFY(!window.isVisible());
+        }
+        {auto settings=workspaceSettings();QCOMPARE(settings.value("moduleLayouts/v1/3d").toByteArray(),personalState);QCOMPARE(workspaceModuleLayout(settings,"3d"),personalState);}
+        {
+            WorkspaceWindow window(statePath);window.show();window.selectModule("3d");auto *host=window.moduleHost("3d");auto *dock=window.activeDocument()->sessionDock("meshCollectionDock");QCOMPARE(host->dockWidgetArea(dock),personalArea);window.resetPanelLayout();QCOMPARE(host->dockWidgetArea(dock),standardArea);window.close();
+        }
+        // Corrupt personal state falls back to the shipped layout without deleting other settings.
+        {auto settings=workspaceSettings();settings.setValue("moduleLayouts/v1/3d",QByteArray("invalid"));settings.setValue("testPreference",42);}
+        {WorkspaceWindow window(statePath);window.show();QCOMPARE(window.moduleHost("3d")->dockWidgetArea(window.activeDocument()->sessionDock("meshCollectionDock")),standardArea);window.close();}
+        {auto settings=workspaceSettings();QCOMPARE(settings.value("testPreference").toInt(),42);}
+    }
+    void programmerCalculatorKeyboardAndWords(){
+        ProgrammerCalculator calculator;calculator.show();auto *display=calculator.findChild<QLineEdit *>("calculatorDisplay");auto *base=calculator.findChild<QComboBox *>("calculatorBase");auto *word=calculator.findChild<QComboBox *>("calculatorWord");auto *sign=calculator.findChild<QCheckBox *>("calculatorSigned");
+        QTest::keyClicks(display,"12+30");QTest::keyClick(display,Qt::Key_Return);QCOMPARE(display->text(),QString("42"));
+        QTest::keyClick(display,Qt::Key_Escape);base->setCurrentIndex(0);QTest::keyClicks(display,"FF&0F=");QCOMPARE(display->text(),QString("F"));
+        QTest::keyClick(display,Qt::Key_Escape);word->setCurrentIndex(3);QTest::keyClicks(display,"FF+1=");QCOMPARE(display->text(),QString("0"));
+        QTest::keyClick(display,Qt::Key_Escape);QTest::keyClicks(display,"FF");sign->setChecked(true);base->setCurrentIndex(1);QCOMPARE(display->text(),QString("-1"));
+        QTest::keyClicks(display,">1=");QCOMPARE(display->text(),QString("-1"));
+        QTest::keyClick(display,Qt::Key_Escape);QTest::keyClicks(display,"7/0=");QVERIFY(calculator.findChild<QLabel *>("calculatorExpression")->text().contains("zero"));
+        QTest::keyClick(display,Qt::Key_Escape);QApplication::clipboard()->setText("0x80");QTest::keyClick(display,Qt::Key_V,Qt::ControlModifier);QCOMPARE(display->text(),QString("-128"));QTest::keyClicks(display,"/1=");QCOMPARE(display->text(),QString("-128"));
+        QTest::keyClick(display,Qt::Key_Escape);base->setCurrentIndex(0);QTest::keyClicks(display,"81");calculator.findChild<QPushButton *>("calculatorKey_ROL")->click();QCOMPARE(display->text(),QString("3"));calculator.findChild<QPushButton *>("calculatorKey_ROR")->click();QCOMPARE(display->text(),QString("81"));
+        sign->setChecked(false);word->setCurrentIndex(0);QTest::keyClick(display,Qt::Key_Escape);QTest::keyClicks(display,"FFFFFFFFFFFFFFFF/1=");QCOMPARE(display->text(),QString("FFFFFFFFFFFFFFFF"));
+        base->setCurrentIndex(3);QVERIFY(!calculator.findChild<QPushButton *>("calculatorKey_A")->isEnabled());QTest::keyClick(display,Qt::Key_Escape);QTest::keyClicks(display,"101");QTest::keyClick(display,Qt::Key_Backspace);QCOMPARE(display->text(),QString("10"));QTest::keyClick(display,Qt::Key_C,Qt::ControlModifier);QCOMPARE(QApplication::clipboard()->text(),QString("10"));
+    }
+    void scriptingLibraryManagerAndImports(){
+        QTemporaryDir dir;auto old=qApp->property("scriptLibraryRoot");qApp->setProperty("scriptLibraryRoot",dir.filePath("own libraries"));auto restore=qScopeGuard([old]{qApp->setProperty("scriptLibraryRoot",old);});
+        WorkspaceWindow workspace;workspace.show();auto *document=workspace.activeDocument();auto *dock=document->sessionDock("scriptLibraryDock");QVERIFY(dock);QCOMPARE(dock->parentWidget(),workspace.moduleHost("scripting"));auto *manager=dynamic_cast<ScriptLibraryManager *>(dock->widget());QVERIFY(manager);
+        manager->findChild<QLineEdit *>("libraryName")->setText("custom_tools");manager->findChild<QPlainTextEdit *>("libraryCode")->setPlainText("def answer():\n    return 42\n");QVERIFY(manager->saveCurrent());QVERIFY(QFileInfo::exists(scriptLibraryFile("python","custom_tools.py")));
+        auto *moduleTree=manager->findChild<QTreeWidget *>("scriptLibraries");QCOMPARE(moduleTree->topLevelItem(0)->text(0),QString("Default Modules"));QCOMPARE(moduleTree->topLevelItem(1)->text(0),QString("My Modules"));
+        moduleTree->setCurrentItem(moduleTree->topLevelItem(0)->child(0));QVERIFY(manager->findChild<QPlainTextEdit *>("libraryCode")->isReadOnly());QVERIFY(manager->findChild<QTextBrowser *>("libraryDocumentation")->toPlainText().contains("Default Modules"));
+        QTimer::singleShot(0,qApp,[]{auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget());if(dialog){dialog->findChild<QLineEdit *>()->setText("dialog_module");dialog->findChild<QPlainTextEdit *>()->setPlainText("value = 9\n");dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();}});manager->findChild<QPushButton *>("libraryAdd")->click();QVERIFY(QFileInfo::exists(scriptLibraryFile("python","dialog_module.py")));
+        QString error;QVERIFY(!saveScriptLibrary("python","../escape.py","bad",error));QVERIFY(!saveScriptLibrary("python","custom_tools.py","overwrite",error));QVERIFY(!scriptLibraryName("workbench"));QVERIFY(!scriptLibraryName("CON"));
+        auto package=dir.filePath("demo_pkg");QVERIFY(QDir().mkpath(package));QFile init(QDir(package).filePath("__init__.py"));QVERIFY(init.open(QIODevice::WriteOnly));init.write("from .helper import value\n");init.close();QFile helper(QDir(package).filePath("helper.py"));QVERIFY(helper.open(QIODevice::WriteOnly));helper.write("value = 7\n");helper.close();QVERIFY2(importScriptLibraryFolder("python",package,error),qPrintable(error));
+        QVERIFY(saveScriptLibrary("cpp","custom_tools.hpp","#pragma once\ninline int own_value(){return 42;}\n",error));
+        auto *editor=document->sessionDock("scriptDock")->findChild<QPlainTextEdit *>("scriptEditor");auto *console=document->sessionDock("scriptConsoleDock")->findChild<QPlainTextEdit *>("scriptConsole");auto *run=document->sessionDock("scriptDock")->findChild<QPushButton *>("scriptRun");auto *language=document->sessionDock("scriptDock")->findChild<QComboBox *>("scriptLanguage");
+        QVERIFY(editor&&console&&run&&language);editor->setPlainText("import custom_tools, demo_pkg\nassert custom_tools.answer()==42 and demo_pkg.value==7\nprint('OWN_PY_OK')");run->click();QTRY_VERIFY_WITH_TIMEOUT(run->isEnabled(),15000);QVERIFY2(console->toPlainText().contains("OWN_PY_OK"),qPrintable(console->toPlainText()));
+        language->setCurrentIndex(1);editor->setPlainText("#include <iostream>\n#include \"custom_tools.hpp\"\nvoid run(){if(own_value()!=42)throw 1;std::cout<<\"OWN_CPP_OK\\n\";}");run->click();QTRY_VERIFY_WITH_TIMEOUT(run->isEnabled(),30000);QVERIFY2(console->toPlainText().contains("OWN_CPP_OK"),qPrintable(console->toPlainText()));
+        workspace.selectModule("scripting");dock->show();QTRY_VERIFY_WITH_TIMEOUT(manager->isVisible(),1000);QTRY_VERIFY2_WITH_TIMEOUT(manager->findChild<QTreeWidget *>("scriptLibraries")->topLevelItem(0)->child(1)->childCount()>0,qPrintable(manager->findChild<QLabel *>("libraryStatus")->text()),10000);QVERIFY(manager->findChild<QTreeWidget *>("scriptLibraries")->topLevelItemCount()==2);
+        auto *tree=manager->findChild<QTreeWidget *>("scriptLibraries");auto items=tree->findItems("custom_tools.py",Qt::MatchExactly|Qt::MatchRecursive,0);QCOMPARE(items.size(),1);tree->setCurrentItem(items.first());manager->findChild<QPushButton *>("libraryToggle")->click();QVERIFY(QFileInfo::exists(scriptLibraryFile("python","custom_tools.py.disabled")));QVERIFY(!QFileInfo::exists(scriptLibraryFile("python","custom_tools.py")));
+        items=tree->findItems("custom_tools.py.disabled",Qt::MatchExactly|Qt::MatchRecursive,0);QCOMPARE(items.size(),1);tree->setCurrentItem(items.first());manager->findChild<QPushButton *>("libraryToggle")->click();QVERIFY(QFileInfo::exists(scriptLibraryFile("python","custom_tools.py")));
+        QVERIFY(manager->newLibrary());manager->findChild<QPlainTextEdit *>("libraryCode")->setPlainText("# unsaved draft");answer(QMessageBox::Cancel);QVERIFY(!manager->confirmClose());answer(QMessageBox::Discard);QVERIFY(manager->newLibrary());
+
+    }
+    void imageRecipeFilesAndMeshTextures(){
+        QTemporaryDir dir;WorkspaceWindow workspace;workspace.show();auto *document=workspace.activeDocument();auto *tools=dynamic_cast<ImageWorkbench *>(document->sessionDock("uvDock")->findChild<QObject *>("imageWorkbench"));QVERIFY(tools);
+        ImageRecipe recipe;recipe.format="BC1";recipe.width=8;recipe.height=4;recipe.offset=16;recipe.flipX=true;tools->applyRecipe(recipe);auto path=dir.filePath("recipe.bwir");QVERIFY(tools->saveRecipe(path));tools->applyRecipe(ImageRecipe{});QVERIFY(tools->loadRecipe(path));auto *settings=document->sessionDock("imageCalculatorDock");QCOMPARE(settings->findChild<QComboBox *>("imageFormat")->currentText(),QString("BC1"));QCOMPARE(settings->findChild<QSpinBox *>("imageWidth")->value(),8);
+        auto *renderer=static_cast<VulkanPanel *>(document->sessionDock("vulkanDock")->widget());auto mesh=std::make_shared<MeshData>();mesh->vertices={{{0,0,0},{0,0,1},{0,0}},{{1,0,0},{0,0,1},{1,0}},{{0,1,0},{0,0,1},{0,1}}};mesh->triangles={0,1,2};int first=renderer->scene()->add(mesh,"Textured"),second=renderer->scene()->add(mesh,"Other");renderer->scene()->setActive(first);QImage texture(2,2,QImage::Format_RGBA8888);texture.fill(Qt::red);QVERIFY(tools->assignTexture(texture,"Red"));QCOMPARE(renderer->scene()->entry(first)->texture.pixelColor(0,0),QColor(Qt::red));QVERIFY(renderer->scene()->entry(second)->texture.isNull());QCOMPARE(document->sessionDock("uvDock")->findChild<QTabWidget *>("uvImageTabs")->currentIndex(),1);
+        renderer->scene()->setActive(second);QVERIFY(renderer->scene()->setTexture(second,texture,"Second"));QVERIFY(renderer->scene()->setTexture(first,{},{}));QVERIFY(renderer->scene()->entry(first)->texture.isNull());QVERIFY(!renderer->scene()->entry(second)->texture.isNull());
+        auto noUvs=std::make_shared<MeshData>(*mesh);noUvs->hasUvs=false;int third=renderer->scene()->add(noUvs);QVERIFY(!renderer->scene()->setTexture(third,texture,"Invalid"));workspace.close();QTRY_VERIFY(!workspace.isVisible());
+    }
+    void toolbarsMenuControlsWorkspaceBars(){
+        WorkspaceWindow workspace;workspace.show();auto *menu=workspace.findChild<QMenu *>("toolbarsMenu");QVERIFY(menu);QVERIFY(workspace.menuBar()->actions().contains(menu->menuAction()));
+        QMetaObject::invokeMethod(menu,"aboutToShow",Qt::DirectConnection);QCOMPARE(menu->actions().size(),1);auto *bar=workspace.findChild<QToolBar *>("mainToolbar");QVERIFY(bar);auto *toggle=menu->actions().first();QVERIFY(toggle->isChecked());toggle->trigger();QVERIFY(bar->isHidden());
+        workspace.newDocument();QVERIFY(bar->isHidden());QVERIFY(workspace.menuBar()->actions().contains(menu->menuAction()));toggle->trigger();QVERIFY(!bar->isHidden());
+        auto *extra=workspace.addToolBar("Extra tools");extra->setObjectName("extraToolbar");QTRY_VERIFY(extra->isVisible());QMetaObject::invokeMethod(menu,"aboutToShow",Qt::DirectConnection);QCOMPARE(menu->actions().size(),2);QVERIFY(menu->actions().contains(extra->toggleViewAction()));extra->toggleViewAction()->trigger();QVERIFY(extra->isHidden());workspace.close();QTRY_VERIFY(!workspace.isVisible());
+    }
     void advancedSearchAndCompareInspectors(){
         QTemporaryDir dir;auto path=dir.filePath("reference.bin");QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));file.write("ABXDE");file.close();
         WorkspaceWindow workspace;workspace.show();auto *document=workspace.activeDocument();auto *view=document->documentView();QString error;QVERIFY(view->replaceSelection("ABCD",error));
@@ -167,7 +228,7 @@ private slots:
     void moduleMenusAndDockIsolation(){
         WorkspaceWindow workspace;workspace.show();auto *doc=workspace.activeDocument();QVERIFY(doc);
         QStringList menus;for(auto *action:workspace.menuBar()->actions())menus<<QString(action->text()).remove('&');
-        QCOMPARE(menus,(QStringList{"File","Edit","Hex Viewer","3D","UV / 2D","Scripting","Other Tools","Windows","Help"}));
+        QCOMPARE(menus,(QStringList{"File","Edit","Hex Viewer","3D","UV / 2D","Scripting","Other Tools","Toolbars","Windows","Help"}));
         QCOMPARE(workspace.findChildren<QDockWidget *>(QString(),Qt::FindDirectChildrenOnly).size(),0);
         for(const auto &id:{"hex","3d","uv","scripting","tools"})QVERIFY(!workspace.moduleHost(id)->isWindow());
         for(auto *dock:doc->sessionDocks())QCOMPARE(dock->parentWidget(),workspace.moduleHost(dock->property("moduleId").toString()));
@@ -358,6 +419,8 @@ private slots:
         qInfo().noquote()<<status->text();
         auto capture=[&](QString name){qInfo().noquote()<<name;QTest::qWait(400);return status->text().startsWith("Vulkan ·");}; // Capture GPU frames with VK_LAYER_LUNARG_screenshot; QWidget grabs omit native Vulkan.
         QVERIFY(capture("sphere-initial"));
+        QImage checker(8,8,QImage::Format_RGBA8888);for(int y=0;y<8;++y)for(int x=0;x<8;++x)checker.setPixelColor(x,y,(x+y)%2?Qt::red:Qt::white);QVERIFY(panel.scene()->setTexture(panel.scene()->active(),checker,"Checker"));QVERIFY(capture("sphere-textured"));
+        QVERIFY(panel.scene()->setTexture(panel.scene()->active(),{},{}));
         mode->setCurrentIndex(1);labels->setChecked(true);
         QTest::mouseClick(surface,Qt::LeftButton,Qt::NoModifier,surface->rect().center());
         QVERIFY(panel.scene()->selection().index>=0);
@@ -443,6 +506,17 @@ private slots:
         auto missing=std::make_shared<MeshData>(*mesh);missing->hasUvs=false;renderer.scene()->replace(id,missing);QTest::mouseClick(canvas,Qt::LeftButton,Qt::NoModifier,pixel);QCOMPARE(renderer.scene()->selection().index,-1);QVERIFY(panel.findChild<QLabel *>("uvSelectionInfo")->text().contains("No UV coordinates"));
         auto source=readPage({WORKBENCH_SPHERE,0,-1,{},0});auto sphere=readMesh({WORKBENCH_SPHERE,0,source.size,source.modified,0},{},MeshSpec{});QVERIFY(sphere.error.isEmpty());renderer.scene()->replace(id,sphere.mesh);renderer.scene()->select(id,MeshElement::Face,42);canvas->fit();if(qEnvironmentVariableIsSet("WORKBENCH_UV_SPHERE_SCREENSHOT"))panel.grab().save(qEnvironmentVariable("WORKBENCH_UV_SPHERE_SCREENSHOT"));
     }
+    void meshTransformAndCollapsibleControls(){
+        MainWindow window;auto *panel=window.findChild<QWidget *>("meshControls");QVERIFY(panel);auto *header=panel->findChild<QToolButton *>("meshSection1");auto *body=panel->findChild<QWidget *>("meshSectionBody1");QVERIFY(header&&body);QVERIFY(body->isHidden());header->click();QVERIFY(!body->isHidden());auto *rotation=panel->findChild<QDoubleSpinBox *>("meshRotationZ");auto *scale=panel->findChild<QDoubleSpinBox *>("meshTransformScaleX");rotation->setValue(90);scale->setValue(2);header->click();header->click();QCOMPARE(rotation->value(),90.);QCOMPARE(scale->value(),2.);panel->findChild<QPushButton *>("meshResetTransform")->click();QCOMPARE(rotation->value(),0.);QCOMPARE(scale->value(),1.);auto *types=panel->findChild<QComboBox *>("meshPositionType");QVERIFY(types->findText("Fixed16.16")>=0);QVERIFY(types->findText("SNorm16")>=0);QCOMPARE(panel->findChild<QComboBox *>("meshCoordinateLayout")->count(),2);
+    }
+    void meshPositionDeltaPlacement(){
+        VulkanPanel renderer;auto mesh=std::make_shared<MeshData>();mesh->vertices={{{1,2,3},{0,0,1},{.2f,.4f}},{{2,2,3},{0,0,1},{1,0}},{{1,3,3},{0,0,1},{0,1}}};mesh->triangles={0,1,2};mesh->vertexOffsets={16,28,40};int first=renderer.scene()->add(mesh,"Part A"),second=renderer.scene()->add(mesh,"Part B");
+        std::unique_ptr<QWidget> collection(renderer.createMeshCollection());renderer.scene()->setActive(first);collection->findChild<QDoubleSpinBox *>("activeMeshDeltaX")->setValue(10);collection->findChild<QDoubleSpinBox *>("activeMeshDeltaY")->setValue(-5);collection->findChild<QDoubleSpinBox *>("activeMeshDeltaZ")->setValue(.5);collection->findChild<QPushButton *>("applyMeshDelta")->click();
+        auto all=renderer.scene()->assemble();QCOMPARE(all.data->vertices[0].position[0],11.f);QCOMPARE(all.data->vertices[0].position[1],-3.f);QCOMPARE(all.data->vertices[0].position[2],3.5f);QCOMPARE(all.data->vertices[3].position[0],1.f);QCOMPARE(mesh->vertices[0].position[0],1.f);QCOMPARE(renderer.meshSnapshot().get(),mesh.get());QCOMPARE(renderer.scene()->entry(first)->placedData()->vertexOffsets,mesh->vertexOffsets);QCOMPARE(all.data->vertices[0].uv[0],.2f);QCOMPARE(all.data->vertices[0].normal[2],1.f);
+        ExportDialog dialog(renderer.scene(),{},Qt::white);auto exported=dialog.selectedMeshes();QCOMPARE(exported[0].data->vertices[0].position[0],11.f);QCOMPARE(exported[1].data->vertices[0].position[0],1.f);
+        QVERIFY(!renderer.scene()->setPositionDelta(first,{std::numeric_limits<double>::infinity(),0,0}));QCOMPARE(renderer.scene()->entry(first)->positionDelta[0],10.);renderer.scene()->setVisible(first,false);QCOMPARE(renderer.scene()->assemble().data->vertices.size(),3);QCOMPARE(renderer.scene()->assemble(true).data->vertices[0].position[0],11.f);
+        renderer.scene()->setActive(second);QCOMPARE(collection->findChild<QDoubleSpinBox *>("activeMeshDeltaX")->value(),0.);renderer.scene()->setActive(first);QCOMPARE(collection->findChild<QDoubleSpinBox *>("activeMeshDeltaX")->value(),10.);QVERIFY(renderer.scene()->setPositionDelta(first,{}));QCOMPARE(renderer.scene()->entry(first)->placedData().get(),mesh.get());
+    }
     void meshCollectionAndUvSynchronization() {
         VulkanPanel renderer;renderer.resize(1000,650);renderer.show();UvPanel uvPanel(&renderer);uvPanel.resize(600,600);uvPanel.show();auto *canvas=uvPanel.findChild<UvCanvas *>("uvCanvas");QVERIFY(canvas);
         auto mesh=std::make_shared<MeshData>();for(auto xy:{QPointF(.1,.1),QPointF(.8,.1),QPointF(.2,.8)}){MeshVertex v{};v.position[0]=xy.x();v.position[1]=xy.y();v.uv[0]=xy.x();v.uv[1]=xy.y();mesh->vertices.append(v);}mesh->triangles={0,1,2};auto other=std::make_shared<MeshData>(*mesh);for(auto &v:other->vertices){v.position[0]+=2;v.uv[0]+=2;}
@@ -482,8 +556,9 @@ private slots:
     }
     void meshControlsDecodeFixture() {
         MainWindow window;window.show();window.openFile(WORKBENCH_SPHERE);auto *view=window.findChild<HexView *>();QTRY_VERIFY(!view->busy());
-        auto *dock=window.findChild<QDockWidget *>("meshControlsDock");QVERIFY(dock);dock->show();auto *button=window.findChild<QPushButton *>("renderMesh");QVERIFY(button);button->click();auto *status=window.findChild<QLabel *>("meshStatus");QTRY_VERIFY(status->text().contains("128 vertices"));QVERIFY(status->text().contains("252 triangles"));
-        auto *renderer=static_cast<VulkanPanel *>(window.findChild<QDockWidget *>("vulkanDock")->widget());QCOMPARE(renderer->scene()->entries().size(),1);auto firstData=renderer->meshSnapshot();button->click();QTRY_COMPARE(renderer->scene()->entries().size(),2);QCOMPARE(renderer->scene()->entries().first().data.get(),firstData.get());auto secondData=renderer->meshSnapshot();window.findChild<QComboBox *>("meshDestination")->setCurrentIndex(1);button->click();QTRY_VERIFY(button->isEnabled());QCOMPARE(renderer->scene()->entries().size(),2);QVERIFY(renderer->meshSnapshot()!=secondData);
+        auto *dock=window.findChild<QDockWidget *>("meshControlsDock");QVERIFY(dock);dock->show();auto *button=window.findChild<QPushButton *>("renderMesh");QVERIFY(button);window.findChild<QDoubleSpinBox *>("meshPositionDeltaX")->setValue(12.5);button->click();auto *status=window.findChild<QLabel *>("meshStatus");QTRY_VERIFY(status->text().contains("128 vertices"));QVERIFY(status->text().contains("252 triangles"));
+        auto *renderer=static_cast<VulkanPanel *>(window.findChild<QDockWidget *>("vulkanDock")->widget());QCOMPARE(renderer->scene()->entries().size(),1);auto firstData=renderer->meshSnapshot();QCOMPARE(renderer->scene()->entries().first().positionDelta[0],12.5);QCOMPARE(renderer->scene()->assemble().data->vertices[0].position[0],float(firstData->vertices[0].position[0]+12.5));button->click();QTRY_COMPARE(renderer->scene()->entries().size(),2);QCOMPARE(renderer->scene()->entries().first().data.get(),firstData.get());auto secondData=renderer->meshSnapshot();window.findChild<QComboBox *>("meshDestination")->setCurrentIndex(1);button->click();QTRY_VERIFY(button->isEnabled());QCOMPARE(renderer->scene()->entries().size(),2);QVERIFY(renderer->meshSnapshot()!=secondData);
+        auto *deltaSource=window.findChild<QComboBox *>("meshDeltaSource");deltaSource->setCurrentIndex(1);QVERIFY(!window.findChild<QDoubleSpinBox *>("meshPositionDeltaX")->isEnabled());auto *deltaOffset=window.findChild<QLineEdit *>("meshDeltaOffset");QVERIFY(deltaOffset->isEnabled());view->jumpTo(128);window.findChild<QPushButton *>("meshDeltaUseCursor")->click();QCOMPARE(deltaOffset->text(),QString("0x80"));deltaOffset->setText("0x10");window.findChild<QComboBox *>("meshDeltaType")->setCurrentText("Int32");QString patchError;view->selectMatch(16,12);QVERIFY(view->replaceSelection(QByteArray::fromHex("0a000000ecffffff1e000000"),patchError));button->click();QTRY_VERIFY(button->isEnabled());auto placed=renderer->scene()->entry(renderer->scene()->active());QCOMPARE(placed->positionDelta[0],10.);QCOMPARE(placed->positionDelta[1],-20.);QCOMPARE(placed->positionDelta[2],30.);view->discardEdits();
         if(qEnvironmentVariableIsSet("WORKBENCH_MESH_SCREENSHOT"))window.grab().save(qEnvironmentVariable("WORKBENCH_MESH_SCREENSHOT"));
         auto *offset=window.findChild<QLineEdit *>("meshVertexOffset");offset->setText("0xFFFF");button->click();QTRY_VERIFY(button->isEnabled());QVERIFY(status->text().contains("outside the file"));window.close();QTRY_VERIFY(!window.isVisible());
     }

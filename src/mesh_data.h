@@ -11,6 +11,15 @@ struct MeshSpec {
     QString positionType="Int32",indexType="UInt16",uvType="Float16",normalType="Float32";
     bool bigEndian=false,strip=true,uv=true,normals=true;
     double positionScale=.0001;
+    bool homogeneous=false;
+    std::array<int,3> axes{0,1,2};
+    std::array<bool,3> negate{};
+    std::array<double,3> axisScale{1,1,1},rotationDegrees{};
+    bool deltaFromBinary=false,deltaBigEndian=false;
+    qint64 deltaOffset=0,deltaStride=4;
+    QString deltaType="Float32";
+    double deltaScale=1;
+    std::array<double,3> positionDelta{};
 };
-struct MeshResult { std::shared_ptr<MeshData> mesh;QString error; };
+struct MeshResult { std::shared_ptr<MeshData> mesh;QString error;std::array<double,3> positionDelta{}; };
 MeshResult readMesh(const ReadRequest &,const PatchList &,const MeshSpec &);

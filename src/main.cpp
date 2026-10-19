@@ -1,3 +1,4 @@
+#include "programmer_calculator.h"
 #include "script_panel.h"
 #include "recent_files.h"
 #include "export_dialog.h"
@@ -157,8 +158,10 @@ public:
         auto *uvDock=new QDockWidget("UV View",this);uvDock->setObjectName("uvDock");auto *imageTools=new ImageWorkbench(view_,uvDock);auto *views=new QTabWidget;views->setObjectName("uvImageTabs");views->addTab(imageTools->preview,"Image Preview");views->addTab(new UvPanel(vulkanPanel,views),"UV Layout");uvDock->setWidget(views);addDockWidget(Qt::BottomDockWidgetArea,uvDock);uvDock->hide();viewMenu->addAction(uvDock->toggleViewAction());auto *uvAction=tools->addAction("UV View");connect(uvAction,&QAction::triggered,this,[uvDock]{uvDock->show();uvDock->raise();});
         auto *imageLibraryDock=new QDockWidget("Texture / Image Collection",this);imageLibraryDock->setObjectName("imageLibraryDock");imageLibraryDock->setWidget(imageTools->collection);addDockWidget(Qt::LeftDockWidgetArea,imageLibraryDock);imageLibraryDock->hide();viewMenu->addAction(imageLibraryDock->toggleViewAction());
         auto *imageCalculatorDock=new QDockWidget("2D Settings / Image Calculator",this);imageCalculatorDock->setObjectName("imageCalculatorDock");auto *imageScroll=new QScrollArea;imageScroll->setWidgetResizable(true);imageScroll->setWidget(imageTools->settings);imageCalculatorDock->setWidget(imageScroll);addDockWidget(Qt::RightDockWidgetArea,imageCalculatorDock);imageCalculatorDock->hide();viewMenu->addAction(imageCalculatorDock->toggleViewAction());
+        imageTools->assignTexture=[vulkanPanel,views,uvDock](const QImage &image,const QString &name){bool ok=vulkanPanel->scene()->setTexture(vulkanPanel->scene()->active(),image,name);if(ok&&!image.isNull()){views->setCurrentIndex(1);uvDock->show();uvDock->raise();}return ok;};
         imageTools->imageSelected=[views,uvDock](const QImage &){views->setCurrentIndex(0);uvDock->show();uvDock->raise();};
         auto *scriptDock=new QDockWidget("Scripting · Python / C++",this);scriptDock->setObjectName("scriptDock");scriptPanel_=new ScriptPanel(view_,vulkanPanel,scriptDock);scriptDock->setWidget(scriptPanel_);addDockWidget(Qt::BottomDockWidgetArea,scriptDock);scriptDock->hide();viewMenu->addAction(scriptDock->toggleViewAction());auto *scriptAction=tools->addAction("Scripting · Python / C++");connect(scriptAction,&QAction::triggered,this,[scriptDock]{scriptDock->show();scriptDock->raise();});
+        auto *librariesDock=new QDockWidget("Library Manager",this);librariesDock->setObjectName("scriptLibraryDock");librariesDock->setWidget(scriptPanel_->libraryManager());librariesDock->widget()->show();addDockWidget(Qt::RightDockWidgetArea,librariesDock);librariesDock->hide();connect(librariesDock,&QDockWidget::visibilityChanged,this,[this](bool visible){if(visible)scriptPanel_->refreshLibraries();});
         auto *about=menuBar()->addMenu("About");
         auto *docs=about->addAction("Documentation");connect(docs,&QAction::triggered,this,[this]{showDocs();});
         auto *disclaimer=about->addAction("About Binary Workbench…");disclaimer->setMenuRole(QAction::NoRole);
@@ -415,14 +418,9 @@ private:
         QSettings settings("BinaryWorkbench","Workspace");SettingsDialog dialog(settings,[this]{view_->applyDisplayPreferences();},this);dialog.exec();
     }
     void showCalculator(){
-        auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Offset Calculator · UInt64");
-        auto *layout=new QVBoxLayout(dialog);auto *form=new QFormLayout;
-        auto *a=new QLineEdit;auto *b=new QLineEdit;auto *op=new QComboBox;op->addItems({"+","−","×","÷","%","AND","OR","XOR"});
-        a->setPlaceholderText("Decimal or 0x…");b->setPlaceholderText("Decimal or 0x…");form->addRow("First value",a);form->addRow("Operation",op);form->addRow("Second value",b);layout->addLayout(form);
-        auto *run=new QPushButton("Calculate");auto *result=new QPlainTextEdit;result->setReadOnly(true);layout->addWidget(run);layout->addWidget(result);
-        auto calculate=[a,b,op,result]{result->setPlainText(calculateInteger(a->text(),op->currentText(),b->text()));};
-        connect(run,&QPushButton::clicked,dialog,calculate);connect(a,&QLineEdit::returnPressed,dialog,calculate);connect(b,&QLineEdit::returnPressed,dialog,calculate);
-        dialog->resize(430,320);dialog->show();
+        auto *dialog=[this]()->ProgrammerCalculator *{for(auto *child:children())if(auto *calculator=dynamic_cast<ProgrammerCalculator *>(child))return calculator;return nullptr;}();
+        if(!dialog){dialog=new ProgrammerCalculator(this);dialog->setAttribute(Qt::WA_DeleteOnClose);}
+        dialog->show();dialog->raise();dialog->activateWindow();
     }
     void showDocs(){
         auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Documentation · Binary Workbench");

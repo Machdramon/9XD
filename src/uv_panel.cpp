@@ -31,6 +31,7 @@ void UvCanvas::paintEvent(QPaintEvent *){
     QPainter p(this);p.fillRect(rect(),renderer_->visualStyle().background);p.setRenderHint(QPainter::Antialiasing);p.setClipRect(rect());auto style=renderer_->visualStyle();auto selection=scene_->selection();
     // The 0..1 tile remains a reference; UVs outside it are not wrapped or discarded.
     for(int y=0;y<8;++y)for(int x=0;x<8;++x){QRectF cell(uvToScreen({x/8.,(y+1)/8.}),uvToScreen({(x+1)/8.,y/8.}));if(cell.intersects(rect()))p.fillRect(cell.intersected(QRectF(rect())),(x+y)%2?style.background.lighter(workbenchDark()?140:105):style.background.darker(workbenchDark()?100:108));}
+    if(auto *active=scene_->entry(scene_->active());active&&!active->texture.isNull()&&active->data->hasUvs){auto target=QRectF(uvToScreen({0,1}),uvToScreen({1,0}));if(drawable(QPolygonF(target)))p.drawImage(target,active->texture);}
     p.setPen(QPen(style.grid,1));p.setBrush(Qt::NoBrush);QRectF tile(uvToScreen({0,1}),uvToScreen({1,0}));if(tile.width()<1e7)p.drawRect(tile);p.drawText(10,20,"UV · U → · V ↑");
     QVector<QRectF> occupied;bool any=false;
     for(const auto &e:scene_->entries())if(e.visible&&e.data->hasUvs&&(!activeOnly||e.id==scene_->active())){

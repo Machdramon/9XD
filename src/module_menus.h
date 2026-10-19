@@ -22,7 +22,7 @@ inline void configureModuleMenus(MainWindow *document,const std::function<void(c
         const auto name=dock->objectName();QString module="hex";
         if(name=="vulkanDock"||name=="meshControlsDock"||name=="meshCollectionDock")module="3d";
         else if(name=="uvDock"||name=="imageLibraryDock"||name=="imageCalculatorDock")module="uv";
-        else if(name=="scriptDock"||name=="scriptConsoleDock")module="scripting";
+        else if(name=="scriptDock"||name=="scriptConsoleDock"||name=="scriptLibraryDock")module="scripting";
         else if(name=="threadActivityDock")module="tools";
         dock->setProperty("moduleId",module);dock->setAllowedAreas(Qt::AllDockWidgetAreas);
     }
@@ -55,7 +55,7 @@ inline void configureModuleMenus(MainWindow *document,const std::function<void(c
     dockAction(three,"3D View","vulkanDock");dockAction(three,"Mesh Collection","meshCollectionDock");dockAction(three,"3D Settings / Geometry Calculator","meshControlsDock");
     three->addSeparator();if(auto *exportAction=document->findChild<QAction *>("exportModelAction"))three->addAction(exportAction);
     auto *uv=new QMenu("UV / 2D",document);uv->setObjectName("moduleUvMenu");dockAction(uv,"2D View","uvDock");dockAction(uv,"Texture / Image Collection","imageLibraryDock");dockAction(uv,"2D Settings / Image Calculator","imageCalculatorDock");
-    auto *scripting=new QMenu("Scripting",document);scripting->setObjectName("moduleScriptingMenu");dockAction(scripting,"Scripting Window","scriptDock");dockAction(scripting,"Console","scriptConsoleDock");pending(scripting,"Library Manager");
+    auto *scripting=new QMenu("Scripting",document);scripting->setObjectName("moduleScriptingMenu");dockAction(scripting,"Scripting Window","scriptDock");dockAction(scripting,"Console","scriptConsoleDock");dockAction(scripting,"Library Manager","scriptLibraryDock");
     auto *other=new QMenu("Other Tools",document);other->setObjectName("moduleToolsMenu");
     if(auto *calculator=findAction("Calculator…"))other->addAction(calculator);
     dockAction(other,"Thread Activity","threadActivityDock");

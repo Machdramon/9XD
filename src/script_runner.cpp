@@ -20,14 +20,7 @@ PyObject *pyPublish(PyObject *,PyObject *args){const char *text;Py_ssize_t lengt
 PyMethodDef methods[]={{"read",pyRead,METH_VARARGS,"read(offset, count): bytes, up to 1 MiB; includes pending edits."},{"_publish",pyPublish,METH_VARARGS,nullptr},{nullptr,nullptr,0,nullptr}};
 PyModuleDef module={PyModuleDef_HEAD_INIT,"workbench",nullptr,-1,methods};
 PyObject *initModule(){return PyModule_Create(&module);}
-int publishCpp(const BWVertex *vertices,uint64_t count,const uint32_t *indices,uint64_t n){if(count>100000||n>600000||(count&&!vertices)||(n&&!indices)){lastError="Mesh too large or invalid pointers.";return 0;}auto m=std::make_shared<MeshData>();m->vertices.resize(count);m->triangles.resize(n);if(count)std::memcpy(m->vertices.data(),vertices,size_t(count)*sizeof(BWVertex));if(n)std::memcpy(m->triangles.data(),indices,size_t(n)*4);QString error;auto validated=scriptMeshFromJson(scriptMeshJson(m),error);if(!validated){lastError=error.toUtf8();return 0;}published=validated;return 1;}
-}
-int main(int argc,char **argv){
-    QCoreApplication app(argc,argv);std::cout.setf(std::ios::unitbuf);std::cerr.setf(std::ios::unitbuf);auto args=app.arguments();if(args.size()!=5){std::cerr<<"Usage: runner python|cpp context script result\n";return 2;}
-    try{
-        QFile input(args[2]);if(!input.open(QIODevice::ReadOnly)||input.size()>64*1024*1024)throw std::runtime_error("Context unavailable or too large.");auto doc=QJsonDocument::fromJson(input.readAll());if(!doc.isObject())throw std::runtime_error("Invalid context.");context=doc.object();source={context["path"].toString(),0,context["size"].toString().toLongLong(),QDateTime::fromString(context["modified"].toString(),Qt::ISODateWithMs),0};if(context.contains("memoryBlocks")){auto memory=std::make_shared<MemoryData>();for(auto value:context["memoryBlocks"].toArray()){auto bytes=QByteArray::fromBase64(value.toString().toLatin1());memory->size+=bytes.size();memory->blocks.append(bytes);}if(memory->size!=source.expectedSize)throw std::runtime_error("Invalid RAM snapshot size.");source.memory=memory;}for(auto v:context["patches"].toArray()){auto p=v.toObject();patches.append({p["offset"].toString().toLongLong(),QByteArray::fromBase64(p["bytes"].toString().toLatin1())});}QString error;initial=scriptMeshFromJson(context["mesh"].toObject(),error);if(!initial)throw std::runtime_error(error.toStdString());
-        if(args[1]=="python"){
-            if(PyImport_AppendInittab("workbench",initModule)<0)throw std::runtime_error("Could not register workbench.");
+void initializePython(){
             const auto pythonHome=QDir(QCoreApplication::applicationDirPath()).filePath("python");
             const bool bundled=QFileInfo::exists(QDir(pythonHome).filePath("python.exe"));
             PyConfig config;if(bundled)PyConfig_InitIsolatedConfig(&config);else PyConfig_InitPythonConfig(&config);
@@ -43,6 +36,19 @@ int main(int argc,char **argv){
             }
             if(PyStatus_Exception(set)){PyConfig_Clear(&config);throw std::runtime_error("Invalid Python path.");}
             auto status=Py_InitializeFromConfig(&config);PyConfig_Clear(&config);if(PyStatus_Exception(status))throw std::runtime_error(status.err_msg?status.err_msg:"Could not initialize Python.");
+
+}
+int publishCpp(const BWVertex *vertices,uint64_t count,const uint32_t *indices,uint64_t n){if(count>100000||n>600000||(count&&!vertices)||(n&&!indices)){lastError="Mesh too large or invalid pointers.";return 0;}auto m=std::make_shared<MeshData>();m->vertices.resize(count);m->triangles.resize(n);if(count)std::memcpy(m->vertices.data(),vertices,size_t(count)*sizeof(BWVertex));if(n)std::memcpy(m->triangles.data(),indices,size_t(n)*4);QString error;auto validated=scriptMeshFromJson(scriptMeshJson(m),error);if(!validated){lastError=error.toUtf8();return 0;}published=validated;return 1;}
+}
+int main(int argc,char **argv){
+    QCoreApplication app(argc,argv);std::cout.setf(std::ios::unitbuf);std::cerr.setf(std::ios::unitbuf);auto args=app.arguments();if(args.size()==2&&args[1]=="--library-inventory"){
+        try{initializePython();int result=PyRun_SimpleString("import sys,json,importlib.metadata,importlib.util\nprint(json.dumps({'version':sys.version.split()[0],'stdlib':sorted(n for n in sys.stdlib_module_names if importlib.util.find_spec(n) is not None),'packages':[{'name':d.metadata.get('Name','Unknown'),'version':d.version} for d in importlib.metadata.distributions()]}))");if(Py_FinalizeEx()<0)result=1;return result?1:0;}catch(const std::exception &e){std::cerr<<e.what();return 1;}
+    }if(args.size()!=5){std::cerr<<"Usage: runner python|cpp context script result\n";return 2;}
+    try{
+        QFile input(args[2]);if(!input.open(QIODevice::ReadOnly)||input.size()>64*1024*1024)throw std::runtime_error("Context unavailable or too large.");auto doc=QJsonDocument::fromJson(input.readAll());if(!doc.isObject())throw std::runtime_error("Invalid context.");context=doc.object();source={context["path"].toString(),0,context["size"].toString().toLongLong(),QDateTime::fromString(context["modified"].toString(),Qt::ISODateWithMs),0};if(context.contains("memoryBlocks")){auto memory=std::make_shared<MemoryData>();for(auto value:context["memoryBlocks"].toArray()){auto bytes=QByteArray::fromBase64(value.toString().toLatin1());memory->size+=bytes.size();memory->blocks.append(bytes);}if(memory->size!=source.expectedSize)throw std::runtime_error("Invalid RAM snapshot size.");source.memory=memory;}for(auto v:context["patches"].toArray()){auto p=v.toObject();patches.append({p["offset"].toString().toLongLong(),QByteArray::fromBase64(p["bytes"].toString().toLatin1())});}QString error;initial=scriptMeshFromJson(context["mesh"].toObject(),error);if(!initial)throw std::runtime_error(error.toStdString());
+        if(args[1]=="python"){
+            if(PyImport_AppendInittab("workbench",initModule)<0)throw std::runtime_error("Could not register workbench.");
+            initializePython();
             auto *main=PyImport_AddModule("__main__");auto *globals=PyModule_GetDict(main);auto json=QJsonDocument(context).toJson(QJsonDocument::Compact);auto *value=PyUnicode_DecodeUTF8(json.constData(),json.size(),"strict");if(!value)throw std::runtime_error("Invalid Python context.");PyDict_SetItemString(globals,"_context_json",value);Py_DECREF(value);
             const char *bootstrap=R"PY(
 import json, copy, workbench
@@ -56,6 +62,10 @@ workbench.mesh = lambda: copy.deepcopy(_context['mesh'])
 def _set_mesh(vertices, indices, normals=None, uvs=None):
     workbench._publish(json.dumps(dict(vertices=vertices, indices=indices, normals=normals, uvs=uvs), allow_nan=False))
 workbench.set_mesh = _set_mesh
+import sys
+for _library_path in _context.get('libraryPaths', []):
+    if isinstance(_library_path, str) and _library_path not in sys.path:
+        sys.path.append(_library_path)
 )PY";
             if(PyRun_SimpleString(bootstrap)!=0){Py_FinalizeEx();return 1;}QFile script(args[3]);if(!script.open(QIODevice::ReadOnly))throw std::runtime_error("Script unavailable.");auto code=script.readAll();auto *compiled=Py_CompileString(code.constData(),args[3].toUtf8().constData(),Py_file_input);auto *result=compiled?PyEval_EvalCode(compiled,globals,globals):nullptr;bool success=result!=nullptr;if(!success)PyErr_Print();Py_XDECREF(result);Py_XDECREF(compiled);if(Py_FinalizeEx()<0)success=false;if(!success)return 1;
         }else if(args[1]=="cpp"){

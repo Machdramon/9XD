@@ -7,12 +7,16 @@ struct ImageRecipe {
     QString format="RGBA8",layout="Linear",paletteFormat="RGBA8",byteSwap="None",container="Auto";
     bool bigEndian=false,flipX=false,flipY=false,lowNibbleFirst=false,ps2Clut=false,ps2Alpha=false;
 };
-inline QStringList imageFormats(){return {"RGBA8","BGRA8","ARGB8","ABGR8","RGB8","BGR8","Gray8","Gray4","IA8","IA4","RGB565","RGB555","RGBA5551","ARGB1555","RGBA4444","PS1 BGR555","PS2 RGBA8","PS2 RGBA16","PS2 Indexed8H","PS2 Indexed4HL","PS2 Indexed4HH","RGBX8","Indexed8","Indexed4","BC1","BC2","BC3","BC4","BC4 SNORM","BC5","BC5 SNORM","BC6H","BC6H signed","BC7","NES CHR2","SNES 2bpp","SNES 4bpp","SNES 8bpp","SNES Mode7","GC I4","GC I8","GC IA4","GC IA8","GC RGB565","GC RGB5A3","GC RGBA8","GC CI4","GC CI8","GC CI14X2","GC CMPR","Encoded image"};}
+inline QStringList imageFormats(){return {"RG8","R16 UNORM","RG16 UNORM","RGBA16 UNORM","R16 FLOAT","RG16 FLOAT","RGBA16 FLOAT","R32 FLOAT","RGBA32 FLOAT","RGBA8","BGRA8","ARGB8","ABGR8","RGB8","BGR8","Gray8","Gray4","IA8","IA4","RGB565","RGB555","RGBA5551","ARGB1555","RGBA4444","PS1 BGR555","PS2 RGBA8","PS2 RGBA16","PS2 Indexed8H","PS2 Indexed4HL","PS2 Indexed4HH","RGBX8","Indexed8","Indexed4","BC1","BC2","BC3","BC4","BC4 SNORM","BC5","BC5 SNORM","BC6H","BC6H signed","BC7","NES CHR2","SNES 2bpp","SNES 4bpp","SNES 8bpp","SNES Mode7","GC I4","GC I8","GC IA4","GC IA8","GC RGB565","GC RGB5A3","GC RGBA8","GC CI4","GC CI8","GC CI14X2","GC CMPR","Encoded image"};}
 inline QStringList imagePaletteFormats(){return {"RGBA8","BGRA8","RGB8","BGR8","RGB565","RGB555","PS1 BGR555","PS2 RGBA8","PS2 RGBA16","RGBX8","GC RGB5A3","GC IA8"};}
 inline bool imageBlockCompressed(const QString &f){return f.startsWith("BC");}
 inline bool imagePlanar(const QString &f){return f=="NES CHR2"||f.startsWith("SNES");}
 inline bool imageIndexed(const QString &f){return f.startsWith("Indexed")||f.startsWith("GC CI")||f.startsWith("PS2 Indexed")||imagePlanar(f);}
 inline int imagePixelBits(const QString &f){
+    if(f=="RGBA32 FLOAT")return 128;
+    if(f=="RGBA16 UNORM"||f=="RGBA16 FLOAT")return 64;
+    if(f=="RG16 UNORM"||f=="RG16 FLOAT"||f=="R32 FLOAT")return 32;
+    if(f=="RG8"||f=="R16 UNORM"||f=="R16 FLOAT")return 16;
     if(f=="NES CHR2"||f=="SNES 2bpp")return 2;
     if(f=="Indexed4"||f=="Gray4"||f=="SNES 4bpp"||f=="GC I4"||f=="GC CI4"||f=="BC1"||f=="BC4"||f=="BC4 SNORM"||f=="GC CMPR")return 4;
     if(imageBlockCompressed(f)||f=="Gray8"||f=="IA4"||f=="Indexed8"||f=="SNES 8bpp"||f=="SNES Mode7"||f=="GC I8"||f=="GC IA4"||f=="GC CI8")return 8;
