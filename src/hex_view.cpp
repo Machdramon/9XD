@@ -1,3 +1,4 @@
+#include "theme.h"
 #include "hex_view.h"
 #include <QTableWidget>
 #include <QHeaderView>
@@ -545,7 +546,7 @@ StyledBytes HexView::formatAt(qint64 offset,qint64 length) const {
     }
     bool changed=memory_&&dirty();
     if(!memory_)for(const auto &patch:edits_.patches())if(offset<patch.offset+patch.bytes.size()&&offset+length>patch.offset){changed=true;break;}
-    if(changed&&result.rule<0){result.style.foreground=palette().color(QPalette::Base).lightness()<128?QColor("#F5C87A"):QColor("#9B4F08");result.style.bold=true;}
+    if(changed&&result.rule<0){result.style.foreground=themeColor("hex.modified",palette().color(QPalette::Base).lightness()<128?QColor("#F5C87A"):QColor("#9B4F08"));result.style.bold=true;}
     return result;
 }
 

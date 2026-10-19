@@ -1,5 +1,6 @@
 #pragma once
 #include <QDialog>
+#include "theme.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
@@ -50,6 +51,7 @@ public:
         layout->addLayout(grid);auto *bitsButton=new QPushButton("Show / hide bits");layout->addWidget(bitsButton);bits_=new QWidget;auto *bitGrid=new QGridLayout(bits_);bitGrid->setSpacing(2);for(int bit=63;bit>=0;--bit){auto *button=new QPushButton("0");button->setCheckable(true);button->setMinimumWidth(0);button->setToolTip("Bit "+QString::number(bit));bitButtons_[bit]=button;bitGrid->addWidget(button,(63-bit)/16,(63-bit)%16);connect(button,&QPushButton::clicked,this,[this,bit]{value_^=quint64(1)<<bit;fresh_=true;update();});}layout->addWidget(bits_);bits_->hide();connect(bitsButton,&QPushButton::clicked,this,[this]{bits_->setVisible(bits_->isHidden());});
         auto *hint=new QLabel("Enter = result · Esc = clear · Backspace = delete\n+ − * / % · & | ^ ~ · < > shift · Ctrl+C / Ctrl+V\nOperations run from left to right. Results wrap to the word size.");hint->setProperty("calculatorRole","caption");hint->setWordWrap(true);layout->addWidget(hint);
         connect(base_,&QComboBox::currentIndexChanged,this,[this]{fresh_=true;update();});connect(word_,&QComboBox::currentIndexChanged,this,[this]{value_&=mask();left_&=mask();memory_&=mask();fresh_=true;update();});connect(signed_,&QCheckBox::toggled,this,[this]{update();});
+        auto baseStyle=styleSheet();auto refreshColors=[this,baseStyle]{QString css=baseStyle;for(auto role:{"digit","hex","operator","bits","memory"}){auto key=QString("calculator.")+role;auto color=resolvedThemeColor(key,qApp->palette(),QJsonObject::fromVariantMap(qApp->property("workbenchThemeColors").toMap()));css+=QString("QDialog#programmerCalculator QPushButton[calculatorRole=\"%1\"]:enabled { color: %2; }").arg(role,color.name());}setStyleSheet(css);};connect(qApp,&QApplication::paletteChanged,this,[refreshColors](const QPalette &){refreshColors();});refreshColors();
         installEventFilter(this);for(auto *widget:findChildren<QWidget *>())widget->installEventFilter(this);update();
     }
 protected:

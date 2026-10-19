@@ -100,7 +100,7 @@ public:
             activate(dynamic_cast<DocumentSubWindow *>(window));
         });
         auto settings=workspaceSettings();loadWorkbenchPreferences(settings);
-        connect(qApp->styleHints(),&QStyleHints::colorSchemeChanged,this,[this]{if(qApp->property("workbenchTheme").toString()=="system")applyWorkbenchTheme("system");});
+        connect(qApp->styleHints(),&QStyleHints::colorSchemeChanged,this,[this]{if(qApp->property("workbenchThemeBase").toString()=="system")applyWorkbenchTheme(qApp->property("workbenchTheme").toString());});
         if(!statePath_.isEmpty()){
             auto geometry=settings.value("geometryV2").toByteArray();if(geometry.isEmpty())geometry=QByteArray::fromBase64(standardWorkspaceLayout()["windowGeometry"].toString().toLatin1());
             if(!geometry.isEmpty())restoreGeometry(geometry);

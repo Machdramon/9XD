@@ -1,3 +1,4 @@
+#include "theme.h"
 #include "byte_format.h"
 #include <QPainter>
 #include <QJsonArray>
@@ -89,7 +90,7 @@ void ByteFormatDelegate::paint(QPainter *p,const QStyleOptionViewItem &input,con
     QStyleOptionViewItem option(input);
     initStyleOption(&option,index);
     const auto tokens=index.data(TokensRole).toList();
-    if(tokens.isEmpty()){QStyledItemDelegate::paint(p,option,index);return;}
+    if(tokens.isEmpty()){if(index.column()==0){option.palette.setColor(QPalette::Text,themeColor("hex.offset",option.palette.color(QPalette::Text)));auto *style=option.widget?option.widget->style():QApplication::style();style->drawControl(QStyle::CE_ItemViewItem,&option,p,option.widget);}else QStyledItemDelegate::paint(p,option,index);return;}
     p->save();p->setClipRect(option.rect);p->fillRect(option.rect,index.row()%2?option.palette.alternateBase():option.palette.base());
     const bool hex=index.data(HexRole).toBool();qreal x=option.rect.left()+4;
     for(qsizetype i=0;i<tokens.size();++i){
@@ -101,7 +102,7 @@ void ByteFormatDelegate::paint(QPainter *p,const QStyleOptionViewItem &input,con
         QRectF rect(hex?option.rect.left():x,option.rect.top()+1,width,option.rect.height()-2);
         if(s.background.isValid())p->fillRect(rect,s.background);
         else if(resolved.selected)p->fillRect(rect,option.palette.highlight());
-        p->setPen(s.foreground.isValid()?s.foreground:resolved.selected&&!s.background.isValid()?option.palette.highlightedText().color():option.palette.text().color());
+        p->setPen(s.foreground.isValid()?s.foreground:resolved.selected&&!s.background.isValid()?option.palette.highlightedText().color():themeColor(hex?"hex.bytes":"hex.decoded",option.palette.text().color()));
         p->drawText(rect,Qt::AlignCenter,text);
         if(s.underline&&s.underlineColor.isValid()){p->setPen(QPen(s.underlineColor,1));const qreal half=metrics.horizontalAdvance(text)/2;const qreal y=rect.center().y()+(metrics.ascent()-metrics.descent())/2+metrics.underlinePos();p->drawLine(QPointF(rect.center().x()-half,y),QPointF(rect.center().x()+half,y));}
         if(s.border.isValid()){

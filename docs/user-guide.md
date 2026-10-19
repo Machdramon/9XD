@@ -96,7 +96,7 @@ Saving writes a complete temporary copy beside the destination and replaces the 
 
 Open **Other Tools → Settings** or the Settings toolbar button. General selects System default or English; additional translation packs are not available yet. Appearance selects Dark, Light or System. Hex Viewer settings control text size (8–24 pt) and alternate row backgrounds across existing and new documents.
 
-**Apply** saves and applies preferences while keeping Settings open. **OK** applies and closes. **Cancel** discards changes made since the last Apply. **Restore Defaults** resets the controls; use Apply or OK to save the defaults. Theme creation and import/export remain planned.
+**Apply** saves and applies preferences while keeping Settings open. **OK** applies and closes. **Cancel** discards changes made since the last Apply. **Restore Defaults** resets the controls; use Apply or OK to save the defaults. Appearance > Themes now supports custom themes, grouped overrides, a live preview and .bwtheme import/export; see [Theme editor](themes.md).
 
 
 ## Module workspaces

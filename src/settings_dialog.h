@@ -1,5 +1,6 @@
 #pragma once
 #include "theme.h"
+#include "theme_editor.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -16,6 +17,7 @@
 #include <functional>
 
 inline void loadWorkbenchPreferences(QSettings &settings){
+    QJsonObject themes;QString error;auto saved=QJsonDocument::fromJson(settings.value("themes/v1").toByteArray()).object();for(auto it=saved.begin();it!=saved.end();++it)if(it.key().startsWith("custom:")&&validateTheme(it.value().toObject(),error))themes[it.key()]=it.value();qApp->setProperty("workbenchThemeLibrary",QJsonDocument(themes).toJson(QJsonDocument::Compact));
     applyWorkbenchTheme(settings.value("theme","dark").toString());
     qApp->setProperty("workbenchLanguage",settings.value("language","system").toString());
     qApp->setProperty("editorFontSize",qBound(8,settings.value("editor/fontSize",10).toInt(),24));
@@ -26,12 +28,12 @@ class SettingsDialog final : public QDialog {
 public:
     SettingsDialog(QSettings &settings,std::function<void()> applied,QWidget *parent=nullptr)
         :QDialog(parent),settings_(settings),applied_(std::move(applied)){
-        setObjectName("settingsDialog");setWindowTitle("Settings");resize(720,440);setMinimumSize(600,360);
+        setObjectName("settingsDialog");setWindowTitle("Settings");resize(1120,760);setMinimumSize(1000,680);
         auto *layout=new QVBoxLayout(this);auto *body=new QHBoxLayout;layout->addLayout(body,1);
         auto *sections=new QTreeWidget;sections->setObjectName("settingsSections");sections->setAccessibleName("Settings sections");
         sections->setHeaderHidden(true);sections->setFixedWidth(190);sections->setRootIsDecorated(false);
         auto *generalSection=new QTreeWidgetItem(sections,{"General"});generalSection->setData(0,Qt::UserRole,0);
-        auto *appearanceSection=new QTreeWidgetItem(sections,{"Appearance"});appearanceSection->setData(0,Qt::UserRole,1);
+        auto *appearanceSection=new QTreeWidgetItem(sections,{"Appearance"});appearanceSection->setData(0,Qt::UserRole,1);auto *themesSection=new QTreeWidgetItem(appearanceSection,{"Themes"});themesSection->setData(0,Qt::UserRole,1);appearanceSection->setExpanded(true);
         auto *editorSection=new QTreeWidgetItem(sections,{"Editor"});editorSection->setData(0,Qt::UserRole,2);
         auto *hexSection=new QTreeWidgetItem(editorSection,{"Hexadecimal Viewer"});hexSection->setData(0,Qt::UserRole,3);editorSection->setExpanded(true);
         auto *pages=new QStackedWidget;pages->setObjectName("settingsPages");body->addWidget(sections);body->addWidget(pages,1);
@@ -42,12 +44,7 @@ public:
         generalForm->addRow("Language",language_);
         auto *languageHelp=new QLabel("English is currently the available interface language. Additional languages will appear here when translation packs are added.");
         languageHelp->setWordWrap(true);generalForm->addRow(languageHelp);pages->addWidget(general);
-        auto *appearance=new QWidget;auto *appearanceForm=new QFormLayout(appearance);
-        theme_=new QComboBox;theme_->setObjectName("settingsTheme");
-        theme_->addItem("Dark","dark");theme_->addItem("Light","light");theme_->addItem("System","system");
-        appearanceForm->addRow("Theme",theme_);
-        auto *themeHelp=new QLabel("System follows your operating system appearance. Theme changes apply to all open documents and the default graphics colors.");
-        themeHelp->setWordWrap(true);appearanceForm->addRow(themeHelp);pages->addWidget(appearance);
+        auto *appearance=new QWidget;auto *appearanceLayout=new QVBoxLayout(appearance);theme_=new QComboBox;theme_->setObjectName("settingsTheme");theme_->addItem("Dark","dark");theme_->addItem("Light","light");theme_->addItem("System","system");themeEditor_=new ThemeEditor(theme_,settings);appearanceLayout->addWidget(themeEditor_);pages->addWidget(appearance);
         auto *editorOverview=new QWidget;auto *overviewLayout=new QVBoxLayout(editorOverview);
         auto *overview=new QLabel("Select an editor on the left to configure its display preferences.");overview->setWordWrap(true);overviewLayout->addWidget(overview);overviewLayout->addStretch();pages->addWidget(editorOverview);
         auto *editor=new QWidget;auto *editorForm=new QFormLayout(editor);
@@ -66,12 +63,12 @@ public:
         connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
         connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this]{apply();});
         connect(buttons->button(QDialogButtonBox::RestoreDefaults),&QPushButton::clicked,this,[this]{
-            theme_->setCurrentIndex(theme_->findData("dark"));language_->setCurrentIndex(language_->findData("system"));fontSize_->setValue(10);alternating_->setChecked(true);
+            themeEditor_->restoreDefaults();language_->setCurrentIndex(language_->findData("system"));fontSize_->setValue(10);alternating_->setChecked(true);
         });
     }
 private:
     bool apply(){
-        settings_.setValue("theme",theme_->currentData());settings_.setValue("language",language_->currentData());
+        themeEditor_->save(settings_);settings_.setValue("theme",theme_->currentData());settings_.setValue("language",language_->currentData());
         settings_.setValue("editor/fontSize",fontSize_->value());settings_.setValue("editor/alternatingRows",alternating_->isChecked());
         settings_.sync();
         if(settings_.status()!=QSettings::NoError){
@@ -80,5 +77,5 @@ private:
         loadWorkbenchPreferences(settings_);if(applied_)applied_();return true;
     }
     QSettings &settings_;std::function<void()> applied_;
-    QComboBox *language_,*theme_;QSpinBox *fontSize_;QCheckBox *alternating_;
+    ThemeEditor *themeEditor_;QComboBox *language_,*theme_;QSpinBox *fontSize_;QCheckBox *alternating_;
 };

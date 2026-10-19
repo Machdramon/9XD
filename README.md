@@ -6,7 +6,7 @@ The project is under active development. Some tools and format variants are stil
 
 ## Download and run
 
-Get the **v0.2.0 Windows x64 Preview** portable ZIP from [Releases](https://github.com/Machdramon/binary-workbench/releases/tag/v0.2.0). See the [release notes](docs/releases/v0.2.0.md).
+Get the **v0.2.1 Windows x64 Preview** portable ZIP from [Releases](https://github.com/Machdramon/binary-workbench/releases/tag/v0.2.1). See the [release notes](docs/releases/v0.2.1.md).
 
 1. Extract the **entire ZIP** to a writable folder.
 2. Open `binary_workbench.exe` inside the extracted folder.
@@ -26,7 +26,7 @@ Each major module can be dragged out into a separate window for multiple monitor
 | Scripting | Script editor, console and library management |
 | Other Tools | Programmer calculator, thread activity and settings |
 
-Settings provides light/dark/system appearance and editor preferences; custom theme editing, theme import/export and additional interface languages are planned.
+Settings provides light/dark/system appearance, a [custom theme editor](docs/themes.md) with preview, grouped color overrides and theme import/export, plus editor preferences. Additional interface languages remain planned.
 
 ## Binary inspection and editing
 
@@ -91,6 +91,6 @@ Windows x64 and macOS ARM64 have been built and tested during development. Linux
 
 ## Validation and documentation
 
-The latest Windows validation completed **43 reader tests and 38 interface tests**, with one optional graphics test skipped in the automated suite; native Vulkan textured rendering was also verified separately during development. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
+The latest Windows validation completed **43 reader tests and 39 interface tests**, with one optional graphics test skipped in the automated suite; native Vulkan textured rendering was also verified separately during development. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
 
 See [the user guide](docs/user-guide.md), [Windows build/release notes](docs/windows-release.md), and [third-party notices](tools/THIRD-PARTY.txt). Additional documentation may still contain older descriptions while the application evolves.
