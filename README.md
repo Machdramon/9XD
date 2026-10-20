@@ -8,7 +8,7 @@ The project is under active development. Some tools and format variants are stil
 
 ## Download and run
 
-Get the latest published **Windows x64 Preview** portable ZIP from [Releases](https://github.com/Machdramon/9XD/releases). See the [0.3.0 release notes](docs/releases/v0.3.0.md) for the upcoming update.
+Download **[9XD 0.3.0 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.3.0/9XD-0.3.0-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.3.0) for the SHA-256 checksum and [release notes](docs/releases/v0.3.0.md).
 
 1. Extract the **entire ZIP** to a writable folder.
 2. Open `9XD.exe` inside the extracted folder.
