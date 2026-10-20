@@ -4,3 +4,13 @@
 /CMakeUserPresets.json
 .DS_Store
 /dist/
+
+# Only public logo assets belong in Git. Other local artwork is bundled privately.
+/assets/*
+!/assets/logo-sticker.png
+!/assets/app.ico
+!/assets/app.rc
+!/assets/README.md
+
+__pycache__/
+*.py[cod]

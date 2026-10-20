@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <QRectF>
+#include <QHash>
 namespace {
 QVector3D point(const MeshVertex &v){return {v.position[0],v.position[1],v.position[2]};}
 float triangle(QVector3D o,QVector3D d,QVector3D a,QVector3D b,QVector3D c){
@@ -13,10 +14,11 @@ float triangle(QVector3D o,QVector3D d,QVector3D a,QVector3D b,QVector3D c){
 }
 bool box(QVector3D o,QVector3D d,QVector3D low,QVector3D high,float limit){float near=0,far=limit;for(int j=0;j<3;++j){if(std::abs(d[j])<1e-12f){if(o[j]<low[j]||o[j]>high[j])return false;}else{float a=(low[j]-o[j])/d[j],b=(high[j]-o[j])/d[j];if(a>b)std::swap(a,b);near=qMax(near,a);far=qMin(far,b);if(near>far)return false;}}return true;}
 }
-MeshDebug::MeshDebug(const MeshData &mesh,const MeshData *bounds):indices(mesh.triangles){
-    if(mesh.vertices.isEmpty())return;const auto &basis=bounds&&!bounds->vertices.isEmpty()?bounds->vertices:mesh.vertices;auto low=point(basis.first()),high=low;
+MeshDebug::MeshDebug(const MeshData &mesh,const MeshData *bounds,const MeshDebug *framing):indices(mesh.triangles){
+    if(mesh.vertices.isEmpty()&&(!bounds||bounds->vertices.isEmpty()))return;const auto &basis=bounds&&!bounds->vertices.isEmpty()?bounds->vertices:mesh.vertices;auto low=point(basis.first()),high=low;
     for(auto v:basis)for(int j=0;j<3;++j){low[j]=qMin(low[j],v.position[j]);high[j]=qMax(high[j],v.position[j]);}
-    auto center=low*.5f+high*.5f;double radius=0;for(auto v:basis)radius=qMax(radius,std::hypot(double(v.position[0])-center.x(),double(v.position[1])-center.y(),double(v.position[2])-center.z()));if(radius<1e-20)radius=1;
+    center=low*.5f+high*.5f;radius=0;for(auto v:basis)radius=qMax(radius,std::hypot(double(v.position[0])-center.x(),double(v.position[1])-center.y(),double(v.position[2])-center.z()));if(radius<1e-20)radius=1;
+    if(framing){center=framing->center;radius=framing->radius;}
     for(auto v:mesh.vertices)positions.append({float((double(v.position[0])-center.x())/radius),float((double(v.position[1])-center.y())/radius),float((double(v.position[2])-center.z())/radius)});
     for(int i=0;i<indices.size()/3;++i)order_.append(i);if(!order_.isEmpty())build(0,order_.size());
 }
@@ -38,7 +40,7 @@ bool MeshDebug::visible(QVector3D eye,QVector3D anchor)const{auto ray=anchor-eye
 QVector<MeshLabel> MeshDebug::labels(const QMatrix4x4 &mvp,QVector3D eye,QSize viewport,MeshElement kind,int first,int count)const{
     QVector<MeshLabel> result;if(viewport.isEmpty())return result;
     auto append=[&](int id,QVector3D anchor){auto clip=mvp*QVector4D(anchor,1);if(clip.w()<=0)return;auto p=clip.toVector3DAffine();if(p.x() < -1||p.x()>1||p.y() < -1||p.y()>1||p.z()<0||p.z()>1||!visible(eye,anchor))return;result.append({id,anchor,{(p.x()+1)*viewport.width()*.5,(p.y()+1)*viewport.height()*.5},p.z()});};
-    first=qMax(0,first);count=qBound(0,count,1000);
+    first=qMax(0,first);count=qMax(0,count);
     if(kind==MeshElement::Vertex){for(int i=first;i<qMin(positions.size(),qsizetype(first)+count);++i)append(i,positions[i]);}
     else if(kind==MeshElement::Face){for(int i=first;i<qMin(indices.size()/3,qsizetype(first)+count);++i)append(i,(positions[indices[i*3]]+positions[indices[i*3+1]]+positions[indices[i*3+2]])/3);}
     else {for(int i=0;i<positions.size();++i){append(0,positions[i]);if(!result.isEmpty())break;}}
@@ -53,12 +55,12 @@ QColor indexColor(int id,int count,const QVector<QColor> &stops){if(stops.isEmpt
 QVector<MeshVertex> labelGeometry(const QVector<MeshLabel> &labels,QSize viewport,MeshElement kind,float scale,int selected,bool selectedOnly,bool drawText){
     // Compact bitmap font, rendered as screen-space triangles; no native-widget stacking.
     static const unsigned char digits[13][7]={{14,17,19,21,25,17,14},{4,12,4,4,4,4,14},{14,17,1,2,4,8,31},{30,1,1,14,1,1,30},{2,6,10,18,31,2,2},{31,16,16,30,1,1,30},{14,16,16,30,17,17,14},{31,1,2,4,8,8,8},{14,17,17,14,17,17,14},{14,17,17,15,1,1,14},{17,17,17,17,17,10,4},{31,16,16,30,16,16,16},{17,27,21,21,17,17,17}};
-    QVector<MeshVertex> out;if(viewport.isEmpty())return out;QVector<QRectF> occupied;
+    QVector<MeshVertex> out;if(viewport.isEmpty())return out;QHash<quint64,QVector<QRectF>> occupied;
     auto rect=[&](float x,float y,float w,float h){for(auto p:{QPointF(x,y),QPointF(x+w,y),QPointF(x+w,y+h),QPointF(x,y),QPointF(x+w,y+h),QPointF(x,y+h)}){MeshVertex v{};v.position[0]=float(p.x()*2/viewport.width()-1);v.position[1]=float(p.y()*2/viewport.height()-1);out.append(v);}};
     auto sorted=labels;std::stable_sort(sorted.begin(),sorted.end(),[&](auto a,auto b){if(a.id==selected)return b.id!=selected;if(b.id==selected)return false;return a.depth<b.depth;});
-    for(auto label:sorted){if(selectedOnly&&label.id!=selected)continue;if(label.id==selected){rect(label.pixel.x()-5,label.pixel.y()-1,10,2);rect(label.pixel.x()-1,label.pixel.y()-5,2,10);}if(!drawText)continue;QString number=QString::number(label.id);float x=label.pixel.x()+5,y=label.pixel.y()-9*scale;QRectF bounds(x,y,(number.size()+1)*6*scale,7*scale);if(!QRectF(QPointF(0,0),viewport).contains(bounds))continue;bool overlap=false;for(auto r:occupied)if(r.intersects(bounds)){overlap=true;break;}if(overlap)continue;occupied.append(bounds);
+    for(auto label:sorted){if(selectedOnly&&label.id!=selected)continue;if(label.id==selected){rect(label.pixel.x()-5,label.pixel.y()-1,10,2);rect(label.pixel.x()-1,label.pixel.y()-5,2,10);}if(!drawText)continue;QString number=QString::number(label.id);float x=label.pixel.x()+5,y=label.pixel.y()-9*scale;QRectF bounds(x,y,(number.size()+1)*6*scale,7*scale);if(!QRectF(QPointF(0,0),viewport).contains(bounds))continue;bool overlap=false;int left=int(bounds.left()/32),right=int(bounds.right()/32),top=int(bounds.top()/16),bottom=int(bounds.bottom()/16);auto key=[](int x,int y){return (quint64(quint32(x))<<32)|quint32(y);};for(int y=top;y<=bottom&&!overlap;++y)for(int x=left;x<=right&&!overlap;++x){auto it=occupied.constFind(key(x,y));if(it!=occupied.cend())for(const auto &r:*it)if(r.intersects(bounds)){overlap=true;break;}}if(overlap)continue;for(int y=top;y<=bottom;++y)for(int x=left;x<=right;++x)occupied[key(x,y)].append(bounds);
         if(label.id==selected){rect(x-2,y-2,bounds.width()+4,1);rect(x-2,y+7*scale+1,bounds.width()+4,1);rect(x-2,y-2,1,7*scale+4);rect(x+bounds.width()+1,y-2,1,7*scale+4);}
         int prefix=kind==MeshElement::Vertex?10:kind==MeshElement::Face?11:12;
-        for(int c=-1;c<number.size();++c){int glyph=c<0?prefix:number[c].digitValue();for(int row=0;row<7;++row)for(int col=0;col<5;++col)if(digits[glyph][row]&(1<<(4-col)))rect(x+(c+1)*6*scale+col*scale,y+row*scale,scale,scale);}
+        for(int c=-1;c<number.size();++c){int glyph=c<0?prefix:number[c].digitValue();for(int row=0;row<7;++row){int col=0;while(col<5){while(col<5&&!(digits[glyph][row]&(1<<(4-col))))++col;int start=col;while(col<5&&(digits[glyph][row]&(1<<(4-col))))++col;if(col>start)rect(x+(c+1)*6*scale+start*scale,y+row*scale,(col-start)*scale,scale);}}}
     }return out;
 }

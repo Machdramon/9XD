@@ -1,4 +1,5 @@
 #pragma once
+#include "file_dialogs.h"
 #include "hex_view.h"
 #include "compare_data.h"
 #include <QFutureWatcher>
@@ -19,7 +20,7 @@ public:
         setObjectName("comparePanel");auto *layout=new QVBoxLayout(this);
         auto *hint=new QLabel("Compare the current document (including unsaved changes) with a file, byte by byte at the same offsets. Insertions and deletions are not realigned.");hint->setWordWrap(true);layout->addWidget(hint);
         auto *row=new QHBoxLayout;path_=new QLineEdit;path_->setObjectName("comparePath");path_->setPlaceholderText("Reference file");row->addWidget(path_);auto *browse=new QPushButton("Open file...");row->addWidget(browse);layout->addLayout(row);
-        connect(browse,&QPushButton::clicked,this,[this]{auto path=QFileDialog::getOpenFileName(this,"Choose reference file");if(!path.isEmpty())path_->setText(path);});
+        connect(browse,&QPushButton::clicked,this,[this]{auto path=WorkbenchFiles::getOpenFileName(this,"Choose reference file");if(!path.isEmpty())path_->setText(path);});
         auto *buttons=new QHBoxLayout;start_=new QPushButton("Compare");start_->setObjectName("compareStart");cancel_=new QPushButton("Cancel");cancel_->setEnabled(false);buttons->addWidget(start_);buttons->addWidget(cancel_);layout->addLayout(buttons);
         progress_=new QProgressBar;progress_->setRange(0,1000);layout->addWidget(progress_);
         results_=new QTreeWidget;results_->setObjectName("compareResults");results_->setHeaderLabels({"Offset","Bytes","Current / Reference"});results_->setRootIsDecorated(false);layout->addWidget(results_,1);

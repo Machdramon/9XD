@@ -1,15 +1,17 @@
-# Binary Workbench
+# 9XD
 
-Binary Workbench is a desktop workspace for inspecting and editing binary files, interpreting texture data, and working with 3D geometry and scripts. It is built with C++23, Qt 6 and Vulkan. The interface is in English.
+<p align="center"><img src="assets/logo-sticker.png" alt="9XD logo" width="520"></p>
+
+9XD is a desktop workspace for inspecting and editing binary files, interpreting texture data, and working with 3D geometry and scripts. It is built with C++23, Qt 6 and Vulkan. The interface is in English.
 
 The project is under active development. Some tools and format variants are still incomplete; console texture support is specific to the formats and memory layouts listed below.
 
 ## Download and run
 
-Get the **v0.2.1 Windows x64 Preview** portable ZIP from [Releases](https://github.com/Machdramon/binary-workbench/releases/tag/v0.2.1). See the [release notes](docs/releases/v0.2.1.md).
+Get the latest published **Windows x64 Preview** portable ZIP from [Releases](https://github.com/Machdramon/9XD/releases). See the [0.3.0 release notes](docs/releases/v0.3.0.md) for the upcoming update.
 
 1. Extract the **entire ZIP** to a writable folder.
-2. Open `binary_workbench.exe` inside the extracted folder.
+2. Open `9XD.exe` inside the extracted folder.
 3. Keep its DLLs and the `platforms`, `imageformats`, `python` and other bundled folders beside it.
 
 Windows 10/11 x64 is required. The portable package includes Qt, the Python runtime and standard library, the Vulkan loader and Visual C++ runtime files. Vulkan 3D requires a compatible graphics driver. The application is currently unsigned. No separate Qt, Python or Vulkan SDK installation is needed to run the Windows package.
@@ -58,7 +60,7 @@ This is not a universal game-archive extractor or automatic decoder for every te
 
 ## 3D and scripting
 
-The 3D workspace provides a Vulkan geometry view, per-mesh image texture assignment and a textured UV view. Image recipes can be saved and loaded as .bwir, with console presets and additional UNORM/FLOAT raw and DDS formats. See [recipes and mesh textures](docs/image-recipes-and-textures.md) for supported paths and remaining console limitations. Image textures are not yet included in model export.
+The 3D workspace provides a Vulkan geometry view, per-mesh image texture assignment and a textured UV view. Image recipes can be saved and loaded as .bwir, with console presets and additional UNORM/FLOAT raw and DDS formats. See [recipes and mesh textures](docs/image-recipes-and-textures.md) for supported paths and remaining console limitations. FBX and GLB exports support scene materials and textures when assigned.
 
 Geometry settings support Int8/16/32, UInt8/16/32, Float16/32, SNorm/UNorm 8/16 and Fixed16.16 positions, plus XYZ and homogeneous XYZW. Transform axes, invert, scale and rotate each decoded part, then place it with an XYZ delta entered manually or read from a binary offset. Adjust placement later in Mesh Collection. Normals and face winding follow coordinate transformations; model export includes placement. Settings sections can be collapsed individually.
 
@@ -66,13 +68,24 @@ The [Scripting Library Manager](docs/scripting-libraries.md) lists the active ru
 
 Python scripting uses the bundled interpreter and standard library in the Windows package. Additional third-party Python packages are not included. C++ scripting requires a compatible local compiler. Run scripts only when you trust their contents: scripts execute local code.
 
+## New in 0.3.0
+
+- Native **Scan File**, **Scan for 3D Data**, and **Scan for Textures / Images** inspectors share the binary document reader and include unsaved changes. Recognized regions can be marked in Structure/Formatting.
+- Validated Genki PS2 and ARCP packet profiles reconstruct triangle strips directly. Tested originals recover 26,532 vertices / 21,942 triangles and 3,256 vertices / 2,222 triangles respectively. This is profile-specific support, not a universal console-model importer; hierarchy, part variants and material bindings remain unresolved.
+- Bounded TIM2 discovery now lists all supported pictures up to 128 candidates; the Genki test fixture provides 40 decoded surfaces.
+- Local **Ollama** assistant with user-installed models, permission-controlled document inspection, structure annotations and native preview tools. Ollama and models are installed separately; no cloud API key is bundled. See [AI assistance](docs/ai-assistance.md).
+- Expanded 3D workspace: transform gizmos, split and detached viewports, six orthographic directions, reference grids, framing/visibility/isolation, bounding dimensions, rendering styles, face/vertex normal display, materials and FBX export. See [3D workspace](docs/3d-workspace.md).
+- Updated 9XD identity and transparent application icon. Existing user settings and layouts are preserved.
+
+See [0.3.0 release notes](docs/releases/v0.3.0.md) and [native scanning](docs/native-scanning.md) for current limits.
+
 ## Programmer calculator
 
 HEX, DEC, OCT and BIN are displayed together with 8/16/32/64-bit words and optional signed two's-complement interpretation. Integer arithmetic, bitwise operations, shifts, rotations, memory and a clickable bit view work with both the keypad and keyboard. Enter calculates; Esc clears; Ctrl+C/Ctrl+V copy and paste. Operations run left to right and wrap to the selected word size. The borderless readings and grouped controls use the application's theme palette.
 
 ## Build from source
 
-Dependencies: CMake 3.24+, a C++23 compiler, Qt 6.8+ with Core/Gui/Widgets/Concurrent (and Test for tests), the matching Qt Image Formats module, Vulkan SDK and Python 3.10+ development/embed files.
+Dependencies: CMake 3.24+, a C++23 compiler, Qt 6.8+ with Core/Gui/Widgets/Concurrent/Network (and Test for tests), the matching Qt Image Formats module, Vulkan SDK and Python 3.10+ development/embed files.
 
 For Windows, use MSVC x64 and the matching MSVC Qt build. Copy `CMakeUserPresets.example.json` to `CMakeUserPresets.json` and adjust local dependency paths. In CLion, use the Visual Studio toolchain with LLDB and enable the `windows-release` profile.
 
@@ -91,6 +104,6 @@ Windows x64 and macOS ARM64 have been built and tested during development. Linux
 
 ## Validation and documentation
 
-The latest Windows validation completed **43 reader tests and 39 interface tests**, with one optional graphics test skipped in the automated suite; native Vulkan textured rendering was also verified separately during development. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
+The latest Windows validation completed **45 reader tests and 59 interface tests**, with 13 optional checks skipped in the automated suite; native Vulkan textured rendering was also verified separately during development. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
 
 See [the user guide](docs/user-guide.md), [Windows build/release notes](docs/windows-release.md), and [third-party notices](tools/THIRD-PARTY.txt). Additional documentation may still contain older descriptions while the application evolves.

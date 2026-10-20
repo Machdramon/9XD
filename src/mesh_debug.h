@@ -11,7 +11,9 @@ enum class MeshElement { Vertex, Face, Mesh };
 struct MeshLabel { int id; QVector3D anchor; QPointF pixel; float depth; };
 class MeshDebug {
 public:
-    explicit MeshDebug(const MeshData &mesh,const MeshData *bounds=nullptr);
+    explicit MeshDebug(const MeshData &mesh,const MeshData *bounds=nullptr,const MeshDebug *framing=nullptr);
+    QVector3D center;
+    double radius=1;
     QVector<QVector3D> positions;
     QVector<quint32> indices;
     bool visible(QVector3D eye,QVector3D anchor)const;

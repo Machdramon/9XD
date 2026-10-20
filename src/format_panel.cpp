@@ -1,3 +1,4 @@
+#include "file_dialogs.h"
 #include "format_panel.h"
 #include <QToolBar>
 #include <QToolButton>
@@ -202,7 +203,7 @@ bool FormatPanel::exportRules(){
 }
 void FormatPanel::importRules(){
     if(!view_->hasFile()){QMessageBox::information(this,"Open File","First open the binary file to which the rules will apply.");return;}
-    const auto path=QFileDialog::getOpenFileName(this,"Import Visual Formatting",{},"Formatting rules (*.json)");if(path.isEmpty())return;
+    const auto path=WorkbenchFiles::getOpenFileName(this,"Import Visual Formatting",{},"Formatting rules (*.json)");if(path.isEmpty())return;
     QFile file(path);QList<FormatRule> rules;bool valid=file.size()<=1024*1024&&file.open(QIODevice::ReadOnly);
     QJsonParseError error;const auto doc=QJsonDocument::fromJson(valid?file.read(1024*1024+1):QByteArray(),&error);
     valid=valid&&error.error==QJsonParseError::NoError&&doc.isObject()&&doc["version"].toInt()==1&&doc["rules"].isArray()&&doc["rules"].toArray().size()<=256;

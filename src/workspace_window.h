@@ -1,4 +1,5 @@
 #pragma once
+#include "file_dialogs.h"
 #include <QMdiArea>
 #include <QMdiSubWindow>
 #include <QPointer>
@@ -32,7 +33,7 @@ protected:
 class WorkspaceWindow final : public QMainWindow {
 public:
     explicit WorkspaceWindow(QString statePath={}):statePath_(std::move(statePath)){
-        setWindowTitle("Binary Workbench");resize(1500,900);
+        setWindowTitle("9XD");resize(1500,900);
         mdi_=new QMdiArea(this);mdi_->setObjectName("documentWorkspace");
         mdi_->setViewMode(QMdiArea::TabbedView);mdi_->setTabsClosable(true);mdi_->setTabsMovable(true);
         mdi_->setDocumentMode(true);mdi_->setActivationOrder(QMdiArea::ActivationHistoryOrder);
@@ -90,7 +91,7 @@ public:
         auto *closeAll=documentsMenu_->addAction("Close All");connect(closeAll,&QAction::triggered,mdi_,&QMdiArea::closeAllSubWindows);
         listMenu_=documentsMenu_->addMenu("Open Documents");connect(listMenu_,&QMenu::aboutToShow,this,[this]{rebuildDocumentList();});
         themeMenu_=new QMenu("Theme",this);
-        for(auto name:{QString("Light"),QString("Dark"),QString("System")}){
+        for(auto name:{QString("Default"),QString("Light"),QString("Dark"),QString("System")}){
             auto *action=themeMenu_->addAction(name);action->setObjectName(name.toLower()+"ThemeAction");action->setCheckable(true);
             connect(action,&QAction::triggered,this,[this,name]{setTheme(name.toLower());});
         }
@@ -222,6 +223,8 @@ private:
         auto *document=new MainWindow({},statePath_.isEmpty()?QString():QFileInfo(statePath_).dir().filePath("recent-files.json"));
         document->openRequested=[this](const QString &path){openFile(path);};document->newRequested=[this]{newDocument();};document->exitRequested=[this]{close();};
         document->settingsRequested=[this]{showSettings();};
+        document->showModuleRequested=[this,document](const QString &module){for(auto session:sessions_)if(session&&session->document==document){mdi_->setActiveSubWindow(session);break;}selectModule(module);};
+        document->aiWorkspaceDocuments=[this]{QJsonArray documents;for(auto session:sessions_)if(session&&documents.size()<16){auto *view=session->document->documentView();documents.append(QJsonObject{{"name",view->filePath().isEmpty()?session->document->untitledName():QFileInfo(view->filePath()).fileName()},{"size",QString::number(view->fileSize())},{"unsavedChanges",view->dirty()},{"active",session==active_}});}return documents;};
         connect(document->documentView(),&HexView::viewerFontSizeChanged,this,[this,document](int points){
             if(!statePath_.isEmpty())workspaceSettings().setValue("editor/fontSize",points);
             for(auto *window:mdi_->subWindowList()){
@@ -254,7 +257,7 @@ private:
         auto *sub=qobject_cast<QMdiSubWindow *>(document->parentWidget());if(!sub)return;
         auto *view=document->documentView();QString name=view->filePath().isEmpty()?document->untitledName():QFileInfo(view->filePath()).fileName();
         sub->setWindowTitle(name+(view->dirty()?" *":""));sub->setToolTip(view->filePath().isEmpty()?"Unsaved RAM document":view->filePath());
-        if(document==activeDocument())setWindowTitle(name+(view->dirty()?" *":"")+" — Binary Workbench");
+        if(document==activeDocument())setWindowTitle(name+(view->dirty()?" *":"")+" — 9XD");
         if(document==activeDocument())refreshDetachedWindows();
         if(auto *tabs=mdi_->findChild<QTabBar *>())for(int i=0;i<tabs->count();++i)if(tabs->tabText(i)==sub->windowTitle())tabs->setTabToolTip(i,sub->toolTip());
         refreshDocumentTabs();
@@ -314,8 +317,8 @@ private:
     void emptyMenu(){
         for(auto *action:menuBar()->actions())menuBar()->removeAction(action);bar_->clear();
         if(!fallback_){fallback_=new QMenu("File",this);auto *create=fallback_->addAction("New File");create->setShortcut(QKeySequence::New);connect(create,&QAction::triggered,this,[this]{newDocument();});
-            auto *open=fallback_->addAction("Open File…");open->setShortcut(QKeySequence::Open);connect(open,&QAction::triggered,this,[this]{auto path=QFileDialog::getOpenFileName(this,"Open File");if(!path.isEmpty())openFile(path);});fallback_->addSeparator();connect(fallback_->addAction("Settings"),&QAction::triggered,this,[this]{showSettings();});fallback_->addSeparator();connect(fallback_->addAction("Exit"),&QAction::triggered,this,&QWidget::close);}
-        menuBar()->addMenu(fallback_);menuBar()->addMenu(toolbarsMenu_);menuBar()->addMenu(moduleWindowsMenu_);menuBar()->addMenu(themeMenu_);setWindowTitle("Binary Workbench");refreshDetachedWindows();
+            auto *open=fallback_->addAction("Open File…");open->setShortcut(QKeySequence::Open);connect(open,&QAction::triggered,this,[this]{auto path=WorkbenchFiles::getOpenFileName(this,"Open File");if(!path.isEmpty())openFile(path);});fallback_->addSeparator();connect(fallback_->addAction("Settings"),&QAction::triggered,this,[this]{showSettings();});fallback_->addSeparator();connect(fallback_->addAction("Exit"),&QAction::triggered,this,&QWidget::close);}
+        menuBar()->addMenu(fallback_);menuBar()->addMenu(toolbarsMenu_);menuBar()->addMenu(moduleWindowsMenu_);menuBar()->addMenu(themeMenu_);setWindowTitle("9XD");refreshDetachedWindows();
     }
     void keepModuleWindowOnScreen(QWidget *window){
         bool accessible=false;auto title=window->frameGeometry();title.setHeight(30);
@@ -331,7 +334,7 @@ private:
     void refreshDetachedWindows(){
         auto *doc=activeDocument();const auto name=doc?(doc->documentView()->filePath().isEmpty()?doc->untitledName():QFileInfo(doc->documentView()->filePath()).fileName()):QString("No document");
         for(auto it=detachedWindows_.cbegin();it!=detachedWindows_.cend();++it){
-            auto *window=it.value();window->setWindowTitle(moduleNames_[it.key()]+" — "+name+(doc&&doc->documentView()->dirty()?" *":"")+" — Binary Workbench");
+            auto *window=it.value();window->setWindowTitle(moduleNames_[it.key()]+" — "+name+(doc&&doc->documentView()->dirty()?" *":"")+" — 9XD");
             for(auto *action:window->menuBar()->actions())window->menuBar()->removeAction(action);
             for(auto *action:menuBar()->actions())window->menuBar()->addAction(action);
             for(auto *action:window->actions())window->removeAction(action);

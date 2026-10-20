@@ -1,78 +1,28 @@
-# Revisión rápida del proyecto · 2026-09-24
+# Project status — 9XD 0.3.0
 
-Revisión del código y documentación, con pruebas automatizadas locales en macOS ARM64.
-No sustituye una prueba visual del renderizador Vulkan en GPU ni pruebas en Windows/Linux.
+Updated 20 October 2026. Windows x64 is the distributed platform; Linux and clean-machine Windows testing remain pending.
 
-## Implementado
+## Implemented
 
-- Editor hexadecimal virtualizado con caché de 20 bloques de 1 MiB, interpretación,
-  selección secuencial/rectangular, sobrescritura directa/Shift, undo/redo y guardado.
-- Inspector tabular, formato en vivo, reglas y búsqueda por hex/comodines, texto y regex.
-- Biblioteca editable de magic bytes con importación/exportación y navegación a resultados.
-- Entropía por ventanas, tareas de lectura/análisis en segundo plano y monitor del visor.
-- Renderizador Vulkan nativo macOS, cámara, controles de lectura de mallas y esfera de prueba.
-- Etiquetas y selección de vértices/caras/mallas con ocultación, colores y gradiente por índice.
-- Colección de mallas en sesión y vista UV con selección compartida con 3D.
-- Scripting Python incrustado en un auxiliar y C++ compilado, consola y lectura binaria/mallas.
-- Persistencia automática de distribución de paneles y ventana, recuperación y restablecimiento.
+- Virtualized hexadecimal editor, byte interpretation, growing RAM documents, undo/redo, background saving, pattern search, comparison, checksums, entropy and visual formatting rules.
+- Module-scoped docking and detachable Hex Viewer, 3D, UV/2D and Scripting workspaces; persistent user layout and themes.
+- Shared bounded binary reader for manual decoding, native asset scanning and local AI tools, including pending byte edits.
+- Native file/geometry/image scan inspectors, recognized structure annotations and real decoder preview completion.
+- Validated Genki and ARCP packet reconstruction; bounded GLB and image/container discovery. TIM2 surface discovery walks declared pictures up to the configured candidate cap.
+- Vulkan mesh/UV rendering, six orthographic directions, split/detached viewports, gizmos, transforms, binary-sourced placement, labels, normal display, rendering styles, grids, bounds, visibility and isolation.
+- Materials and texture assignment; FBX, GLB, OBJ and STL export with format-appropriate attributes.
+- Python/C++ scripting and a library manager separating included and user modules; programmable integer calculator.
+- Optional local Ollama assistant with controlled reads, scan evidence, decoder recipes, native imports and formatting annotations. Ollama/models are separate user installations.
+- Portable Windows packaging with Qt, Python standard library, Vulkan loader, Visual C++ and enabled FBX runtime dependencies.
 
-- Exportación OBJ/GLB/STL con selección de mallas, escala, ejes, normales y UV.
-- Historial persistente de 12 archivos recientes y reapertura con protección de cambios.
+## Known limits and next work
 
-## Corrección de esta revisión
+- Native packet import is profile-specific. Complete game hierarchy, part/LOD/visibility selection and source material-to-texture bindings are unresolved. All recovered local variants may overlap.
+- Scanning examines at most 32 MiB and does not prove the absence of assets. Unsupported raw layouts require explicit recipes. Archive decompression is not implied by recognizing a signature.
+- Disk-backed files use overwrite editing; growing/inserting/deleting is supported for RAM documents. Text/regex search is limited to 1 MiB per region.
+- Meshes/images are session snapshots; a complete editable scene/project save format remains future work. UV coordinates use a shared per-vertex attribute model.
+- Scripting executes local user code. C++ requires a compatible compiler; bundled Python does not include third-party packages.
+- AI quality depends on the installed model. Native evidence and decoder validation remain authoritative; an inspection is not a completed render.
+- The Windows preview is unsigned. Vulkan rendering requires a compatible graphics driver. A separate clean-machine deployment review and Linux validation are pending.
 
-El temporizador de autoguardado de UI se reiniciaba con cada notificación de distribución.
-Una secuencia continua podía posponer indefinidamente el guardado durante esa actividad.
-Ahora la primera notificación agenda la escritura y las siguientes se agrupan sin aplazarla.
-Se añadió una prueba con eventos continuos. No modifica el esquema del archivo ya guardado.
-
-## Pendientes de los objetivos discutidos
-
-1. Guardar y reabrir un proyecto editable completo; exportar geometría ya está implementado.
-2. Separar visualmente bloques/containers y plegarlos; hoy existen marcas y reglas,
-   pero no un árbol de bloques expandible con vistas independientes.
-3. Sincronizar selección 3D/UV con navegación y marcado de bytes. Ya se muestran offsets,
-   pero no se salta al hex desde esa selección ni hay inspector navegable de strips.
-4. Descompresión/desempaquetado. Reconocer una firma no descomprime su contenido.
-5. Acceso a RAM de procesos, captura, edición y refresco de regiones.
-6. Vincular texturas y materiales al visor 3D/UV; GLB admite un material mate de color de prueba.
-7. Linux: superficie Vulkan nativa, compilación y pruebas reales. Windows ya se validó (véase abajo). Falta empaquetado sin
-   depender de las rutas de Qt, Python, compilador y SDK instaladas en este equipo.
-8. Gradientes por offset/strip/UV/coordenadas y editor libre de puntos del gradiente.
-   Actualmente solo hay tres colores editables y mapeo por índice de vértice/cara.
-
-## Parcial o trabajo de consolidación
-
-- La distribución UI se guarda, pero no hay un proyecto completo con mallas, descriptores,
-  cámara, ajustes visuales, reglas y scripts. Las mallas son capturas de la sesión.
-- Los descriptores se introducen manualmente; no se interpreta automáticamente una cabecera
-  ni se conserva un descriptor editable asociado a cada entrada de la colección.
-- Los UV actuales son uno por vértice. Costuras mediante duplicados funcionan; índices UV
-  independientes por esquina no están modelados. La vista no edita coordenadas.
-- Los scripts trabajan sobre la malla activa y leen el binario; la API aún no ofrece
-  escritura de bytes ni administración de toda la colección.
-- C++ se compila y ejecuta, no es un intérprete interactivo equivalente a Python.
-- El contador de ocho canales no incluye el trabajo de mallas ni los procesos de scripting.
-- La preparación combinada de la escena/BVH y cargas GPU aún se hace en el hilo de interfaz;
-  debe revisarse para colecciones grandes. No se ha medido su umbral de fluidez.
-- Cerrar mientras se decodifica una malla espera a su trabajo; falta cancelación integrada.
-- Detener scripting termina el proceso auxiliar directo, no garantiza terminar sus descendientes.
-- El editor sobrescribe; insertar/eliminar bytes y crear contenido desde un archivo vacío
-  no están implementados. Texto/regex se limita a regiones de 1 MiB.
-- La integración específica de Google Drive sigue siendo opcional y no está implementada;
-  se pueden abrir archivos locales sincronizados como cualquier otro archivo.
-
-Siguiente orden sugerido: proyecto guardable → vínculo hex/3D/UV
-→ bloques plegables → descompresión. Consolidar rendimiento y multiplataforma en paralelo
-al crecimiento del visor, sin confundir las pruebas sin pantalla con validación gráfica.
-
-Revisión de exportación: compilación correcta y ambas suites automatizadas completas pasan.
-Diálogo inspeccionado mediante captura sin GPU; exportación de la esfera a los tres formatos
-verificada. No se ha validado aún su importación en Blender u otra aplicación externa.
-
-
-## Preparación Windows · 2026-09-24
-
-La superficie Win32 compila y presenta imagen en una RTX 4060 Ti. Ambas suites pasan en Windows; también la prueba nativa con GPU, docking y selección/UV.
-Entorno instalado: MSVC 2022 x64, Qt 6.11.2, Vulkan SDK 1.4.357.0 y Python 3.13.15. Blender 4.5.1 importa la esfera GLB/OBJ/STL con 128 vértices y 252 caras.
-Pasos y resultados: [Windows](windows.md). Las verificaciones macOS anteriores no acreditan Windows.
+See [release notes](releases/v0.3.0.md), [native scanning](native-scanning.md), [AI assistance](ai-assistance.md), and [3D workspace](3d-workspace.md).

@@ -1,7 +1,9 @@
 #pragma once
+#include "file_dialogs.h"
 #include "hex_view.h"
 #include "image_decode.h"
 #include "image_recipe_io.h"
+#include "ai_decoder_setup.h"
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
 #include <QWheelEvent>
@@ -51,7 +53,7 @@ public:
         auto *presets=new QComboBox;presets->setObjectName("imagePreset");presets->addItem("Custom settings");for(const auto &preset:imagePresets())presets->addItem(preset.name);form->addRow("Preset",presets);
         auto *recipeButtons=new QHBoxLayout;auto *saveRecipeButton=new QPushButton("Save Recipe..."),*loadRecipeButton=new QPushButton("Load Recipe...");recipeButtons->addWidget(saveRecipeButton);recipeButtons->addWidget(loadRecipeButton);controls->addLayout(recipeButtons);
         connect(saveRecipeButton,&QPushButton::clicked,this,[this]{auto path=QFileDialog::getSaveFileName(settings,"Save image recipe",{},"Image recipe (*.bwir)");if(!path.isEmpty())saveRecipe(path);});
-        connect(loadRecipeButton,&QPushButton::clicked,this,[this]{auto path=QFileDialog::getOpenFileName(settings,"Load image recipe",{},"Image recipe (*.bwir)");if(!path.isEmpty())loadRecipe(path);});
+        connect(loadRecipeButton,&QPushButton::clicked,this,[this]{auto path=WorkbenchFiles::getOpenFileName(settings,"Load image recipe",{},"Image recipe (*.bwir)");if(!path.isEmpty())loadRecipe(path);});
         source_=new QComboBox;source_->setObjectName("imageSource");source_->addItems({"Active document","Selected library file"});form->addRow("Source",source_);
         format_=new QComboBox;format_->setObjectName("imageFormat");format_->addItems(imageFormats());format_->setCurrentText("RGBA8");format_->setMaxVisibleItems(16);form->addRow("Pixel format",format_);
         memoryLayout_=new QComboBox;memoryLayout_->setObjectName("imageMemoryLayout");memoryLayout_->addItems({"Linear","Morton Z-order","Morton rectangular","Tiled 8x8","PS2 GS pages","PS2 GS 16S","Xbox 360 tiled","PS4 1D thin"});form->addRow("Memory layout / Unswizzle",memoryLayout_);
@@ -78,14 +80,14 @@ public:
         connect(assign,&QPushButton::clicked,this,[this]{int row=list_->currentRow();if(row<0||entries_[row].image.isNull()){status_->setText("Select a decoded image first.");return;}if(assignTexture)status_->setText(assignTexture(entries_[row].image,entries_[row].name)?"Texture assigned to the active mesh.":"Choose a mesh with UVs; the texture collection is limited to 64 MiB.");});
         connect(unassign,&QPushButton::clicked,this,[this]{if(assignTexture)assignTexture({},{});});
         connect(presets,&QComboBox::activated,this,[this](int index){if(index<1||running_)return;auto recipe=imagePresets()[index-1].recipe;recipe.width=width_->value();recipe.height=height_->value();bool ok;recipe.offset=parse(offset_->text(),ok);recipe.paletteOffset=parse(palette_->text(),ok);applyRecipe(recipe);status_->setText("Preset loaded. Check dimensions, offsets and palette against your source before calculating.");});
-        connect(openFiles,&QPushButton::clicked,this,[this]{const auto paths=QFileDialog::getOpenFileNames(collection,"Open images or binary files",{},"Images (*.png *.jpg *.jpeg *.bmp *.tga *.gif *.ico *.pbm *.pgm *.ppm *.xbm *.xpm *.tif *.tiff *.webp *.dds *.tim *.tm2 *.tpl *.gtf *.gnf);;All files (*)");for(const auto &path:paths)addFile(path);});
-        connect(open,&QPushButton::clicked,this,[this]{const auto path=QFileDialog::getExistingDirectory(collection,"Open image / binary folder");if(!path.isEmpty())openFolder(path);});
+        connect(openFiles,&QPushButton::clicked,this,[this]{const auto paths=WorkbenchFiles::getOpenFileNames(collection,"Open images or binary files",{},"Images (*.png *.jpg *.jpeg *.bmp *.tga *.gif *.ico *.pbm *.pgm *.ppm *.xbm *.xpm *.tif *.tiff *.webp *.dds *.tim *.tm2 *.tpl *.gtf *.gnf);;All files (*)");for(const auto &path:paths)addFile(path);});
+        connect(open,&QPushButton::clicked,this,[this]{const auto path=WorkbenchFiles::getExistingDirectory(collection,"Open image / binary folder");if(!path.isEmpty())openFolder(path);});
         connect(filter_,&QLineEdit::textChanged,this,[this](const QString &text){for(int i=0;i<list_->count();++i)list_->item(i)->setHidden(!list_->item(i)->text().contains(text,Qt::CaseInsensitive));});
         connect(list_,&QListWidget::currentRowChanged,this,[this](int row){if(row<0||row>=entries_.size())return;const auto &entry=entries_[row];source_->setCurrentIndex(1);preview->showImage(entry.image);if(!entry.image.isNull()&&imageSelected)imageSelected(entry.image);if(!entry.image.isNull())status_->setText(QString("%1 · %2 × %3 · %4").arg(entry.name).arg(entry.image.width()).arg(entry.image.height()).arg(entry.recipe.format));else {if(QImageReader::supportedImageFormats().contains(QFileInfo(entry.source.path).suffix().toLatin1().toLower())||QStringList{"tga","dds","tim","tm2","tpl","gtf","gnf"}.contains(QFileInfo(entry.source.path).suffix().toLower()))format_->setCurrentText("Encoded image");status_->setText("Source selected. Choose a pixel format and click Calculate.");}});
         connect(remove,&QPushButton::clicked,this,[this]{if(running_)return;int row=list_->currentRow();if(row<0)return;retained_-=entries_[row].image.sizeInBytes();entries_.removeAt(row);delete list_->takeItem(row);if(entries_.isEmpty())preview->showImage({});});
         connect(exportImage,&QPushButton::clicked,this,[this]{const int row=list_->currentRow();if(row<0||entries_[row].image.isNull())return;const auto path=QFileDialog::getSaveFileName(collection,"Export image",entries_[row].name+".png","PNG image (*.png)");if(!path.isEmpty())status_->setText(entries_[row].image.save(path,"PNG")?"Image exported.":"Could not export the image.");});
         connect(save,&QPushButton::clicked,this,[this]{const auto path=QFileDialog::getSaveFileName(collection,"Save image library",{},"Image library (*.bwil)");if(!path.isEmpty())saveLibrary(path);});
-        connect(load,&QPushButton::clicked,this,[this]{const auto path=QFileDialog::getOpenFileName(collection,"Open image library",{},"Image library (*.bwil)");if(!path.isEmpty())loadLibrary(path);});
+        connect(load,&QPushButton::clicked,this,[this]{const auto path=WorkbenchFiles::getOpenFileName(collection,"Open image library",{},"Image library (*.bwil)");if(!path.isEmpty())loadLibrary(path);});
         connect(selection,&QPushButton::clicked,this,[this]{auto s=view_->selection();if(s.anchor>=0){offset_->setText(QString("0x%1").arg(qMin(s.anchor,s.cursor),0,16));source_->setCurrentIndex(0);}});
         connect(calculate_,&QPushButton::clicked,this,[this]{calculate();});connect(cancel_,&QPushButton::clicked,this,[this]{state_->cancel.store(true);queue_.clear();status_->setText("Canceling...");});
         connect(view_,&HexView::documentChanged,this,[this]{if(running_&&documentJob_){state_->cancel.store(true);queue_.clear();}status_->setText("Document changed. Existing images are snapshots; calculate again to refresh.");});
@@ -97,11 +99,25 @@ public:
     ImagePreview *preview;QWidget *collection,*settings;
     std::function<void(const QImage &)> imageSelected;
     std::function<bool(const QImage &,const QString &)> assignTexture;
+    std::function<void(bool,const QString &)> calculationFinished;
     int imageCount()const{return entries_.size();}
     const Entry &entry(int index)const{return entries_[index];}
     bool busy()const{return running_;}
     void applyRecipe(const ImageRecipe &r){
         format_->setCurrentText(r.format);memoryLayout_->setCurrentText(r.layout);paletteFormat_->setCurrentText(r.paletteFormat);byteSwap_->setCurrentText(r.byteSwap);container_->setCurrentText(r.container);width_->setValue(r.width);height_->setValue(r.height);offset_->setText(QString::number(r.offset));stride_->setText(QString::number(r.rowStride));palette_->setText(QString::number(r.paletteOffset));mip_->setValue(r.mipLevel);surface_->setValue(r.surface);paletteBank_->setValue(r.paletteBank);paletteEntries_->setValue(r.paletteEntries);endian_->setCurrentIndex(r.bigEndian?1:0);flipX_->setChecked(r.flipX);flipY_->setChecked(r.flipY);lowNibble_->setChecked(r.lowNibbleFirst);clut_->setChecked(r.ps2Clut);alpha_->setChecked(r.ps2Alpha);if(refresh_)refresh_();
+    }
+    QJsonObject setupSnapshot(){QString error;auto r=currentRecipe(error);bool ok=false;auto step=parse(step_->text(),ok);return error.isEmpty()&&ok?encodeImageRecipe(r,count_->value(),step):QJsonObject{{"error","Current image settings are incomplete."}};}
+    QJsonObject applyAssistantSetup(const QJsonObject &args){
+        if(running_||view_->saving()||view_->directEditing())return {{"error","Wait for image calculation / document editing to finish."}};
+        ImageRecipe r;int count;qint64 step;QString error;if(!AiDecoderSetup::image(args,view_->fileSize(),r,count,step,error))return {{"error",error}};
+        applyRecipe(r);source_->setCurrentIndex(0);count_->setValue(count);step_->setText(QString::number(step));
+        status_->setText("Assistant filled image settings. Review, then click Calculate / Add to Library.");
+        return {{"status","Image settings filled for the active document; nothing calculated. Review and click Calculate / Add to Library."},{"settings",encodeImageRecipe(r,count,step)}};
+    }
+    QJsonObject calculateActiveDocument(){
+        if(running_)return {{"error","An image calculation is already running."}};
+        source_->setCurrentIndex(0);calculate();
+        return running_?QJsonObject{{"started",true}}:QJsonObject{{"error",status_->text()}};
     }
     bool saveRecipe(const QString &path){
         if(running_)return false;QString error;auto r=currentRecipe(error);imageSpan(r,error);bool ok=false;auto step=parse(step_->text(),ok);if(!error.isEmpty()||!ok){status_->setText(error.isEmpty()?"Invalid image step.":error);return false;}auto bytes=QJsonDocument(encodeImageRecipe(r,count_->value(),step)).toJson();QSaveFile file(path);bool saved=file.open(QIODevice::WriteOnly)&&file.write(bytes)==bytes.size()&&file.commit();status_->setText(saved?"Recipe saved; source bytes are not included.":"Could not save recipe.");return saved;
@@ -146,8 +162,8 @@ private:
     ImageRecipe currentRecipe(QString &error){ImageRecipe r;bool a,b,c;r.offset=parse(offset_->text(),a);r.rowStride=parse(stride_->text(),b);r.paletteOffset=parse(palette_->text(),c);if(!a||!b||!c)error="Offsets and strides must be nonnegative decimal or hexadecimal numbers.";r.width=width_->value();r.height=height_->value();r.format=format_->currentText();r.layout=memoryLayout_->currentText();r.paletteFormat=paletteFormat_->currentText();r.byteSwap=byteSwap_->currentText();r.container=container_->currentText();r.mipLevel=mip_->value();r.surface=surface_->value();r.paletteBank=paletteBank_->value();r.paletteEntries=paletteEntries_->value();r.lowNibbleFirst=lowNibble_->isChecked();r.ps2Clut=clut_->isChecked();r.ps2Alpha=alpha_->isChecked();r.bigEndian=endian_->currentIndex()==1;r.flipX=flipX_->isChecked();r.flipY=flipY_->isChecked();return r;}
     void setRunning(bool busy){running_=busy;calculate_->setEnabled(!busy);cancel_->setEnabled(busy);for(auto *widget:settings->findChildren<QWidget *>())if(widget!=cancel_&&widget!=progress_&&widget!=status_)widget->setEnabled(!busy);calculate_->setEnabled(!busy);cancel_->setEnabled(busy);if(refresh_)refresh_();}
     void append(const Entry &entry){entries_.append(entry);retained_+=entry.image.sizeInBytes();auto *item=new QListWidgetItem(entry.name,list_);if(!entry.image.isNull())item->setIcon(QPixmap::fromImage(entry.image.scaled(64,64,Qt::KeepAspectRatio,Qt::FastTransformation)));item->setToolTip(entry.source.path+QString("\n%1 · 0x%2").arg(entry.recipe.format).arg(entry.recipe.offset,0,16));item->setHidden(!entry.name.contains(filter_->text(),Qt::CaseInsensitive));}
-    void next(){if(queue_.isEmpty()){setRunning(false);status_->setText(QString("Generated %1 image(s). Existing images are snapshots.").arg(completed_));return;}active_=queue_.takeFirst();state_->recipe=active_.recipe;state_->patches=active_.patches;state_->cancel.store(false);status_->setText(QString("Calculating image %1 / %2...").arg(completed_+1).arg(total_));reader_.request(active_.source);}
-    void finish(){if(state_->cancel.load()||state_->decoded.cancelled||!state_->decoded.error.isEmpty()){queue_.clear();setRunning(false);status_->setText(state_->cancel.load()||state_->decoded.cancelled?"Calculation canceled. Completed images remain in the library.":state_->decoded.error);return;}active_.image=state_->decoded.image;append(active_);list_->setCurrentRow(entries_.size()-1);++completed_;progress_->setValue(completed_);next();}
+    void next(){if(queue_.isEmpty()){setRunning(false);status_->setText(QString("Generated %1 image(s). Existing images are snapshots.").arg(completed_));if(calculationFinished)calculationFinished(true,status_->text());return;}active_=queue_.takeFirst();state_->recipe=active_.recipe;state_->patches=active_.patches;state_->cancel.store(false);status_->setText(QString("Calculating image %1 / %2...").arg(completed_+1).arg(total_));reader_.request(active_.source);}
+    void finish(){if(state_->cancel.load()||state_->decoded.cancelled||!state_->decoded.error.isEmpty()){queue_.clear();setRunning(false);status_->setText(state_->cancel.load()||state_->decoded.cancelled?"Calculation canceled. Completed images remain in the library.":state_->decoded.error);if(calculationFinished)calculationFinished(false,status_->text());return;}active_.image=state_->decoded.image;append(active_);list_->setCurrentRow(entries_.size()-1);++completed_;progress_->setValue(completed_);next();}
     std::function<void()> refresh_;
     HexView *view_;std::shared_ptr<Job> state_;BinaryReader reader_;QList<Entry> entries_,queue_;Entry active_;qint64 retained_=0;bool running_=false,documentJob_=false;int completed_=0,total_=0;
     QListWidget *list_;QLineEdit *filter_,*offset_,*stride_,*palette_,*step_;QSpinBox *width_,*height_,*count_,*mip_,*surface_,*paletteBank_,*paletteEntries_;QComboBox *source_,*format_,*endian_,*memoryLayout_,*paletteFormat_,*byteSwap_,*container_;QCheckBox *flipX_,*flipY_,*lowNibble_,*clut_,*alpha_;QPushButton *calculate_,*cancel_;QLabel *status_,*footprint_;QProgressBar *progress_;

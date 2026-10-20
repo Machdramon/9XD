@@ -1,7 +1,10 @@
 #pragma once
 #include <QObject>
 #include <QImage>
+#include <QSet>
+#include <QHash>
 #include "mesh_debug.h"
+#include "mesh_material.h"
 struct MeshEntry {
     int id=-1;
     QString name,source;
@@ -9,11 +12,14 @@ struct MeshEntry {
     std::shared_ptr<MeshData> data;
     QImage texture;QString textureName;
     std::array<double,3> positionDelta{};
+    std::array<double,3> rotationDegrees{},scale{1,1,1};
+    MeshMaterial material;
     std::shared_ptr<MeshData> placedData()const;
 };
 struct MeshSelection {int mesh=-1;MeshElement kind=MeshElement::Vertex;int index=-1;};
 struct MeshSpan {int id,vertexStart,vertexCount,faceStart,faceCount;};
 struct MeshAssembly {std::shared_ptr<MeshData> data;QVector<MeshSpan> spans;};
+struct MeshBounds { bool valid=false; QVector3D minimum,maximum; QVector3D dimensions()const{return maximum-minimum;} };
 class MeshScene:public QObject {
     Q_OBJECT
 public:
@@ -25,12 +31,22 @@ public:
     int add(std::shared_ptr<MeshData>,QString name={},QString source={});
     bool replace(int id,std::shared_ptr<MeshData>,QString source={});
     bool setPositionDelta(int id,const std::array<double,3> &delta);
+    bool setTransform(int id,const std::array<double,3> &position,const std::array<double,3> &rotation,const std::array<double,3> &scale);
+    bool setMaterial(int id,const MeshMaterial &material);
     bool setTexture(int id,const QImage &image,const QString &name={});
     void remove(int id);void clear();void rename(int id,QString name);void setVisible(int id,bool visible);
     void setActive(int id);void select(int mesh,MeshElement kind,int index);void markStale();
     MeshAssembly assemble(bool includeHidden=false)const;
+    QSet<int> selectedMeshes()const{return selectedMeshes_;}
+    void setSelectedMeshes(QSet<int> ids,int active=-1);
+    void setMeshesVisible(bool visible,bool selectedOnly=false);
+    void isolateSelected();void restoreVisibility();
+    bool isolated()const{return !isolation_.isEmpty();}
+    MeshBounds bounds(bool selectedOnly=false)const;
+
 signals:
     void geometryChanged();void collectionChanged();void selectionChanged();
 private:
+    QSet<int> selectedMeshes_;QHash<int,bool> isolation_;
     QVector<MeshEntry> entries_;int active_=-1,nextId_=0;MeshSelection selection_;
 };

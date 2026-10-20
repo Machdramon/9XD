@@ -103,12 +103,14 @@ public:
     void jumpTo(qint64 offset);
 
 signals:
+    void scanRequested();
     void viewerFontSizeChanged(int points);
     void checksumFinished(const ReadResult &result);
     void entropyFinished(const ReadResult &result);
     void magicScanFinished(const ReadResult &result);
     void patternSearchFinished(const ReadResult &result);
     void documentChanged();
+    void sourceReplaced();
     void formatRulesChanged();
     void editStateChanged();
     void saveFinished(bool success);

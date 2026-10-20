@@ -11,6 +11,7 @@
 #include <QRegularExpression>
 #include <memory>
 #include "theme_tokens.h"
+#include "default_appearance.h"
 
 inline QColor themeColor(const QString &key,QColor fallback){auto colors=qApp->property("workbenchThemeColors").toMap();auto value=QColor(colors.value(key).toString());return value.isValid()?value:fallback;}
 inline bool workbenchDark(){return qApp->palette().color(QPalette::Window).lightness()<128;}
@@ -50,7 +51,7 @@ inline QColor resolvedThemeColor(const QString &key,const QPalette &p,const QJso
     return p.color(QPalette::Text);
 }
 inline void applyWorkbenchTheme(const QString &requested){
-    auto library=QJsonDocument::fromJson(qApp->property("workbenchThemeLibrary").toByteArray()).object();auto theme=library[requested].toObject();QString name=theme.isEmpty()?requested:theme["base"].toString("dark");if(name!="dark"&&name!="light"&&name!="system")name="dark";
+    auto library=QJsonDocument::fromJson(qApp->property("workbenchThemeLibrary").toByteArray()).object();auto theme=requested=="default"?standardAppearance():library[requested].toObject();QString name=theme.isEmpty()?requested:theme["base"].toString("dark");if(name!="dark"&&name!="light"&&name!="system")name="dark";
     auto colors=theme["colors"].toObject();auto options=theme["options"].toObject();qApp->setProperty("workbenchThemeColors",colors.toVariantMap());qApp->setProperty("workbenchThemeBase",name);
     qApp->setStyle(QStyleFactory::create("Fusion"));auto p=workbenchThemePalette(name,colors);qApp->setPalette(p);
     QString css="QToolBar { spacing: 4px; padding: 2px; } QTabBar::tab { padding: 5px 12px; } QDockWidget::title { padding: 4px; } QHeaderView::section { padding: 3px; } QToolTip { padding: 5px; }";

@@ -1,4 +1,5 @@
 #pragma once
+#include "file_dialogs.h"
 #include "script_libraries.h"
 #include "local_config.h"
 #include <QWidget>
@@ -89,8 +90,8 @@ private:
         connect(buttons,&QDialogButtonBox::accepted,&dialog,[&,this]{
             QString lang=language->currentIndex()==0?"python":"cpp",message;bool ok=false;
             if(method->currentIndex()==0){if(!scriptLibraryName(name->text())){error->setText("Use a module name with letters, digits and underscores, starting with a letter or underscore.");return;}ok=saveScriptLibrary(lang,name->text()+(lang=="python"?".py":".hpp"),code->toPlainText().toUtf8(),message);}
-            else if(method->currentIndex()==1){auto path=QFileDialog::getOpenFileName(&dialog,"Import module",{},lang=="python"?"Python (*.py)":"C++ headers (*.h *.hpp *.hh *.inl)");if(path.isEmpty())return;ok=importSource(path);if(!ok)message=status_->text();}
-            else{auto path=QFileDialog::getExistingDirectory(&dialog,"Import package / header folder");if(path.isEmpty())return;QDir().mkpath(scriptLibraryRoot());ok=importScriptLibraryFolder(lang,path,message);}
+            else if(method->currentIndex()==1){auto path=WorkbenchFiles::getOpenFileName(&dialog,"Import module",{},lang=="python"?"Python (*.py)":"C++ headers (*.h *.hpp *.hh *.inl)");if(path.isEmpty())return;ok=importSource(path);if(!ok)message=status_->text();}
+            else{auto path=WorkbenchFiles::getExistingDirectory(&dialog,"Import package / header folder");if(path.isEmpty())return;QDir().mkpath(scriptLibraryRoot());ok=importScriptLibraryFolder(lang,path,message);}
             if(!ok){error->setText(message);return;}refreshLibraries();status_->setText("Module added to My Modules. Select it to view usage and code.");dialog.accept();
         });dialog.exec();
     }

@@ -58,7 +58,7 @@ HexView::HexView(QWidget *parent) : QWidget(parent), directSpec_(std::make_share
     endian_=new QComboBox; endian_->setObjectName("endian"); endian_->addItems({"Little Endian","Big Endian"});
     format->addWidget(new QLabel("Stride")); format->addWidget(stride_);
     format->addWidget(new QLabel("Text")); format->addWidget(encoding_);
-    format->addWidget(new QLabel("Interpret")); format->addWidget(type_); format->addWidget(endian_); format->addStretch();
+    format->addWidget(new QLabel("Interpret")); format->addWidget(type_); format->addWidget(endian_); auto *scan=new QPushButton("Scan File");scan->setObjectName("hexScanFile");scan->setToolTip("Scan recognizable structures and assets in this document.");format->addWidget(scan);connect(scan,&QPushButton::clicked,this,&HexView::scanRequested);format->addStretch();
     layout->addLayout(format);
     table_=new QTableWidget; table_->setObjectName("bytes");
     auto font=qApp->font(); font.setPointSize(qApp->property("editorFontSize").isValid()?qBound(8,qApp->property("editorFontSize").toInt(),24):10); table_->setFont(font);table_->horizontalHeader()->setFont(font);table_->verticalHeader()->setFont(font);
@@ -218,7 +218,7 @@ QWidget *HexView::inspector()const{return inspector_;}
 void HexView::focusInterpretation(){type_->setFocus();type_->showPopup();}
 void HexView::setNavigationEnabled(bool enabled){offsetEditor_->setEnabled(enabled);scrollbar_->setEnabled(enabled);}
 void HexView::openFile(const QString &path){
-    if(saving())return;
+    if(saving())return;emit sourceReplaced();
     resetDirectEdit();cancelPatternSearch();cancelMagicScan();cancelEntropy();emit documentChanged();
     memory_.reset();savedMemory_.reset();memoryHistory_.clear();memoryCursor_=0;
     edits_.clear();
@@ -623,7 +623,7 @@ void HexView::startDirectEdit(){
 }
 
 void HexView::newMemoryDocument(){
-    if(saving())return;
+    if(saving())return;emit sourceReplaced();
     resetDirectEdit();cancelPatternSearch();cancelMagicScan();cancelEntropy();
     reader_.invalidate();inspectorReader_.invalidate();copyReader_.invalidate();
     memory_=std::make_shared<MemoryData>();savedMemory_=memory_;memoryHistory_.clear();memoryCursor_=0;

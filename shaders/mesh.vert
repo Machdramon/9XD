@@ -4,9 +4,10 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec2 uv;
 layout(location=3) in vec3 vertexColor;
 layout(location=4) in uint textureRecord;
-layout(push_constant) uniform Settings { mat4 mvp; vec4 color; vec4 light; } settings;
+layout(push_constant) uniform Settings { mat4 mvp; vec4 color; vec4 light; vec4 environment; vec4 view; } settings;
 layout(location=0) out vec3 n;
 layout(location=1) out vec2 tex;
 layout(location=2) out vec3 mappedColor;
 layout(location=3) flat out uint material;
-void main(){material=textureRecord;gl_Position=settings.mvp*vec4(position,1);gl_PointSize=1;n=normal;tex=uv;mappedColor=vertexColor;}
+layout(location=4) out vec3 worldPosition;
+void main(){worldPosition=position;material=textureRecord;gl_Position=settings.mvp*vec4(position,1);gl_PointSize=1;n=normal;tex=uv;mappedColor=vertexColor;}

@@ -1,6 +1,7 @@
 #pragma once
 #include "theme.h"
 #include "theme_editor.h"
+#include "ai_settings.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -18,7 +19,7 @@
 
 inline void loadWorkbenchPreferences(QSettings &settings){
     QJsonObject themes;QString error;auto saved=QJsonDocument::fromJson(settings.value("themes/v1").toByteArray()).object();for(auto it=saved.begin();it!=saved.end();++it)if(it.key().startsWith("custom:")&&validateTheme(it.value().toObject(),error))themes[it.key()]=it.value();qApp->setProperty("workbenchThemeLibrary",QJsonDocument(themes).toJson(QJsonDocument::Compact));
-    applyWorkbenchTheme(settings.value("theme","dark").toString());
+    applyWorkbenchTheme(settings.value("theme","default").toString());
     qApp->setProperty("workbenchLanguage",settings.value("language","system").toString());
     qApp->setProperty("editorFontSize",qBound(8,settings.value("editor/fontSize",10).toInt(),24));
     qApp->setProperty("editorAlternatingRows",settings.value("editor/alternatingRows",true).toBool());
@@ -36,7 +37,7 @@ public:
         auto *appearanceSection=new QTreeWidgetItem(sections,{"Appearance"});appearanceSection->setData(0,Qt::UserRole,1);auto *themesSection=new QTreeWidgetItem(appearanceSection,{"Themes"});themesSection->setData(0,Qt::UserRole,1);appearanceSection->setExpanded(true);
         auto *editorSection=new QTreeWidgetItem(sections,{"Editor"});editorSection->setData(0,Qt::UserRole,2);
         auto *hexSection=new QTreeWidgetItem(editorSection,{"Hexadecimal Viewer"});hexSection->setData(0,Qt::UserRole,3);editorSection->setExpanded(true);
-        auto *pages=new QStackedWidget;pages->setObjectName("settingsPages");body->addWidget(sections);body->addWidget(pages,1);
+        auto *aiSection=new QTreeWidgetItem(sections,{"AI Assistance"});aiSection->setData(0,Qt::UserRole,4);auto *pages=new QStackedWidget;pages->setObjectName("settingsPages");body->addWidget(sections);body->addWidget(pages,1);
         connect(sections,&QTreeWidget::currentItemChanged,pages,[pages](QTreeWidgetItem *item){if(item)pages->setCurrentIndex(item->data(0,Qt::UserRole).toInt());});
         auto *general=new QWidget;auto *generalForm=new QFormLayout(general);
         language_=new QComboBox;language_->setObjectName("settingsLanguage");
@@ -52,10 +53,10 @@ public:
         alternating_=new QCheckBox("Alternate row backgrounds");alternating_->setObjectName("settingsAlternatingRows");
         editorForm->addRow("Viewer text size",fontSize_);editorForm->addRow(alternating_);
         auto *editorHelp=new QLabel("Ctrl + mouse wheel also changes the text size in the main hexadecimal viewer. These display preferences apply to hexadecimal bytes and decoded text in all documents. They do not modify file contents.");
-        editorHelp->setWordWrap(true);editorForm->addRow(editorHelp);pages->addWidget(editor);sections->setCurrentItem(generalSection);
+        editorHelp->setWordWrap(true);editorForm->addRow(editorHelp);pages->addWidget(editor);aiPage_=new AiSettingsPage(settings);pages->addWidget(aiPage_);sections->setCurrentItem(generalSection);
         auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel|QDialogButtonBox::Apply|QDialogButtonBox::RestoreDefaults);
         buttons->setObjectName("settingsButtons");layout->addWidget(buttons);
-        theme_->setCurrentIndex(qMax(0,theme_->findData(settings.value("theme","dark"))));
+        theme_->setCurrentIndex(qMax(0,theme_->findData(settings.value("theme","default"))));
         language_->setCurrentIndex(qMax(0,language_->findData(settings.value("language","system"))));
         fontSize_->setValue(qBound(8,settings.value("editor/fontSize",10).toInt(),24));
         alternating_->setChecked(settings.value("editor/alternatingRows",true).toBool());
@@ -63,12 +64,12 @@ public:
         connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
         connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this]{apply();});
         connect(buttons->button(QDialogButtonBox::RestoreDefaults),&QPushButton::clicked,this,[this]{
-            themeEditor_->restoreDefaults();language_->setCurrentIndex(language_->findData("system"));fontSize_->setValue(10);alternating_->setChecked(true);
+            aiPage_->defaults();themeEditor_->restoreDefaults();language_->setCurrentIndex(language_->findData("system"));fontSize_->setValue(10);alternating_->setChecked(true);
         });
     }
 private:
     bool apply(){
-        themeEditor_->save(settings_);settings_.setValue("theme",theme_->currentData());settings_.setValue("language",language_->currentData());
+        QString aiError;if(!aiPage_->save(settings_,aiError)){QMessageBox::warning(this,"AI Assistance",aiError);return false;}themeEditor_->save(settings_);settings_.setValue("theme",theme_->currentData());settings_.setValue("language",language_->currentData());
         settings_.setValue("editor/fontSize",fontSize_->value());settings_.setValue("editor/alternatingRows",alternating_->isChecked());
         settings_.sync();
         if(settings_.status()!=QSettings::NoError){
@@ -77,5 +78,5 @@ private:
         loadWorkbenchPreferences(settings_);if(applied_)applied_();return true;
     }
     QSettings &settings_;std::function<void()> applied_;
-    ThemeEditor *themeEditor_;QComboBox *language_,*theme_;QSpinBox *fontSize_;QCheckBox *alternating_;
+    AiSettingsPage *aiPage_;ThemeEditor *themeEditor_;QComboBox *language_,*theme_;QSpinBox *fontSize_;QCheckBox *alternating_;
 };

@@ -1,3 +1,10 @@
+#include "about_dialog.h"
+#include "file_dialogs.h"
+#include "ai_chat_panel.h"
+#include "asset_scan_panel.h"
+#include "arcp_point_preview.h"
+#include "genki_geometry.h"
+#include "ai_structure.h"
 #include "programmer_calculator.h"
 #include "script_panel.h"
 #include "recent_files.h"
@@ -51,7 +58,9 @@ class MainWindow final : public QMainWindow {
 public:
     std::function<void(const QString &)> openRequested;
     std::function<void()> newRequested,exitRequested,settingsRequested;
+    std::function<void(const QString &)> showModuleRequested;
     std::function<bool(const QString &)> saveDestinationAllowed;
+    std::function<QJsonArray()> aiWorkspaceDocuments;
     HexView *documentView()const{return view_;}
     QString untitledName()const{return untitledName_;}
     void setUntitledName(QString name){untitledName_=std::move(name);setWindowTitle(untitledName_+"[*]");}
@@ -76,12 +85,12 @@ public:
     explicit MainWindow(QString uiStatePath={},QString recentPath={}) {
         recentPath_=recentPath.isEmpty()?(uiStatePath.isEmpty()?QString():QFileInfo(uiStatePath).dir().filePath("recent-files.json")):recentPath;
         recent_=std::make_unique<RecentFiles>(recentPath_);
-        setWindowTitle("Binary Workbench");
+        setWindowTitle("9XD");
         view_=new HexView(this);setCentralWidget(view_);
         menuBar()->setNativeMenuBar(false);
         auto *file=menuBar()->addMenu("File");
         auto *open=file->addAction("Open File…");open->setShortcut(QKeySequence::Open);
-        connect(open,&QAction::triggered,this,[this]{const auto path=QFileDialog::getOpenFileName(this,"Open local binary file");if(!path.isEmpty())openFile(path);});
+        connect(open,&QAction::triggered,this,[this]{const auto path=WorkbenchFiles::getOpenFileName(this,"Open local binary file");if(!path.isEmpty())openFile(path);});
         auto *recentMenu=file->addMenu("Recent Files");recentMenu->setObjectName("recentFilesMenu");
         connect(recentMenu,&QMenu::aboutToShow,this,[this,recentMenu]{
             if(!recentPath_.isEmpty())recent_=std::make_unique<RecentFiles>(recentPath_);
@@ -162,12 +171,70 @@ public:
         imageTools->imageSelected=[views,uvDock](const QImage &){views->setCurrentIndex(0);uvDock->show();uvDock->raise();};
         auto *scriptDock=new QDockWidget("Scripting · Python / C++",this);scriptDock->setObjectName("scriptDock");scriptPanel_=new ScriptPanel(view_,vulkanPanel,scriptDock);scriptDock->setWidget(scriptPanel_);addDockWidget(Qt::BottomDockWidgetArea,scriptDock);scriptDock->hide();viewMenu->addAction(scriptDock->toggleViewAction());auto *scriptAction=tools->addAction("Scripting · Python / C++");connect(scriptAction,&QAction::triggered,this,[scriptDock]{scriptDock->show();scriptDock->raise();});
         auto *librariesDock=new QDockWidget("Library Manager",this);librariesDock->setObjectName("scriptLibraryDock");librariesDock->setWidget(scriptPanel_->libraryManager());librariesDock->widget()->show();addDockWidget(Qt::RightDockWidgetArea,librariesDock);librariesDock->hide();connect(librariesDock,&QDockWidget::visibilityChanged,this,[this](bool visible){if(visible)scriptPanel_->refreshLibraries();});
+        auto *aiDock=new QDockWidget("AI Analysis · Ollama",this);aiDock->setObjectName("aiChatDock");aiPanel_=new AiChatPanel(view_,vulkanPanel->scene(),aiDock);aiDock->setWidget(aiPanel_);addDockWidget(Qt::RightDockWidgetArea,aiDock);aiDock->hide();viewMenu->addAction(aiDock->toggleViewAction());
+        aiPanel_->fillImageSettings=[imageTools](const QJsonObject &args){return imageTools->applyAssistantSetup(args);};
+        aiPanel_->annotateStructure=[this,formatDock](const QJsonObject &args,bool metadata){auto result=AiStructure::apply(view_,formatPanel_,args,metadata);if(!result.contains("error")){if(showModuleRequested)showModuleRequested("hex");formatDock->show();formatDock->raise();}return result;};
+        aiPanel_->fillMeshSettings=[this,meshDock](const QJsonObject &args){if(view_->saving()||view_->directEditing())return QJsonObject{{"error","Wait for document editing to finish."}};return AiDecoderSetup::applyMesh(meshDock,args,view_->fileSize());};
+        auto showDecoder=[this,views,uvDock,imageCalculatorDock,imageLibraryDock,vulkanDock,meshDock,collectionDock](bool mesh){
+            if(showModuleRequested)showModuleRequested(mesh?"3d":"uv");
+            if(mesh){for(auto *dock:{meshDock,collectionDock,vulkanDock})dock->show();vulkanDock->raise();}
+            else{views->setCurrentIndex(0);for(auto *dock:{imageCalculatorDock,imageLibraryDock,uvDock})dock->show();uvDock->raise();}
+        };
+        aiPanel_->calculateImage=[imageTools,showDecoder]{auto result=imageTools->calculateActiveDocument();if(result["started"].toBool())showDecoder(false);return result;};
+        aiPanel_->renderMesh=[this,meshDock,showDecoder,vulkanPanel]{
+            auto *render=meshDock->findChild<QPushButton *>("renderMesh");if(!render||!render->isEnabled()||view_->saving()||view_->directEditing())return QJsonObject{{"error","Wait for mesh decoding or document editing to finish."}};
+            if(auto *setup=meshSetupSession(meshDock);setup&&setup->empty()){
+                if(!view_->hasFile()||view_->fileSize()==0)return QJsonObject{{"error","Open a nonempty binary before discovering a model."}};
+                auto *watcher=new QFutureWatcher<QJsonObject>(this);auto cancel=std::make_shared<std::atomic_bool>(false);auto stale=std::make_shared<bool>(false);auto state=setup->state();auto source=view_->meshSource();auto patches=view_->pendingPatches();
+                connect(view_,&HexView::documentChanged,watcher,[cancel,stale]{*stale=true;cancel->store(true);});connect(watcher,&QObject::destroyed,[cancel]{cancel->store(true);});
+                render->setEnabled(false);meshDock->findChild<QLabel *>("meshStatus")->setText("Discovering supported models from this document...");showDecoder(true);
+                connect(watcher,&QFutureWatcher<QJsonObject>::finished,this,[this,watcher,render,meshDock,vulkanPanel,state,stale]{
+                    auto result=watcher->result();watcher->deleteLater();render->setEnabled(true);
+                    auto fail=[vulkanPanel](QString message){emit vulkanPanel->meshCalculationFinished(false,message);};
+                    auto *current=meshSetupSession(meshDock);if(*stale||!current||current->state()!=state){fail("Discovery canceled: document or 3D settings changed. Click Render 3D again.");return;}
+                    if(result.contains("error")){fail(result["error"].toString());return;}auto candidates=result["meshCandidates"].toArray();QJsonObject selected;qint64 largest=-1;
+                    for(auto value:candidates){auto candidate=value.toObject()["settings"].toObject();auto count=candidate["vertexCount"].toInteger();if(count>largest){largest=count;selected=candidate;}}
+                    if(selected.isEmpty()){fail(assetMeshDiagnostic(result));return;}
+                    auto applied=aiPanel_->fillMeshSettings(selected);if(applied.contains("error")){fail(applied["error"].toString());return;}
+                    auto started=aiPanel_->renderMesh();if(!started["started"].toBool())fail(started["error"].toString("Could not start mesh decoding."));
+                });
+                watcher->setFuture(QtConcurrent::run([source,patches,cancel]{return discoverAssets(source,patches,*cancel);}));
+                return QJsonObject{{"started",true},{"settingsSummary","Blank 3D setup: discovering the largest supported model locally."}};
+            }
+            auto summary=QString("%1 vertices / %2 indices · UVs %3 · normals %4.").arg(meshDock->findChild<QLineEdit *>("meshVertexCount")->text(),meshDock->findChild<QLineEdit *>("meshIndexCount")->text(),meshDock->findChild<QCheckBox *>("meshReadUvs")->isChecked()?"on":"off",meshDock->findChild<QCheckBox *>("meshReadNormals")->isChecked()?"read":"calculated");
+            render->click();if(render->isEnabled())return QJsonObject{{"error",meshDock->findChild<QLabel *>("meshStatus")->text()}};
+            showDecoder(true);return QJsonObject{{"started",true},{"settingsSummary",summary}};
+        };
+        auto lastScan=std::make_shared<QJsonObject>();
+        QList<QPointer<AssetScanPanel>> scanPanels;QMap<QString,QDockWidget *> scanDocks;
+        for(auto mode:QStringList{"all","mesh","image"}){auto *scanDock=new QDockWidget(mode=="all"?"File Scan":mode=="mesh"?"3D Data Scan":"Texture / Image Scan",this);scanDock->setObjectName(mode=="all"?"assetScanDock":mode=="mesh"?"meshScanDock":"imageScanDock");auto *panel=new AssetScanPanel(view_,mode,scanDock);scanDock->setWidget(panel);addDockWidget(Qt::BottomDockWidgetArea,scanDock);scanDock->hide();scanPanels.append(panel);scanDocks.insert(mode,scanDock);}
+        auto publishScan=[lastScan,scanPanels](QJsonObject result){*lastScan=result;for(auto panel:scanPanels)if(panel)panel->showResults(result);};
+        connect(view_,&HexView::documentChanged,this,[lastScan]{*lastScan={};});aiPanel_->cachedDiscovery=[lastScan]{return *lastScan;};aiPanel_->discoveryPublished=publishScan;
+        auto pointPreview=[this,meshDock,vulkanPanel,showDecoder](bool faces=false,bool genki=false){
+            auto *render=meshDock->findChild<QPushButton *>("renderMesh");if(!render||!render->isEnabled()||view_->saving()||view_->directEditing())return QJsonObject{{"error","Wait for decoding or editing to finish."}};
+            auto *watcher=new QFutureWatcher<MeshResult>(this);auto cancel=std::make_shared<std::atomic_bool>(false);auto stale=std::make_shared<bool>(false);auto source=view_->meshSource();auto patches=view_->pendingPatches();auto name=QFileInfo(view_->filePath()).fileName();
+            connect(view_,&HexView::documentChanged,watcher,[cancel,stale]{*stale=true;cancel->store(true);});connect(watcher,&QObject::destroyed,[cancel]{cancel->store(true);});render->setEnabled(false);showDecoder(true);
+            connect(watcher,&QFutureWatcher<MeshResult>::finished,this,[watcher,render,vulkanPanel,stale,source,name,faces,genki]{auto result=watcher->result();watcher->deleteLater();render->setEnabled(true);if(*stale||!result.error.isEmpty()||!result.mesh){emit vulkanPanel->meshCalculationFinished(false,*stale?"Point preview canceled: document changed.":result.error);return;}int count=result.mesh->vertices.size();vulkanPanel->scene()->add(result.mesh,name+(genki?" / Genki all local parts (variants retained)":faces?" / ARCP recovered strips":" / ARCP point preview (NO FACES)"),source.path);vulkanPanel->frameView(1);emit vulkanPanel->meshCalculationFinished(true,faces?QString("%1: %2 vertices, %3 faces. Hierarchy and materials are not reconstructed; variants retained.").arg(genki?"Genki":"ARCP").arg(count).arg(result.mesh->triangles.size()/3):QString("ARCP point preview: %1 vertices, 0 faces. Triangle topology, hierarchy and materials are not reconstructed.").arg(count));});
+            watcher->setFuture(QtConcurrent::run([source,patches,cancel,faces,genki]{return genki?readGenkiGeometry(source,patches,*cancel):readArcpGeometry(source,patches,*cancel,faces);}));return QJsonObject{{"started",true},{"status",faces?(genki?"Loading validated Genki triangle strips; hierarchy and materials remain unresolved.":"Loading validated ARCP triangle strips; hierarchy and materials remain unresolved."):"Loading validated ARCP positions as points. This is not a reconstructed triangle model."}};
+        };
+        aiPanel_->renderArcp=[pointPreview]{return pointPreview(true);};aiPanel_->renderGenki=[pointPreview]{return pointPreview(true,true);};
+        for(auto panel:scanPanels){panel->showHex=[this]{if(showModuleRequested)showModuleRequested("hex");};panel->published=publishScan;panel->annotate=[this,formatDock](const QJsonArray &regions){auto result=AiStructure::apply(view_,formatPanel_,{{"regions",regions}},true,"Scan");if(!result.contains("error"))formatDock->show();return result;};
+            panel->useCandidate=[this,showDecoder,pointPreview](const QString &kind,const QJsonObject &data,bool run){if(kind=="evidence"){if(!run||!data["previewSupported"].toBool())return QJsonObject{{"error","This format requires an importer."}};return pointPreview(data["renderSupported"].toBool(),data["family"].toString().startsWith("Genki"));}bool mesh=kind=="mesh";auto &fill=mesh?aiPanel_->fillMeshSettings:aiPanel_->fillImageSettings;auto result=fill(data["settings"].toObject());if(result.contains("error"))return result;showDecoder(mesh);if(!run)return QJsonObject{{"status","Settings loaded. Review the corresponding decoder controls; no data has been decoded yet."}};auto &decode=mesh?aiPanel_->renderMesh:aiPanel_->calculateImage;return decode();};}
+        auto openScan=[this,scanPanels,scanDocks](QString mode){if(showModuleRequested)showModuleRequested(mode=="all"?"hex":mode=="mesh"?"3d":"uv");auto *dock=scanDocks.value(mode);dock->show();dock->raise();for(auto panel:scanPanels)if(panel&&panel->objectName()=="assetScanPanel_"+mode)panel->startScan();};
+        connect(view_,&HexView::scanRequested,this,[openScan]{openScan("all");});connect(vulkanPanel,&VulkanPanel::scanRequested,this,[openScan]{openScan("mesh");});
+        auto *uvContainer=new QWidget;auto *uvLayout=new QVBoxLayout(uvContainer);uvLayout->setContentsMargins(0,0,0,0);auto *scanImages=new QPushButton("Scan for Textures / Images");scanImages->setObjectName("scanForTexturesImages");uvLayout->addWidget(scanImages,0,Qt::AlignLeft);uvLayout->addWidget(views,1);uvDock->setWidget(uvContainer);connect(scanImages,&QPushButton::clicked,this,[openScan]{openScan("image");});
+        imageTools->calculationFinished=[ai=QPointer<AiChatPanel>(aiPanel_),scanPanels](bool success,const QString &message){if(ai)ai->decoderFinished(false,success,message);for(auto panel:scanPanels)if(panel)panel->decodingFinished("image",success,message);};
+        connect(vulkanPanel,&VulkanPanel::meshCalculationFinished,aiPanel_,[ai=aiPanel_,scanPanels](bool success,const QString &message){ai->decoderFinished(true,success,message);for(auto panel:scanPanels)if(panel)panel->decodingFinished("mesh",success,message);});
+        aiPanel_->applicationContext=[this,imageTools,meshDock,lastScan]{QJsonArray images,panels;for(int i=0;i<qMin(imageTools->imageCount(),16);++i){const auto &entry=imageTools->entry(i);images.append(QJsonObject{{"name",entry.name.left(128)},{"width",entry.image.width()},{"height",entry.image.height()},{"format",entry.recipe.format},{"offset",QString::number(entry.recipe.offset)}});}for(auto *dock:sessionDocks_)panels.append(QJsonObject{{"name",dock->windowTitle()},{"shown",!dock->isHidden()}});QJsonObject meshFields;for(auto *field:meshDock->findChildren<QLineEdit *>())if(field->objectName().startsWith("mesh"))meshFields[field->objectName()]=field->text().left(128);for(auto *field:meshDock->findChildren<QComboBox *>())if(field->objectName().startsWith("mesh"))meshFields[field->objectName()]=field->currentText();for(auto *field:meshDock->findChildren<QDoubleSpinBox *>())if(field->objectName().startsWith("mesh"))meshFields[field->objectName()]=field->value();for(auto *field:meshDock->findChildren<QCheckBox *>())if(field->objectName().startsWith("mesh"))meshFields[field->objectName()]=field->isChecked();return QJsonObject{{"application","9XD"},{"latestNativeScanBytes",lastScan->value("scannedBytes")},{"panels",panels},{"imageCount",imageTools->imageCount()},{"images",images},{"meshSettings",meshFields},{"imageSettings",imageTools->setupSnapshot()},{"openDocuments",aiWorkspaceDocuments?aiWorkspaceDocuments():QJsonArray()},{"scriptIncluded",false}};};
         auto *about=menuBar()->addMenu("About");
         auto *docs=about->addAction("Documentation");connect(docs,&QAction::triggered,this,[this]{showDocs();});
         auto *disclaimer=about->addAction("About Binary Workbench…");disclaimer->setMenuRole(QAction::NoRole);
-        connect(disclaimer,&QAction::triggered,this,[this]{QMessageBox::about(this,"Binary Workbench","Binary analysis prototype built with C++ and Qt.\n\nValues are interpretations of bytes, not guaranteed format identifications. Editing overwrites bytes, with changes pending until you save.\n\nExperimental Vulkan 3D view. Python/C++ scripting is available. New RAM documents support insertion, deletion and growth. Disk-backed files use overwrite editing.");});
+        disclaimer->setObjectName("showAbout9XD");connect(disclaimer,&QAction::triggered,this,[this]{showWorkbenchAbout(this);});
+    #ifdef WORKBENCH_FBX_SDK
+        auto *fbxNotice=about->addAction("Autodesk FBX SDK notices");connect(fbxNotice,&QAction::triggered,this,[this]{QMessageBox::about(this,"Autodesk FBX SDK","This software contains Autodesk\u00ae FBX\u00ae code developed by Autodesk, Inc. Copyright 2019 Autodesk, Inc. All rights, reserved. Such code is provided \"as is\" and Autodesk, Inc. disclaims any and all warranties, whether express or implied, including without limitation the implied warranties of merchantability, fitness for a particular purpose or non-infringement of third party rights. In no event shall Autodesk, Inc. be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of such code.");});
+#endif
         auto *toolbar=addToolBar("Common Actions");toolbar->setObjectName("mainToolbar");toolbar->addAction(open);toolbar->addAction(reload);toolbar->addAction(save);toolbar->addAction(exportAction);toolbar->addSeparator();toolbar->addAction(copy);toolbar->addSeparator();toolbar->addAction(calculator);toolbar->addAction(options);
-        connect(view_,&HexView::fileOpened,this,[this](const QString &path){path_=path;if(path.isEmpty()){setWindowTitle(untitledName_+"[*]");return;}setWindowTitle(QFileInfo(path).fileName()+"[*] — Binary Workbench");if(!recent_->add(path))statusBar()->showMessage("Could not save the recent files list.",6000);});
+        connect(view_,&HexView::fileOpened,this,[this](const QString &path){path_=path;WorkbenchFiles::remember(path);if(path.isEmpty()){setWindowTitle(untitledName_+"[*]");return;}setWindowTitle(QFileInfo(path).fileName()+"[*] — 9XD");if(!recent_->add(path))statusBar()->showMessage("Could not save the recent files list.",6000);});
         connect(view_,&HexView::idle,this,[this]{if(closing_){closing_=false;QTimer::singleShot(0,this,&QWidget::close);}});
         auto *activityDock = new QDockWidget("Thread Activity", this);
         activityDock->setObjectName("threadActivityDock");
@@ -386,7 +453,7 @@ protected:
             for(auto *toolbar:findChildren<QToolBar *>())toolbar->setEnabled(false);
             statusBar()->showMessage("Waiting for active reads before closing…");view_->shutdown();event->ignore();return;
         }
-        if(uiLayout_)uiLayout_->saveAndStop();
+        if(aiPanel_)aiPanel_->stop();if(uiLayout_)uiLayout_->saveAndStop();
         view_->shutdown();event->accept();
     }
 private:
@@ -403,6 +470,7 @@ private:
         return !destination.isEmpty()&&view_->saveFile(destination);
     }
     bool resolvePending(std::function<void()> next){
+        if(auto *setup=meshSetupSession(sessionDock("meshControlsDock"));setup&&!setup->confirmClose())return false;
         if(!view_->dirty())return formatPanel_->confirmLeave();
         const auto answer=QMessageBox::warning(this,"Unsaved Changes",
             "You have unsaved changes. Save them before continuing?",
@@ -423,7 +491,7 @@ private:
         dialog->show();dialog->raise();dialog->activateWindow();
     }
     void showDocs(){
-        auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Documentation · Binary Workbench");
+        auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle("Documentation · 9XD");
         auto *layout=new QVBoxLayout(dialog);auto *text=new QTextBrowser;layout->addWidget(text);
         const auto bundledGuide=QDir(QCoreApplication::applicationDirPath()).filePath("docs/user-guide.md");
         QFile file(QFileInfo::exists(bundledGuide)?bundledGuide:QString(WORKBENCH_DOCUMENTATION));
@@ -433,13 +501,13 @@ private:
     QString recentPath_;QString untitledName_="Untitled";QList<QDockWidget *> sessionDocks_;
     std::unique_ptr<RecentFiles> recent_;
     UiLayout *uiLayout_=nullptr;
-    ScriptPanel *scriptPanel_;HexView *view_;FormatPanel *formatPanel_;MagicPanel *magicPanel_;QString path_;bool closing_=false;std::function<void()> afterSave_;
+    AiChatPanel *aiPanel_=nullptr;ScriptPanel *scriptPanel_;HexView *view_;FormatPanel *formatPanel_;MagicPanel *magicPanel_;QString path_;bool closing_=false;std::function<void()> afterSave_;
 };
 #include "workspace_window.h"
 #ifndef WORKBENCH_NO_MAIN
 int main(int argc,char **argv){
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
-    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");
+    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");QGuiApplication::setApplicationDisplayName("9XD");QCoreApplication::setApplicationVersion("0.3.0");app.setWindowIcon(QIcon(":/branding/logo-sticker.png"));
     if(app.arguments().contains("--deployment-check")){
         const auto formats=QImageReader::supportedImageFormats();
         for(const auto &format:{"png","jpeg","bmp","tiff","webp"})if(!formats.contains(format))return 3;

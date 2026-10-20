@@ -1,4 +1,5 @@
 #include "model_export.h"
+#include "fbx_export.h"
 #include <QSaveFile>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -42,11 +43,12 @@ ModelExportResult exportModel(const QString &path,const QVector<ExportMesh> &mes
     try{
         checkpoint(progress);if(meshes.isEmpty())fail("Select at least one mesh.");
         if(!std::isfinite(o.scale)||o.scale<=0)fail("Scale must be positive and finite.");auto axes=o.axes;std::sort(axes.begin(),axes.end());if(axes!=std::array<int,3>{0,1,2})fail("Axes must be a permutation of XYZ.");
-        if(o.format!=ModelFormat::Obj&&o.format!=ModelFormat::Glb&&o.format!=ModelFormat::Stl)fail("Unsupported format.");
+        if(o.format!=ModelFormat::Obj&&o.format!=ModelFormat::Glb&&o.format!=ModelFormat::Stl&&o.format!=ModelFormat::Fbx)fail("Unsupported format.");
         for(const auto &source:o.protectedPaths)if(!source.isEmpty()&&canonical(source)==canonical(path))fail("The destination matches a binary file that is open or used by the meshes.");
         for(const auto &e:meshes){if(!e.source.isEmpty()&&canonical(e.source)==canonical(path))fail("The source binary cannot be overwritten during export.");if(!e.data)fail("Mesh unavailable.");result.vertices+=e.data->vertices.size();result.faces+=e.data->triangles.size()/3;}
         if(result.vertices>2000000||result.faces>4000000)fail("This version supports up to 2 million vertices and 4 million triangles per export.");
         QSaveFile file(path);if(!file.open(QIODevice::WriteOnly))fail(file.errorString());
+        QVector<ExportMesh> fbxMeshes;
         QByteArray bin;QJsonArray nodes,gltfMeshes,accessors,views,sceneNodes;
         quint64 vertexBase=1,uvBase=1,normalBase=1;
         if(o.format==ModelFormat::Obj)write(file,"# Binary Workbench: triangulated geometry; no textures/materials\n");
@@ -56,7 +58,8 @@ ModelExportResult exportModel(const QString &path,const QVector<ExportMesh> &mes
             QJsonObject a{{"bufferView",view},{"componentType",indices?5125:5126},{"count",count},{"type",components==1?"SCALAR":components==2?"VEC2":"VEC3"}};if(!minimum.isEmpty()){a["min"]=minimum;a["max"]=maximum;}int id=accessors.size();accessors.append(a);return id;
         };
         for(int meshIndex=0;meshIndex<meshes.size();++meshIndex){checkpoint(progress);const auto &e=meshes[meshIndex];auto m=prepare(*e.data,o,progress);bool normals=o.normals!=ExportNormals::Omit;QString name=e.name.isEmpty()?QString("Mesh_%1").arg(meshIndex):e.name;
-            if(o.format==ModelFormat::Obj){name.replace(QRegularExpression("[\\s#\\\\]+"),"_");write(file,"or "+name.toUtf8()+"\n");QByteArray chunk;auto flush=[&]{if(chunk.size()>=65536){checkpoint(progress);write(file,chunk);chunk.clear();}};
+            if(o.format==ModelFormat::Fbx){auto prepared=e;prepared.data=std::make_shared<MeshData>(std::move(m));fbxMeshes.append(prepared);
+            }else if(o.format==ModelFormat::Obj){name.replace(QRegularExpression("[\\s#\\\\]+"),"_");write(file,"or "+name.toUtf8()+"\n");QByteArray chunk;auto flush=[&]{if(chunk.size()>=65536){checkpoint(progress);write(file,chunk);chunk.clear();}};
                 for(auto v:m.vertices){chunk+=vectorLine("v",v.position,3);flush();}if(m.hasUvs)for(auto v:m.vertices){chunk+=vectorLine("vt",v.uv,2);flush();}if(normals)for(auto v:m.vertices){chunk+=vectorLine("vn",v.normal,3);flush();}
                 for(qsizetype i=0;i<m.triangles.size();i+=3){chunk+='f';for(int j=0;j<3;++j){auto index=m.triangles[i+j];chunk+=' ';chunk+=QByteArray::number(vertexBase+index);if(m.hasUvs||normals){chunk+='/';if(m.hasUvs)chunk+=QByteArray::number(uvBase+index);if(normals){chunk+='/';chunk+=QByteArray::number(normalBase+index);}}}chunk+='\n';flush();}write(file,chunk);vertexBase+=m.vertices.size();if(m.hasUvs)uvBase+=m.vertices.size();if(normals)normalBase+=m.vertices.size();
             }else if(o.format==ModelFormat::Stl){QByteArray chunk;for(qsizetype i=0;i<m.triangles.size();i+=3){if(i%3072==0)checkpoint(progress);const auto &a=m.vertices[m.triangles[i]],&b=m.vertices[m.triangles[i+1]],&c=m.vertices[m.triangles[i+2]];auto n=faceNormal(a,b,c);double length=std::hypot(n[0],n[1],n[2]);for(double v:n)f32(chunk,length>0?float(v/length):0);for(auto *vertex:{&a,&b,&c})for(float v:vertex->position)f32(chunk,v);chunk.append(2,'\0');if(chunk.size()>=65536){write(file,chunk);chunk.clear();}}write(file,chunk);
@@ -71,12 +74,13 @@ ModelExportResult exportModel(const QString &path,const QVector<ExportMesh> &mes
             }
             if(progress)progress->percent.store((meshIndex+1)*90/meshes.size());
         }
+        if(o.format==ModelFormat::Fbx){checkpoint(progress);write(file,encodeFbx(fbxMeshes,o,progress));}
         if(o.format==ModelFormat::Glb){
             QJsonObject json{{"asset",QJsonObject{{"version","2.0"},{"generator","Binary Workbench"}}},{"scene",0},{"scenes",QJsonArray{QJsonObject{{"nodes",sceneNodes}}}},{"nodes",nodes},{"meshes",gltfMeshes},{"accessors",accessors},{"bufferViews",views},{"buffers",QJsonArray{QJsonObject{{"byteLength",double(bin.size())}}}}};
             if(o.material){auto linear=[](double c){return c<=.04045?c/12.92:std::pow((c+.055)/1.055,2.4);};json["materials"]=QJsonArray{QJsonObject{{"name","Test color"},{"doubleSided",o.doubleSided},{"pbrMetallicRoughness",QJsonObject{{"baseColorFactor",QJsonArray{linear(o.color.redF()),linear(o.color.greenF()),linear(o.color.blueF()),1.0}},{"metallicFactor",0.0},{"roughnessFactor",1.0}}}}};}
             QByteArray text=QJsonDocument(json).toJson(QJsonDocument::Compact);while(text.size()%4)text+=' ';while(bin.size()%4)bin+='\0';QByteArray header;u32(header,0x46546c67);u32(header,2);u32(header,quint32(28+text.size()+bin.size()));u32(header,text.size());u32(header,0x4e4f534a);write(file,header);write(file,text);QByteArray binHeader;u32(binHeader,bin.size());u32(binHeader,0x004e4942);write(file,binHeader);for(qsizetype at=0;at<bin.size();at+=1048576){checkpoint(progress);write(file,bin.mid(at,1048576));}
         }
         checkpoint(progress);if(!file.commit())fail("Could not finalize the file: "+file.errorString());result.ok=true;if(progress)progress->percent=100;
-    }catch(const Cancelled &){result.cancelled=true;result.error="Export canceled; the destination was not replaced.";}catch(const std::exception &e){result.error=QString::fromUtf8(e.what());}
+    }catch(const Cancelled &){result.cancelled=true;result.error="Export canceled; the destination was not replaced.";}catch(const std::exception &e){result.error=QString::fromUtf8(e.what());result.cancelled=progress&&progress->cancel.load();}
     return result;
 }

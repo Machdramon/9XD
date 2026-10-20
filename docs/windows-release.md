@@ -28,7 +28,7 @@ standard library, the Vulkan loader, redistributable MSVC runtime files, the
 documentation and third-party notices. Its SHA-256 checksum is written beside it.
 
 Publish the ZIP, not the bare executable. Users must extract the entire folder
-and run `binary_workbench.exe` with its DLLs and subfolders still beside it.
+and run `9XD.exe` with its DLLs and subfolders still beside it.
 The package is unsigned. Vulkan 3D still requires a compatible GPU driver;
 C++ scripting requires a local compiler. Third-party Python packages are not
 included. Qt and the bundled Python runner are checked with Qt/Python removed

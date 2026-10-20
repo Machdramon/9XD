@@ -1,3 +1,6 @@
+#ifdef WORKBENCH_FBX_SDK
+#include <fbxsdk.h>
+#endif
 #include "image_recipe_io.h"
 #include "compare_data.h"
 #include "data_inspector.h"
@@ -9,6 +12,7 @@
 #include "model_export.h"
 #include "recent_files.h"
 #include <QJsonDocument>
+#include <QScopeGuard>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QDir>
@@ -54,6 +58,28 @@ static bool resizeSparseFile(QFile &file, qint64 size) {
 class ReaderTests : public QObject {
     Q_OBJECT
 private slots:
+    void labelCandidatesAreNotSilentlyCapped(){
+        MeshData cloud;for(int i=0;i<1600;++i){MeshVertex v{};v.position[0]=(i%40-20)*.02f;v.position[1]=(i/40-20)*.02f;cloud.vertices.append(v);}MeshDebug debug(cloud);QMatrix4x4 identity;auto all=debug.labels(identity,{0,0,3},{800,800},MeshElement::Vertex,0,1600);QCOMPARE(all.size(),1600);QCOMPARE(debug.labels(identity,{0,0,3},{800,800},MeshElement::Vertex,0,12).size(),12);QCOMPARE(debug.labels(identity,{0,0,3},{800,800},MeshElement::Vertex,1590,1600).size(),10);
+    }
+
+    void fbxRoundTripWithMaterialAndEmbeddedTexture(){
+#ifndef WORKBENCH_FBX_SDK
+        QSKIP("FBX SDK not configured.");
+#else
+        QTemporaryDir dir;auto mesh=std::make_shared<MeshData>();mesh->vertices={{{0,0,0},{0,0,1},{0,0}},{{1,0,0},{0,0,1},{1,0}},{{0,1,0},{0,0,1},{0,1}}};mesh->triangles={0,1,2};
+        QImage texture(2,2,QImage::Format_RGBA8888);texture.fill(Qt::red);texture.setPixelColor(1,1,Qt::blue);ModelExportOptions options;options.format=ModelFormat::Fbx;options.scale=2;
+        auto path=dir.filePath("scene.fbx");QVERIFY(fbxExportAvailable());auto result=exportModel(path,{{"Body",{},mesh,texture,{"Paint",QColor("#80c040"),false}},{"Trim",{},mesh,{}, {"Unlit",Qt::white,true}}},options);QVERIFY2(result.ok,qPrintable(result.error));QCOMPARE(result.faces,quint64(2));
+        QFile file(path);QVERIFY(file.open(QIODevice::ReadOnly));QVERIFY(file.read(23).startsWith("Kaydara FBX Binary"));file.close();
+        auto *manager=FbxManager::Create();auto cleanup=qScopeGuard([&]{manager->Destroy();});manager->SetIOSettings(FbxIOSettings::Create(manager,IOSROOT));auto *scene=FbxScene::Create(manager,"");auto *importer=FbxImporter::Create(manager,"");QVERIFY2(importer->Initialize(path.toUtf8().constData(),-1,manager->GetIOSettings()),importer->GetStatus().GetErrorString());QVERIFY2(importer->Import(scene),importer->GetStatus().GetErrorString());
+        QCOMPARE(scene->GetRootNode()->GetChildCount(),2);auto *node=scene->GetRootNode()->GetChild(0);QCOMPARE(QString::fromUtf8(node->GetName()),QString("Body"));auto *geometry=node->GetMesh();QCOMPARE(geometry->GetControlPointsCount(),3);QCOMPARE(geometry->GetPolygonCount(),1);QCOMPARE(geometry->GetControlPointAt(1)[0],2.);QCOMPARE(geometry->GetElementNormalCount(),1);QCOMPARE(geometry->GetElementUVCount(),1);QCOMPARE(geometry->GetPolygonVertex(0,2),2);
+        auto *material=FbxCast<FbxSurfaceLambert>(node->GetMaterial(0));QVERIFY(material);QVERIFY(std::abs(material->Diffuse.Get()[1]-QColor("#80c040").greenF())<1e-6);QCOMPARE(material->Diffuse.GetSrcObjectCount<FbxFileTexture>(),1);auto *image=material->Diffuse.GetSrcObject<FbxFileTexture>(0);QVERIFY(image);auto extracted=QString::fromUtf8(image->GetFileName());QVERIFY2(QFileInfo::exists(extracted),qPrintable(extracted));QImage imported(extracted);QCOMPARE(imported.size(),QSize(2,2));QCOMPARE(imported.pixelColor(1,1),QColor(Qt::blue));
+        QCOMPARE(scene->GetGlobalSettings().GetSystemUnit().GetScaleFactor(),100.);auto *unlit=FbxCast<FbxSurfaceLambert>(scene->GetRootNode()->GetChild(1)->GetMaterial(0));QVERIFY(unlit);QCOMPARE(unlit->EmissiveFactor.Get(),1.);
+        options.normals=ExportNormals::Omit;options.uvs=false;options.sceneMaterials=false;QVERIFY(exportModel(dir.filePath("plain.fbx"),{{"Plain",{},mesh}},options).ok);
+        auto canceled=std::make_shared<ExportProgress>();canceled->cancel=true;QVERIFY(exportModel(path,{{"Canceled",{},mesh}},options,canceled).cancelled);options.protectedPaths={path};QVERIFY(!exportModel(path,{{"Protected",{},mesh}},options).ok);QVERIFY(QFileInfo(path).size()>1000);
+        auto out=qEnvironmentVariable("WORKBENCH_FBX_REVIEW");if(!out.isEmpty()){QFile::remove(out);QVERIFY(QFile::copy(path,out));}
+#endif
+    }
+
     void imageContainersDdsTimTim2TplGtfGnf(){
         std::atomic_bool cancel{false};QString error;ImageRecipe selection;
         auto le32=[](QByteArray &b,int at,quint32 v){qToLittleEndian(v,reinterpret_cast<uchar *>(b.data()+at));};auto le16=[](QByteArray &b,int at,quint16 v){qToLittleEndian(v,reinterpret_cast<uchar *>(b.data()+at));};auto be32=[](QByteArray &b,int at,quint32 v){qToBigEndian(v,reinterpret_cast<uchar *>(b.data()+at));};auto be16=[](QByteArray &b,int at,quint16 v){qToBigEndian(v,reinterpret_cast<uchar *>(b.data()+at));};

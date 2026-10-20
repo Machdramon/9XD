@@ -35,16 +35,24 @@ def main():
     cache = (build / 'CMakeCache.txt').read_text(encoding='utf-8')
     if 'CMAKE_BUILD_TYPE:STRING=Release' not in cache:
         raise RuntimeError('Select the windows-release profile before building windows_package.')
-    name = f'BinaryWorkbench-{options.version}-windows-x64'
+    name = f'9XD-{options.version}-windows-x64'
     output = source / 'dist' / datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     stage = output / name
     stage.mkdir(parents=True)
     licenses = stage / 'licenses'
     licenses.mkdir()
     for filename in ('binary_workbench.exe', 'script_runner.exe'):
-        shutil.copy2(build / filename, stage / filename)
+        shutil.copy2(build / filename, stage / ('9XD.exe' if filename == 'binary_workbench.exe' else filename))
+    fbx_runtime = build / 'libfbxsdk.dll'
+    fbx_enabled = any(line.startswith('WORKBENCH_FBX_SDK_ROOT:PATH=') and line.split('=', 1)[1].strip()
+                      for line in cache.splitlines())
+    if fbx_enabled:
+        if not fbx_runtime.is_file() or not (build / 'licenses/Autodesk-FBX-SDK.rtf').is_file():
+            raise RuntimeError('FBX-enabled builds require the SDK runtime and license notice.')
+        shutil.copy2(fbx_runtime, stage / fbx_runtime.name)
+        shutil.copy2(build / 'licenses/Autodesk-FBX-SDK.rtf', licenses / 'Autodesk-FBX-SDK.rtf')
     run([options.qt_bin / 'windeployqt.exe', '--release', '--no-translations',
-         '--no-compiler-runtime', '--no-opengl-sw', stage / 'binary_workbench.exe',
+         '--no-compiler-runtime', '--no-opengl-sw', stage / '9XD.exe',
          stage / 'script_runner.exe'])
     # Use the redistributable CRT directory, never developer/compiler DLLs.
     redist = Path(os.environ.get('VCToolsRedistDir', ''))
@@ -99,7 +107,7 @@ def main():
     for dll in crt.glob('*.dll'):
         shutil.copy2(dll, python_stage / dll.name)
     (stage / 'README.txt').write_text(
-        'Binary Workbench\n\nExtract this entire folder before running binary_workbench.exe.\n'
+        '9XD\n\nExtract this entire folder before running 9XD.exe.\n'
         'Keep the DLLs, imageformats, platforms and python folders beside the executable.\n'
         'Windows 10/11 x64. A compatible graphics driver is required for Vulkan 3D.\n'
         'Python scripting includes the standard library, without third-party packages.\n'
@@ -111,7 +119,7 @@ def main():
                                   'QT_QPA_PLATFORM_PLUGIN_PATH', 'QT_QPA_PLATFORM'}}
     env['PATH'] = str(Path(os.environ['SystemRoot']) / 'System32')
     hidden = {'creationflags': subprocess.CREATE_NO_WINDOW}
-    run([stage / 'binary_workbench.exe', '--deployment-check'], env=env, cwd=stage, **hidden)
+    run([stage / '9XD.exe', '--deployment-check'], env=env, cwd=stage, **hidden)
     run([python_stage / 'python.exe', '-I', '-c',
          'import json,struct,zlib,ssl,sqlite3;assert struct.calcsize("Q")==8'], env=env, cwd=stage, **hidden)
     with tempfile.TemporaryDirectory() as directory:

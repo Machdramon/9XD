@@ -3,9 +3,12 @@
 #include <QColor>
 #include <QStringList>
 #include <atomic>
-enum class ModelFormat { Obj, Glb, Stl };
+#include <QImage>
+#include "mesh_material.h"
+enum class ModelFormat { Obj, Glb, Stl, Fbx };
 enum class ExportNormals { Preserve, Recalculate, Omit };
-struct ExportMesh {QString name,source;std::shared_ptr<const MeshData> data;};
+struct ExportMesh {QString name,source;std::shared_ptr<const MeshData> data;QImage texture;MeshMaterial surface;};
+bool fbxExportAvailable();
 struct ModelExportOptions {
     ModelFormat format=ModelFormat::Glb;
     double scale=1;
@@ -14,6 +17,7 @@ struct ModelExportOptions {
     bool uvs=true,flipV=false,reverseFaces=false;
     ExportNormals normals=ExportNormals::Preserve;
     bool material=false,doubleSided=false;
+    bool sceneMaterials=true,textures=true;
     QColor color{"#78B4E8"};
     QStringList protectedPaths;
 };

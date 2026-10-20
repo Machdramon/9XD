@@ -27,3 +27,8 @@ for 3D rendering. GPU drivers and the Vulkan SDK are not bundled.
 Microsoft Visual C++ runtime: redistributable runtime files from the Visual
 Studio Redist directory. The official x64 redistributable installer is included
 under prerequisites when available. Microsoft license terms apply.
+
+Autodesk FBX SDK (in SDK-enabled builds): proprietary Autodesk license.
+See Autodesk-FBX-SDK.rtf and About > Autodesk FBX SDK notices.
+Only the libfbxsdk runtime is distributed; SDK headers and tools are developer dependencies.
+https://aps.autodesk.com/developer/overview/fbx-sdk

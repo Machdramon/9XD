@@ -20,7 +20,7 @@ private:
     QColor color_;
     QComboBox *format_,*axes_,*normals_;
     QDoubleSpinBox *scale_;
-    QCheckBox *negate_[3],*uvs_,*flipV_,*reverse_,*material_,*doubleSided_;
+    QCheckBox *negate_[3],*uvs_,*flipV_,*reverse_,*material_,*doubleSided_,*sceneMaterials_,*textures_;
     QTreeWidget *meshes_;
     QLabel *summary_,*status_;
     QPushButton *save_,*colorButton_;QWidget *settings_;

@@ -1,3 +1,4 @@
+#include "file_dialogs.h"
 #include "magic_panel.h"
 #include "hex_view.h"
 #include "format_panel.h"
@@ -30,7 +31,7 @@ MagicPanel::MagicPanel(HexView *view,FormatPanel *format,QWidget *parent):QWidge
     auto button=[&](QString label,auto callback){auto *b=new QPushButton(label);buttons->addWidget(b);connect(b,&QPushButton::clicked,this,callback);return b;};
     button("+",[this]{edit(true);});button("−",[this]{int row=libraryList_->indexOfTopLevelItem(libraryList_->currentItem());if(row<0)return;invalidate();library_.removeAt(row);dirty_=true;rebuild();});button("Edit",[this]{edit(false);});
     button("Import",[this]{
-        if(!confirmClose())return;auto path=QFileDialog::getOpenFileName(this,"Import Signature Library",{},"JSON library (*.json)");if(path.isEmpty())return;
+        if(!confirmClose())return;auto path=WorkbenchFiles::getOpenFileName(this,"Import Signature Library",{},"JSON library (*.json)");if(path.isEmpty())return;
         QFile file(path);QString error;QList<MagicSignature> loaded;
         if(!file.open(QIODevice::ReadOnly)||!decodeMagicLibrary(file.read(1024*1024+1),loaded,error)){QMessageBox::warning(this,"Import",error.isEmpty()?file.errorString():error);return;}
         invalidate();library_=std::move(loaded);dirty_=false;rebuild();

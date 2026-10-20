@@ -41,7 +41,7 @@ MeshResult readMesh(const ReadRequest &source,const PatchList &patches,const Mes
         for(int axis=0;axis<3;++axis){position[axis]=component(positions.constData()+i*s.vertexStride+axis*width(s.positionType),s.positionType,s.bigEndian)/w*s.positionScale;normal[axis]=s.normals?component(normals.constData()+i*s.normalStride+axis*width(s.normalType),s.normalType,s.bigEndian):0;}
         position=transformVector(position,s,false);normal=transformVector(normal,s,true);
         for(int axis=0;axis<3;++axis){v.position[axis]=float(position[axis]);v.normal[axis]=float(normal[axis]);if(!std::isfinite(v.position[axis])||!std::isfinite(v.normal[axis]))return fail("Nonfinite position or normal after transformation.");}
-        for(int axis=0;axis<2;++axis){v.uv[axis]=s.uv?component(uv.constData()+i*s.uvStride+axis*width(s.uvType),s.uvType,s.bigEndian):0;if(!std::isfinite(v.uv[axis]))return fail("Nonfinite UV coordinate.");}}
+        for(int axis=0;axis<2;++axis){v.uv[axis]=s.uv?component(uv.constData()+i*s.uvStride+axis*width(s.uvType),s.uvType,s.bigEndian):0;if(!std::isfinite(v.uv[axis]))return fail(QString("Nonfinite UV coordinate at vertex %1 (offset 0x%2). Check UV type/stride, or disable Read UVs for geometry-only decoding.").arg(i).arg(s.uvOffset+i*s.uvStride,0,16));}}
     QVector<quint32> run;QVector<qint64> runSlots;int stripId=0;const quint32 restart=s.indexType=="UInt16"?0xffff:0xffffffff;
     for(qint64 i=0;i<s.indexCount;++i){
         quint32 value=integer(indices.constData()+i*s.indexStride,width(s.indexType),s.bigEndian);

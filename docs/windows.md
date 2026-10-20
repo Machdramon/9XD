@@ -9,7 +9,8 @@ Qt 6.11.2 MSVC 2022 x64, Vulkan SDK 1.4.357.0 y CPython 3.13.15 x64
 - `reader_tests` y `window_tests`: ambas suites pasan con `QT_QPA_PLATFORM=offscreen`.
   Informes detallados: 30 casos aprobados en reader_tests y 17 en window_tests; una omisión prevista (GPU) en offscreen. Incluyen scripting Python, compilación/ejecución C++, errores, cancelación,
   exportación y persistencia de recientes (límite de 12 y eliminación de duplicados).
-- `nativeVulkanSmoke`: prueba opcional ejecutada con plataforma `windows` y
+-
+ativeVulkanSmoke`: prueba opcional ejecutada con plataforma `windows` y
   NVIDIA GeForce RTX 4060 Ti, controlador 616.92. Resultado correcto.
 - Se comprobaron esfera (128 vértices/252 triángulos), selección de cara, etiquetas,
   órbita/zoom, redimensionado, ocultar/mostrar, desacoplar/reacoplar y visibilidad de

@@ -1,6 +1,6 @@
-# Binary Workbench
+# 9XD
 
-Binary Workbench is a local hexadecimal editor and binary analysis tool built with C++ and Qt. It provides byte interpretation, visual formatting, pattern searches, signature scans, entropy analysis, experimental Vulkan 3D and UV views, and Python/C++ scripting.
+9XD is a local hexadecimal editor and binary analysis tool built with C++ and Qt. It provides byte interpretation, visual formatting, pattern searches, signature scans, entropy analysis, experimental Vulkan 3D and UV views, and Python/C++ scripting.
 
 ## Files and editing
 
@@ -198,3 +198,13 @@ New user profiles start with the product's captured standard arrangement for Hex
 Your own saved module layouts take priority. Closing the workspace saves your panel arrangement, window geometry and detached module windows in your user profile. Updating or extracting a newer Release does not overwrite those preferences. New document tabs share the current module layout.
 
 Use **Windows > Reset Panel Layout** to restore the standard panel arrangement and toolbar visibility. Detached modules return to the main window. This does not reset documents, decoding parameters or other preferences. Subsequent changes are saved normally. Missing or invalid module layouts fall back to the shipped arrangement.
+
+## Local AI assistance
+
+Other Tools > AI Analysis connects to a separately installed local Ollama model. It can inspect bounded regions of the active document and fill its 2D / 3D decoding settings. Use the native Scan File / Scan for 3D Data / Scan for Textures / Images actions to review results, load settings and preview supported assets. See [Native scanning](native-scanning.md). See [Local AI assistance](ai-assistance.md) for setup, limits and sample prompts.
+
+Opening dialogs remember the last folder across restarts; Cancel preserves it.
+
+
+## 3D scene editing and FBX
+See [3D workspace](3d-workspace.md) for transforms, material presets, shared viewports and FBX export.

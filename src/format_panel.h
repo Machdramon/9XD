@@ -13,6 +13,7 @@ public:
     explicit FormatPanel(HexView *view,QWidget *parent=nullptr);
     QToolBar *toolbar() const { return toolbar_; }
     bool confirmLeave();
+    void appendAnalysisRules(const QList<FormatRule> &rules){auto combined=view_->formatRules();combined.append(rules);publish(std::move(combined));}
     bool markExternalMatches(const QString &name,const QVector<ByteRange> &matches,QString &error);
 private:
     ByteStyle selectedStyle() const;
