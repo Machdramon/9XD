@@ -32,3 +32,9 @@ Autodesk FBX SDK (in SDK-enabled builds): proprietary Autodesk license.
 See Autodesk-FBX-SDK.rtf and About > Autodesk FBX SDK notices.
 Only the libfbxsdk runtime is distributed; SDK headers and tools are developer dependencies.
 https://aps.autodesk.com/developer/overview/fbx-sdk
+
+libmspack LZX decoder: LGPL-2.1, dynamically linked as nines_lzx.dll.
+The complete compiled source subset, adapter and license are supplied under
+licenses/libmspack-source; see SOURCE.md and COPYING.LIB.
+The library may be replaced with a compatible build.
+https://github.com/kyz/libmspack

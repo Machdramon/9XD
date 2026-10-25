@@ -43,6 +43,8 @@ def main():
     licenses.mkdir()
     for filename in ('binary_workbench.exe', 'script_runner.exe'):
         shutil.copy2(build / filename, stage / ('9XD.exe' if filename == 'binary_workbench.exe' else filename))
+    shutil.copy2(build / 'nines_lzx.dll', stage / 'nines_lzx.dll')
+    shutil.copytree(source / 'third_party/libmspack', licenses / 'libmspack-source')
     fbx_runtime = build / 'libfbxsdk.dll'
     fbx_enabled = any(line.startswith('WORKBENCH_FBX_SDK_ROOT:PATH=') and line.split('=', 1)[1].strip()
                       for line in cache.splitlines())
@@ -76,6 +78,8 @@ def main():
     shutil.copy2(options.vulkan_loader, stage / 'vulkan-1.dll')
     shutil.copy2(options.vulkan_license, licenses / 'Vulkan-Loader.txt')
     shutil.copytree(source / 'docs', stage / 'docs')
+    if (source / 'profiles').is_dir():
+        shutil.copytree(source / 'profiles', stage / 'profiles')
     shutil.copy2(source / 'src/bcdec-LICENSE.txt', licenses / 'bcdec.txt')
     qt_license = source / 'tools/LGPL-3.0.txt'
     if qt_license.is_file():

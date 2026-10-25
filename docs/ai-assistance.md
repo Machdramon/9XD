@@ -90,3 +90,9 @@ ARCP resource containers are recognized separately from the Genki 0IVX/XMDL prof
 ARCP native strips: when meshEvidence.renderSupported is true, decode_asset(kind=mesh) uses the native packet importer even if meshCandidates is empty. The validated 000000c4.arc profile recovers 2,222 triangles; hierarchy/materials remain unresolved. Inspection requests do not render.
 
 Genki native packets: renderSupported permits decode_asset(kind=mesh) to import the original DAT even with empty raw meshCandidates. Completion receipts report actual mesh results; inspection-only requests do not render. Part visibility and material binding remain unresolved.
+
+### Genki topology support correction
+0IVX version/header matches are not proof of connectivity. The C1-v2 decoder is now an isolated profile with structural and draw-control checks; TXRD2/v1 and other unvalidated layouts cannot inherit its face rules. Unknown variants may offer a manually selected raw point preview (no faces, unchanged coordinates). See [Genki topology isolation](genki-topology.md) for current behavior; this supersedes earlier broad Genki-import descriptions.
+
+
+TXRD2/v1 now has its own native mode/ADC profile. Use the scanner's admitted material-group candidates for rendering/export; do not recreate faces with the C1 rule or normal sign changes. Sample evidence exposes the exact draw-flag offset/stride/bit and storage. Texture-bank/index bindings and certain v1 UV layouts remain unresolved even when geometry is renderable.

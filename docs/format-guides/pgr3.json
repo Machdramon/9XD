@@ -1,0 +1,85 @@
+{
+  "format": "9XD Format Research Guide",
+  "version": 1,
+  "id": "pgr3",
+  "name": "PGR3 / Xbox 360",
+  "executable": false,
+  "purpose": "Evidence and implementation guide for native adapters; not importable as a generic 9XD Mesh Profile.",
+  "match": {
+    "outerMagic": [
+      "ENDI",
+      "ENSW"
+    ],
+    "wrapperBytes": 12,
+    "sectionHeaderBytes": 12
+  },
+  "status": "Native supported vehicle primary-LOD geometry preview/export; materials, UV scale, component-state assembly and tracks pending",
+  "stages": {
+    "container": [
+      "Parse bounded named sections; standard zlib only when exact framing is supported."
+    ],
+    "geometry": [
+      "Identify vertex declarations, GPU stream pairings, endian conversion, index topology and draw boundaries.",
+      "Validate scene transforms and instance relationships separately for each game."
+    ],
+    "dependencies": [
+      "PAK_HRD for vehicles; scene PAK with referenced STREAM2 / BPR resources for tracks."
+    ]
+  },
+  "limitations": [
+    "Original shader blending/reflection is approximated",
+    "UV0 nominal signed-short /320 needs visual verification; secondary UV channels not applied",
+    "Component states may still overlap",
+    "Track SCNE/STREAM2/BPR assembly is separate and pending"
+  ],
+  "samples": [
+    {
+      "file": "288_GTO_Evo.pak_hrd",
+      "bytes": 1885609,
+      "sha256": "835aca4aa89acd2a0f332dddd20d2ae04ecabfdfabf2d6097dd2e9d893cdb2b8",
+      "headerHex": "454e4449010000000000000053434e4500000000e9ba1c00"
+    },
+    {
+      "file": "Garage_01_sunny.stream2",
+      "bytes": 32184321,
+      "sha256": "e662c08e5f405d571fa21b609d4e24912f8da9fa70c6491853cc8b482318223d",
+      "headerHex": "000800050000000000000000000000030100000200000002"
+    },
+    {
+      "file": "Tokyo_night.pak",
+      "bytes": 21522441,
+      "sha256": "9c1eec8c96ad03a06822b9e07444bd03337e58f63e2359ff28bf7db1f6b58abf",
+      "headerHex": "454e5357000000000000000052543030000000001c0e0080"
+    }
+  ],
+  "nativeGeometry": {
+    "profileId": "native-pgr34-car",
+    "schema": "SCNE vehicle declaration and draw-metadata versions 3/4",
+    "vertexTypes": "Big-endian Short4 positions; source declaration maps each indexed draw to the correct buffer",
+    "topology": "UInt16 triangle strips, FFFF restarts; primary LOD selected from metadata; all LOD spans must partition the source index stream",
+    "positionScale": "One integer quantizer constrained by all six scene extrema; reject inconsistent or ambiguous bounds",
+    "testedSample": {
+      "name": "288_GTO_Evo.pak_hrd",
+      "primaryDraws": 195,
+      "triangles": 118377,
+      "quantizer": 10000
+    },
+    "limitations": [
+      "Original shader blending/reflection is approximated",
+      "UV0 nominal signed-short /320 needs visual verification; secondary UV channels not applied",
+      "Component states may still overlap",
+      "Track SCNE/STREAM2/BPR assembly is separate and pending"
+    ]
+  },
+  "vehicleMaterials": {
+    "bindings": "Explicit per-node material references; nullable texture slot table",
+    "formats": [
+      "BC1",
+      "BC3",
+      "BC5"
+    ],
+    "layout": "Xbox 360 tiled, swap bytes in each 16-bit word",
+    "display": "Decal/base color maps and source material colors; normal/environment maps retained in surface library",
+    "shaderExact": false
+  }
+}

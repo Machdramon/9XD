@@ -144,7 +144,7 @@ public:
             if(!canonical.isEmpty()&&!existing.isEmpty()&&QFileInfo(existing).canonicalFilePath()==canonical){mdi_->setActiveSubWindow(sub);return;}
         }
         auto *document=activeDocument();
-        if(!document || document->documentView()->dirty() || !document->documentView()->filePath().isEmpty() || document->documentView()->fileSize()>0)document=addDocument();
+        if(!document || document->documentView()->busy() || document->documentView()->dirty() || !document->documentView()->filePath().isEmpty() || document->documentView()->fileSize()>0)document=addDocument();
         document->openInPlace(path);refreshTitle(document);
     }
     void setTheme(const QString &name){
@@ -222,6 +222,7 @@ private:
     MainWindow *addDocument(){
         auto *document=new MainWindow({},statePath_.isEmpty()?QString():QFileInfo(statePath_).dir().filePath("recent-files.json"));
         document->openRequested=[this](const QString &path){openFile(path);};document->newRequested=[this]{newDocument();};document->exitRequested=[this]{close();};
+        document->resourceRequested=[this](QByteArray bytes,QString name,QJsonObject origin,QString mode){auto *child=addDocument();child->openResourceData(std::move(bytes),name,origin,mode);refreshTitle(child);};
         document->settingsRequested=[this]{showSettings();};
         document->showModuleRequested=[this,document](const QString &module){for(auto session:sessions_)if(session&&session->document==document){mdi_->setActiveSubWindow(session);break;}selectModule(module);};
         document->aiWorkspaceDocuments=[this]{QJsonArray documents;for(auto session:sessions_)if(session&&documents.size()<16){auto *view=session->document->documentView();documents.append(QJsonObject{{"name",view->filePath().isEmpty()?session->document->untitledName():QFileInfo(view->filePath()).fileName()},{"size",QString::number(view->fileSize())},{"unsavedChanges",view->dirty()},{"active",session==active_}});}return documents;};
@@ -317,7 +318,7 @@ private:
     void emptyMenu(){
         for(auto *action:menuBar()->actions())menuBar()->removeAction(action);bar_->clear();
         if(!fallback_){fallback_=new QMenu("File",this);auto *create=fallback_->addAction("New File");create->setShortcut(QKeySequence::New);connect(create,&QAction::triggered,this,[this]{newDocument();});
-            auto *open=fallback_->addAction("Open File…");open->setShortcut(QKeySequence::Open);connect(open,&QAction::triggered,this,[this]{auto path=WorkbenchFiles::getOpenFileName(this,"Open File");if(!path.isEmpty())openFile(path);});fallback_->addSeparator();connect(fallback_->addAction("Settings"),&QAction::triggered,this,[this]{showSettings();});fallback_->addSeparator();connect(fallback_->addAction("Exit"),&QAction::triggered,this,&QWidget::close);}
+            auto *open=fallback_->addAction("Open File…");open->setShortcut(QKeySequence::Open);connect(open,&QAction::triggered,this,[this]{auto paths=WorkbenchFiles::getOpenFileNames(this,"Open Files");for(const auto &path:paths)openFile(path);});fallback_->addSeparator();connect(fallback_->addAction("Settings"),&QAction::triggered,this,[this]{showSettings();});fallback_->addSeparator();connect(fallback_->addAction("Exit"),&QAction::triggered,this,&QWidget::close);}
         menuBar()->addMenu(fallback_);menuBar()->addMenu(toolbarsMenu_);menuBar()->addMenu(moduleWindowsMenu_);menuBar()->addMenu(themeMenu_);setWindowTitle("9XD");refreshDetachedWindows();
     }
     void keepModuleWindowOnScreen(QWidget *window){

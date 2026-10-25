@@ -1,4 +1,5 @@
 #include "mesh_data.h"
+#include "memory_budget.h"
 #include <QtEndian>
 #include <bit>
 #include <cmath>
@@ -18,13 +19,14 @@ std::array<double,3> transformVector(std::array<double,3> input,const MeshSpec &
 }
 MeshResult readMesh(const ReadRequest &source,const PatchList &patches,const MeshSpec &s){
     MeshResult result;auto fail=[&](QString error){result.error=error;result.mesh.reset();return result;};
-    if(s.vertexCount<1||s.vertexCount>100000||s.indexCount<3||s.indexCount>600000||!std::isfinite(s.positionScale)||s.positionScale<=0)return fail("Limits: 100,000 vertices, 600,000 indices and a positive finite scale.");
+    if(s.vertexCount<1||s.vertexCount>AssetMemory::vertices()||s.indexCount<3||s.indexCount>AssetMemory::indices()||!std::isfinite(s.positionScale)||s.positionScale<=0)return fail("Mesh counts exceed the configured memory budget or scale is invalid.");
     if(!coordinateTypes.contains(s.positionType)||!QStringList{"UInt16","UInt32"}.contains(s.indexType)||!QStringList{"Float16","Float32"}.contains(s.uvType)||!QStringList{"Float32","SNorm16"}.contains(s.normalType))return fail("Unsupported component type.");
     auto order=s.axes;std::sort(order.begin(),order.end());if(order!=std::array<int,3>{0,1,2})return fail("Coordinate axes must be a permutation of XYZ.");
     int inversions=0;for(int i=0;i<3;++i){if(!std::isfinite(s.axisScale[i])||std::abs(s.axisScale[i])<1e-12||!std::isfinite(s.rotationDegrees[i]))return fail("Transform scale must be finite and nonzero; rotation must be finite.");inversions+=s.negate[i];inversions+=s.axisScale[i]<0;for(int j=i+1;j<3;++j)inversions+=s.axes[i]>s.axes[j];}
     if(s.homogeneous&&s.positionType!="Float16"&&s.positionType!="Float32")return fail("Homogeneous XYZW requires Float16 or Float32 coordinates.");
+    qint64 previousStart=-1;for(auto start:s.stripStarts){if(!s.strip||start<0||start>=s.indexCount||start<=previousStart)return fail("Invalid independent strip boundaries.");previousStart=start;}
     QString error;qint64 budget=0;
-    auto block=[&](qint64 offset,qint64 count,qint64 stride,int item){QByteArray bytes;if(offset<0||offset>source.expectedSize||stride<item||stride>65536||count<1||source.expectedSize-offset<item||(count-1)>(source.expectedSize-offset-item)/stride){error="A section is outside the file or its stride is too small.";return bytes;}qint64 length=(count-1)*stride+item;budget+=length;if(budget>64*1024*1024){error="Sections exceed 64 MiB; reduce the region.";return bytes;}for(qint64 done=0;done<length;){auto r=source;r.offset=offset+done;r.length=qMin(qint64(1048576),length-done);auto data=readPage(r);if(!data.error.isEmpty()){error=data.error;return QByteArray();}applyPatches(data.bytes,r.offset,patches);bytes+=data.bytes;done+=data.bytes.size();}return bytes;};
+    auto block=[&](qint64 offset,qint64 count,qint64 stride,int item){QByteArray bytes;if(offset<0||offset>source.expectedSize||stride<item||stride>65536||count<1||source.expectedSize-offset<item||(count-1)>(source.expectedSize-offset-item)/stride){error="A section is outside the file or its stride is too small.";return bytes;}qint64 length=(count-1)*stride+item;budget+=length;if(!AssetMemory::fits(s.vertexCount,s.indexCount,budget)){error="Mesh input and geometry exceed the configured memory budget in Settings > Performance.";return bytes;}for(qint64 done=0;done<length;){auto r=source;r.offset=offset+done;r.length=qMin(qint64(1048576),length-done);auto data=readPage(r);if(!data.error.isEmpty()){error=data.error;return QByteArray();}applyPatches(data.bytes,r.offset,patches);bytes+=data.bytes;done+=data.bytes.size();}return bytes;};
     result.positionDelta=s.positionDelta;
     if(s.deltaFromBinary){
         if(!coordinateTypes.contains(s.deltaType)||!std::isfinite(s.deltaScale)||s.deltaScale<=0)return fail("Invalid position delta type or scale.");
@@ -43,7 +45,9 @@ MeshResult readMesh(const ReadRequest &source,const PatchList &patches,const Mes
         for(int axis=0;axis<3;++axis){v.position[axis]=float(position[axis]);v.normal[axis]=float(normal[axis]);if(!std::isfinite(v.position[axis])||!std::isfinite(v.normal[axis]))return fail("Nonfinite position or normal after transformation.");}
         for(int axis=0;axis<2;++axis){v.uv[axis]=s.uv?component(uv.constData()+i*s.uvStride+axis*width(s.uvType),s.uvType,s.bigEndian):0;if(!std::isfinite(v.uv[axis]))return fail(QString("Nonfinite UV coordinate at vertex %1 (offset 0x%2). Check UV type/stride, or disable Read UVs for geometry-only decoding.").arg(i).arg(s.uvOffset+i*s.uvStride,0,16));}}
     QVector<quint32> run;QVector<qint64> runSlots;int stripId=0;const quint32 restart=s.indexType=="UInt16"?0xffff:0xffffffff;
+    qsizetype nextStart=0;
     for(qint64 i=0;i<s.indexCount;++i){
+        if(nextStart<s.stripStarts.size()&&i==s.stripStarts[nextStart]){run.clear();runSlots.clear();if(i)++stripId;++nextStart;}
         quint32 value=integer(indices.constData()+i*s.indexStride,width(s.indexType),s.bigEndian);
         if(s.strip&&value==restart){run.clear();runSlots.clear();++stripId;continue;}
         if(value>=s.vertexCount)return fail("Face index outside the vertex range.");run.append(value);runSlots.append(i);

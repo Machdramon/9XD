@@ -1,0 +1,173 @@
+{
+  "format": "9XD Format Research Guide",
+  "version": 1,
+  "id": "pgr2",
+  "name": "PGR2 / original Xbox",
+  "executable": false,
+  "purpose": "Evidence and implementation guide for native adapters; not importable as a generic 9XD Mesh Profile.",
+  "match": {
+    "magic": "INDX",
+    "reservedOffset": 4,
+    "containerSizeOffset": 8,
+    "containerSizeBias": 24,
+    "entryCountOffset": 12
+  },
+  "status": "Native indexed extraction, compact vehicle groups, WMSH base tracks and supported compact INST objects at source placements; command-based objects and stream assembly pending",
+  "stages": {
+    "container": {
+      "tableOffset": 16,
+      "entryStride": 16,
+      "tagOffset": 0,
+      "flagsSizeOffset": 8,
+      "relativeDataOffset": 12,
+      "dataOffsetBias": 12,
+      "sizeMask": "0x03ffffff",
+      "compressionFlag": "0x80000000",
+      "compressedHeaderBytes": 4,
+      "compressedFraming": "zlib sync-flush ending 0000ffff; no Adler trailer; non-final streams require the dedicated pgr-zlib-sync adapter"
+    },
+    "vehicle": {
+      "decoder": "native-pgr2-car",
+      "meshGroupHeaderBytes": 52,
+      "parentBytesOffset": 0,
+      "selfBytesOffset": 4,
+      "firstLodDrawCountOffset": 40,
+      "indexCountOffset": 42,
+      "vertexBufferOffsetOffset": 48,
+      "indexDataOffset": 52,
+      "subdrawStride": 8,
+      "subdrawMaterialOffset": 0,
+      "subdrawStartOffset": 4,
+      "subdrawCountOffset": 6,
+      "positionType": "Int16",
+      "vertexStride": 14,
+      "positionOffset": 0,
+      "positionScale": "32 * INFO.scale[axis] / 32767; INFO X at +16, Y/Z at +20",
+      "uvType": "Int16",
+      "uvOffset": 10,
+      "uvScale": "100 / 65535",
+      "bufferBase": "VB UInt32 within GPUD",
+      "supportedGroupVertexBufferOffsets": [
+        0
+      ],
+      "drawTopology": "independent triangle strips; skip degenerates; first LOD per group"
+    },
+    "track": [
+      "WMSH, INST, GPUD, GPUS, VB and PAK_STREAM relationships remain to be reconstructed."
+    ]
+  },
+  "limitations": [
+    "Five supplied indexed archives / 65 sections tested.",
+    "Declared decompression header is treated as bounded capacity; not assumed to equal actual output.",
+    "Never relax generic zlib checksum/termination validation for this framing.",
+    "Vehicle component/state alternatives remain separate; do not treat Select All as a fully resolved game vehicle assembly.",
+    "Texture/material IDs retained, pixels not yet assigned to vehicle groups.",
+    "Validated against the supplied 240Z only; additional vehicles still need corpus validation."
+  ],
+  "samples": [
+    {
+      "file": "240Z.pak_cth",
+      "bytes": 104772,
+      "sha256": "f64d5e295c9ac034aa6b0f69e102987016b942aa49c940533c1e22be349dafa6",
+      "headerHex": "574d534800000000e74000c0c771000078da3c9d03985cdb"
+    },
+    {
+      "file": "240Z.pak_hrd",
+      "bytes": 412684,
+      "sha256": "d014ccd4d531183d4deb3d8694ba3283cb3a86a7c531833b455a60913dc09175",
+      "headerHex": "494e445800000000f44b06000b0000004d45534800000000"
+    },
+    {
+      "file": "Barcelona Frontend Maps.dat",
+      "bytes": 5930,
+      "sha256": "7b0ef322e470e4bf0ddab7923055a7fa1ad75b33432eeec8bbe87d74bb010750",
+      "headerHex": "10000000524e87c4fa6b4e437ade873e203ac43e8101e749"
+    },
+    {
+      "file": "Barcelona.pak_common",
+      "bytes": 924684,
+      "sha256": "b583f2e41bd450b1c92b854052b55d0631750abe4faaea729838282568a3712a",
+      "headerHex": "494e445800000000f41b0e000500000054494d4500000000"
+    },
+    {
+      "file": "Barcelona.pak_day",
+      "bytes": 16245676,
+      "sha256": "c23b96839e7d49f45095dbe0008f3427e2eaeeb201624d2eaf8aa66ae3d1ba2d",
+      "headerHex": "494e44580000000094e3f70011000000574d534800000000"
+    },
+    {
+      "file": "Barcelona.pak_night",
+      "bytes": 14545388,
+      "sha256": "fe24d1239d5c3f927bedd1971a68e8161b415bbc22d8fbc9eb745b8bcfdc15a7",
+      "headerHex": "494e445800000000d4f1dd0011000000574d534800000000"
+    },
+    {
+      "file": "Barcelona.pak_overcast",
+      "bytes": 14522860,
+      "sha256": "f67841d2c6a1d456493e5840e463dc6077b4b377a4b6d661ddfe938a194a1724",
+      "headerHex": "494e445800000000d499dd0011000000574d534800000000"
+    },
+    {
+      "file": "Barcelona.pak_stream",
+      "bytes": 43815936,
+      "sha256": "93ea61dd7b11899300a0420c9f16294c3a3a9fdcd4ba94cf3bbaf9e4792ce46f",
+      "headerHex": "000000000000000000000000000000000000000000000000"
+    },
+    {
+      "file": "Barcelona.pvs_Day",
+      "bytes": 945336,
+      "sha256": "d9b585d7f3af5ca8ab18a745c4e9c1238fa97838b130382553cb4e87d748643b",
+      "headerHex": "0100000000000041000000000000000000000000f6530100"
+    },
+    {
+      "file": "Barcelona.pvs_Night",
+      "bytes": 837084,
+      "sha256": "15ba334573ea6d4bfea8069619f98de9115438c763b2e2a804043de385e4bdc1",
+      "headerHex": "0100000000000041000000000000000000000000025f0100"
+    },
+    {
+      "file": "Barcelona.pvs_Overcast",
+      "bytes": 825522,
+      "sha256": "a1dc0a21dbb9b204608599fcbd86240acc955dcc8b4bba487e1cf56810680736",
+      "headerHex": "01000000000000410000000000000000000000003a480100"
+    }
+  ],
+  "materialIntegration": {
+    "MAT": "UInt32 count; records Int16 texture ID, UInt16 color, UInt16 flags, UInt8 blend, UInt8 constant",
+    "TEXT": "UInt32 count; 40-byte name[32]/format16/dimensionPowers16/GPUDoffset32 records",
+    "supportedTextureFormat": "0x040c BC3",
+    "shaderPolicy": "Conventional diffuse records assign textures; paint/environment flags (mask 0x0c) retain neutral surfaces with original texture IDs and material flags. Exact paint/glass/reflection shaders pending.",
+    "validation": "240Z: 79 draws, 57 materials, 2 shared textures, 46 diffuse texture draws; geometry counts unchanged. Independent metadata audit: 84 indexed cars/200 TEXT entries use 0x040c; this is not full geometry validation of all 84."
+  },
+  "wmshTrack": {
+    "hierarchy": "0x83d branches with four relative children; 0x83f leaves with independent subdraws",
+    "vertexDeclarations": {
+      "0x18": 20,
+      "0x1c": 24,
+      "0x20": 24,
+      "0x24": 28
+    },
+    "validation": "Referenced positions must fit the leaf bounds; strips reset per subdraw; material-declared strides only.",
+    "textures": "TEX/GPUD BC1 and BC3; source effect inputs retained in library, not guessed as diffuse.",
+    "tested": "Barcelona day: 2644 materials, 364078 triangles, 1190 shared images; UI bulk load and GLB export. 34 of 35 area archives accepted structurally; one has no supported WMSH.",
+    "uv0ByteOffset": 16
+  },
+  "placedTrackObjects": {
+    "source": "Nested INST INFO/MESH prototypes and WMSH leaf matrix arrays",
+    "matrixMetadata": "Prototype reference in the low byte of element 0; color reference in element 6; clear packed metadata before transforming.",
+    "geometry": "Validated 0xc34/0xc35 compact strips with per-draw vertex offsets and material-declared layout. Other command layouts are not treated as ordinary strip tables.",
+    "barcelonaDay": {
+      "supportedObjects": 1078,
+      "unsupportedObjects": 378,
+      "materialGroups": 129,
+      "triangles": 204534
+    },
+    "limitations": [
+      "Per-instance COLR lighting not applied",
+      "Command-based objects remain unsupported",
+      "Additional streams and original effect shaders pending"
+    ],
+    "uv0ByteOffset": 6
+  },
+  "uvCorrection": "Full track and compact INST UV0 precedes the optional normal field. Vehicle UV layout is separate. Building-to-building triangle report remains under investigation."
+}

@@ -218,7 +218,7 @@ QWidget *HexView::inspector()const{return inspector_;}
 void HexView::focusInterpretation(){type_->setFocus();type_->showPopup();}
 void HexView::setNavigationEnabled(bool enabled){offsetEditor_->setEnabled(enabled);scrollbar_->setEnabled(enabled);}
 void HexView::openFile(const QString &path){
-    if(saving())return;emit sourceReplaced();
+    if(saving())return;setProperty("nativeResourceOrigin",QVariant());emit sourceReplaced();
     resetDirectEdit();cancelPatternSearch();cancelMagicScan();cancelEntropy();emit documentChanged();
     memory_.reset();savedMemory_.reset();memoryHistory_.clear();memoryCursor_=0;
     edits_.clear();
@@ -622,12 +622,13 @@ void HexView::startDirectEdit(){
     *directSpec_=std::move(spec);directReader_.request(sourceRequest(begin,end-begin));
 }
 
-void HexView::newMemoryDocument(){
-    if(saving())return;emit sourceReplaced();
+void HexView::newMemoryDocument(const QByteArray &initialBytes){
+    if(saving())return;setProperty("nativeResourceOrigin",QVariant());emit sourceReplaced();
     resetDirectEdit();cancelPatternSearch();cancelMagicScan();cancelEntropy();
     reader_.invalidate();inspectorReader_.invalidate();copyReader_.invalidate();
-    memory_=std::make_shared<MemoryData>();savedMemory_=memory_;memoryHistory_.clear();memoryCursor_=0;
-    path_.clear();size_=0;modified_={};desiredOffset_=loadedOffset_=0;selection_={0,0,stride_->value(),false};
+    auto initial=std::make_shared<MemoryData>();initial->size=initialBytes.size();for(qsizetype p=0;p<initialBytes.size();p+=MemoryData::BlockSize)initial->blocks.append(initialBytes.mid(p,MemoryData::BlockSize));
+    memory_=initial;savedMemory_=memory_;memoryHistory_.clear();memoryCursor_=0;edits_.clear();
+    path_.clear();size_=initialBytes.size();modified_={};desiredOffset_=loadedOffset_=0;selection_={0,0,stride_->value(),false};
     formatRules_.clear();cache_->reset({});insertMode_=false;
     emit documentChanged();emit formatRulesChanged();refreshMemory();emit fileOpened({});emit editStateChanged();
     table_->setFocus();

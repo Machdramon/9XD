@@ -35,7 +35,7 @@ public:
     void chooseBytesPerRow();
     void chooseByteGroup();
     void openFile(const QString &path);
-    void newMemoryDocument();
+    void newMemoryDocument(const QByteArray &bytes={});
     bool isMemoryDocument()const{return bool(memory_);}
     bool insertMode()const{return insertMode_;}
     void setInsertMode(bool value){insertMode_=value;}

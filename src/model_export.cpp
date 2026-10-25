@@ -1,6 +1,7 @@
 #include "model_export.h"
 #include "fbx_export.h"
 #include <QSaveFile>
+#include <QBuffer>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -49,7 +50,7 @@ ModelExportResult exportModel(const QString &path,const QVector<ExportMesh> &mes
         if(result.vertices>2000000||result.faces>4000000)fail("This version supports up to 2 million vertices and 4 million triangles per export.");
         QSaveFile file(path);if(!file.open(QIODevice::WriteOnly))fail(file.errorString());
         QVector<ExportMesh> fbxMeshes;
-        QByteArray bin;QJsonArray nodes,gltfMeshes,accessors,views,sceneNodes;
+        QByteArray bin;QJsonArray nodes,gltfMeshes,accessors,views,sceneNodes,materials,images,textures,samplers;QMap<QPair<qint64,int>,int> textureCache;QMap<qint64,int> imageCache;QMap<QPair<int,int>,int> samplerCache;QMap<QByteArray,int> materialCache;
         quint64 vertexBase=1,uvBase=1,normalBase=1;
         if(o.format==ModelFormat::Obj)write(file,"# Binary Workbench: triangulated geometry; no textures/materials\n");
         if(o.format==ModelFormat::Stl){QByteArray header(80,0);header.replace(0,16,"Binary Workbench");u32(header,quint32(result.faces));write(file,header);}
@@ -69,7 +70,11 @@ ModelExportResult exportModel(const QString &path,const QVector<ExportMesh> &mes
                 for(qsizetype i=0;i<m.triangles.size();++i){if(i%3072==0)checkpoint(progress);u32(indexData,m.triangles[i]);}
                 QJsonObject attributes{{"POSITION",accessor(positions,m.vertices.size(),3,false,{low[0],low[1],low[2]},{high[0],high[1],high[2]})}};
                 if(normals)attributes["NORMAL"]=accessor(normalData,m.vertices.size(),3,false);if(m.hasUvs)attributes["TEXCOORD_0"]=accessor(uvData,m.vertices.size(),2,false);
-                QJsonObject primitive{{"attributes",attributes},{"indices",accessor(indexData,m.triangles.size(),1,true)},{"mode",4}};if(o.material)primitive["material"]=0;
+                QJsonObject primitive{{"attributes",attributes},{"indices",accessor(indexData,m.triangles.size(),1,true)},{"mode",4}};
+                if(o.material||o.sceneMaterials){auto color=o.material?o.color:e.surface.baseColor;auto linear=[](double c){return c<=.04045?c/12.92:std::pow((c+.055)/1.055,2.4);};QJsonObject pbr{{"baseColorFactor",QJsonArray{linear(color.redF()),linear(color.greenF()),linear(color.blueF()),color.alphaF()}},{"metallicFactor",0.0},{"roughnessFactor",1.0}};
+                    if(o.textures&&m.hasUvs&&!e.texture.isNull()){auto wrap=[](QString v){return v=="Clamp"?33071:v=="Mirror"?33648:10497;};auto modes=qMakePair(wrap(e.surface.sourceBindings["textureWrapU"].toString()),wrap(e.surface.sourceBindings["textureWrapV"].toString()));int sampler;if(samplerCache.contains(modes))sampler=samplerCache[modes];else{sampler=samplers.size();samplerCache[modes]=sampler;samplers.append(QJsonObject{{"wrapS",modes.first},{"wrapT",modes.second},{"magFilter",9729},{"minFilter",9729}});}auto key=qMakePair(e.texture.cacheKey(),sampler);int tid=-1;if(textureCache.contains(key))tid=textureCache[key];else{int image;if(imageCache.contains(e.texture.cacheKey()))image=imageCache[e.texture.cacheKey()];else{QByteArray png;QBuffer buffer(&png);buffer.open(QIODevice::WriteOnly);if(!e.texture.save(&buffer,"PNG"))fail("Could not encode the assigned texture.");while(bin.size()%4)bin.append('\0');int view=views.size();views.append(QJsonObject{{"buffer",0},{"byteOffset",bin.size()},{"byteLength",png.size()}});bin+=png;image=images.size();images.append(QJsonObject{{"bufferView",view},{"mimeType","image/png"}});imageCache[e.texture.cacheKey()]=image;}tid=textures.size();textures.append(QJsonObject{{"source",image},{"sampler",sampler}});textureCache[key]=tid;}pbr["baseColorTexture"]=QJsonObject{{"index",tid}};}
+                    QJsonObject material{{"name",o.material?"Test color":e.surface.name},{"doubleSided",o.doubleSided||e.surface.doubleSided},{"pbrMetallicRoughness",pbr}};if(e.surface.alphaMask){material["alphaMode"]="MASK";material["alphaCutoff"]=0.01;}if(!e.surface.sourceBindings.isEmpty())material["extras"]=e.surface.sourceBindings;if(e.surface.unlit)material["extensions"]=QJsonObject{{"KHR_materials_unlit",QJsonObject()}};auto key=QJsonDocument(material).toJson(QJsonDocument::Compact);if(!materialCache.contains(key)){materialCache[key]=materials.size();materials.append(material);}primitive["material"]=materialCache[key];
+                }
                 gltfMeshes.append(QJsonObject{{"name",name},{"primitives",QJsonArray{primitive}}});nodes.append(QJsonObject{{"name",name},{"mesh",meshIndex}});sceneNodes.append(meshIndex);
             }
             if(progress)progress->percent.store((meshIndex+1)*90/meshes.size());
@@ -77,7 +82,7 @@ ModelExportResult exportModel(const QString &path,const QVector<ExportMesh> &mes
         if(o.format==ModelFormat::Fbx){checkpoint(progress);write(file,encodeFbx(fbxMeshes,o,progress));}
         if(o.format==ModelFormat::Glb){
             QJsonObject json{{"asset",QJsonObject{{"version","2.0"},{"generator","Binary Workbench"}}},{"scene",0},{"scenes",QJsonArray{QJsonObject{{"nodes",sceneNodes}}}},{"nodes",nodes},{"meshes",gltfMeshes},{"accessors",accessors},{"bufferViews",views},{"buffers",QJsonArray{QJsonObject{{"byteLength",double(bin.size())}}}}};
-            if(o.material){auto linear=[](double c){return c<=.04045?c/12.92:std::pow((c+.055)/1.055,2.4);};json["materials"]=QJsonArray{QJsonObject{{"name","Test color"},{"doubleSided",o.doubleSided},{"pbrMetallicRoughness",QJsonObject{{"baseColorFactor",QJsonArray{linear(o.color.redF()),linear(o.color.greenF()),linear(o.color.blueF()),1.0}},{"metallicFactor",0.0},{"roughnessFactor",1.0}}}}};}
+            if(!materials.isEmpty())json["materials"]=materials;if(!images.isEmpty()){json["images"]=images;json["textures"]=textures;json["samplers"]=samplers;}bool unlit=false;for(const auto &m:materials)unlit|=m.toObject().contains("extensions");if(unlit)json["extensionsUsed"]=QJsonArray{"KHR_materials_unlit"};
             QByteArray text=QJsonDocument(json).toJson(QJsonDocument::Compact);while(text.size()%4)text+=' ';while(bin.size()%4)bin+='\0';QByteArray header;u32(header,0x46546c67);u32(header,2);u32(header,quint32(28+text.size()+bin.size()));u32(header,text.size());u32(header,0x4e4f534a);write(file,header);write(file,text);QByteArray binHeader;u32(binHeader,bin.size());u32(binHeader,0x004e4942);write(file,binHeader);for(qsizetype at=0;at<bin.size();at+=1048576){checkpoint(progress);write(file,bin.mid(at,1048576));}
         }
         checkpoint(progress);if(!file.commit())fail("Could not finalize the file: "+file.errorString());result.ok=true;if(progress)progress->percent=100;

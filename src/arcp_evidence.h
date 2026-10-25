@@ -68,5 +68,6 @@ inline QJsonObject arcpEvidence(const QByteArray &bytes,qint64 sourceSize,const 
 inline QString assetMeshDiagnostic(const QJsonObject &discovery){
     auto evidence=discovery["meshEvidence"].toArray();for(auto value:evidence){auto item=value.toObject();if(!item["diagnostic"].toString().isEmpty())return item["diagnostic"].toString();}
     if(!evidence.isEmpty())return "Geometry packets found. This format needs a packet importer and reconstructed triangle indices; raw index settings are insufficient.";
+    auto resources=discovery["resources"].toObject();if(resources.contains("error"))return resources["error"].toString();if(!resources["entries"].toArray().isEmpty())return QString("%1 container/stream recognized with %2 resource(s). Open a resource in the native scanner to decompress and inspect its contents; listing an archive is not a geometry decode.").arg(resources["format"].toString()).arg(resources["entries"].toArray().size());
     return QString("No supported model recipe found after inspecting %1 bytes. This does not prove that the file contains no geometry. Inspect the header or load a known setup; existing settings were preserved.").arg(discovery["scannedBytes"].toString());
 }

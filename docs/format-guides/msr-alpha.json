@@ -1,0 +1,169 @@
+{
+  "format": "9XD Format Research Guide",
+  "version": 1,
+  "id": "msr-alpha",
+  "name": "MSR alpha / Dreamcast",
+  "executable": false,
+  "purpose": "Evidence and implementation guide for native adapters; not importable as a generic 9XD Mesh Profile.",
+  "match": {
+    "trackMagicLE": "0x00010001",
+    "trackStoredSizeOffset": 4,
+    "trackHeaderPointerOffset": 12,
+    "carHeaderBytes": 304
+  },
+  "status": "native geometry implemented; primary vehicle LOD only",
+  "stages": {
+    "track": {
+      "rootCountOffset": 80,
+      "geometryLengthOffset": 100,
+      "rootOffset": 108,
+      "nodeBytesOffset": 0,
+      "childOffsetField": 4,
+      "childOffsetsSupported": [
+        48,
+        64
+      ],
+      "specialNodesSkipped": [],
+      "leafVertexCountPackedOffset": 36,
+      "leafVertexCountShift": 16,
+      "leafVerticesOffset": 48,
+      "vertexStride": 16,
+      "xyzOffset": 0,
+      "homogeneousOffset": 12,
+      "centerOffset": 8,
+      "stripHeaderBytes": 8,
+      "stripCountOffset": 0,
+      "materialIdOffset": 4,
+      "cornerStride": 16,
+      "cornerUvOffset": 0,
+      "cornerColorOffset": 8,
+      "cornerIndexOffset": 12,
+      "indexBytes": 4,
+      "declaredStripCountOffset": 40,
+      "declaredStripCountType": "UInt16",
+      "declaredCornerCountOffset": 42,
+      "declaredCornerCountType": "UInt16",
+      "acceptedLeafTrailerBytes": [
+        0,
+        12
+      ]
+    },
+    "vehicle": {
+      "primaryLodOffset": 304,
+      "geometryLengthOffset": 8,
+      "parentCountOffset": 16,
+      "firstParentOffset": 40,
+      "parentBytesOffset": 28,
+      "parentCenterOffset": 0,
+      "materialGroupsOffset": 40,
+      "groupBytesOffset": 0,
+      "groupMaterialOffset": 4,
+      "groupVertexCountOffset": 8,
+      "groupVerticesOffset": 16,
+      "vertexStride": 24,
+      "xyzOffset": 0,
+      "homogeneousOffset": 12,
+      "uvOffset": 16,
+      "stripCountBytes": 2,
+      "indexBytes": 2,
+      "stripTerminator": 0
+    }
+  },
+  "limitations": [
+    "Reset strip parity at every draw; never generate spatial faces.",
+    "Texture references retained but no automatic texture binding.",
+    "One vehicle material group and some track groups contain source NaN UVs: retain geometry and explicitly omit UVs for those groups.",
+    "Retail Pak compression is distinct.",
+    "Not a generic profile JSON; native-msr-alpha-car / native-msr-alpha-track are built-in decoder IDs.",
+    "Empty nodes are omitted. Strip corner counts may exceed unique vertex counts; each referenced index is checked independently."
+  ],
+  "samples": [
+    {
+      "file": "156.GNG",
+      "bytes": 312,
+      "sha256": "f027b6b49a0f36ef8ea75e1f6fb37fa7fd5ed10236589cfe1b65e256401c041b",
+      "headerHex": "30010000000040400000000048e14a401f85eb3f14aea73f"
+    },
+    {
+      "file": "156.HRD",
+      "bytes": 312,
+      "sha256": "f027b6b49a0f36ef8ea75e1f6fb37fa7fd5ed10236589cfe1b65e256401c041b",
+      "headerHex": "30010000000040400000000048e14a401f85eb3f14aea73f"
+    },
+    {
+      "file": "156.NRM",
+      "bytes": 735992,
+      "sha256": "45dc550249e165eff0266f68df865491038788f30a8a4d04168f1319ae6eb80b",
+      "headerHex": "30010000000040400000000048e14a401f85eb3f14aea73f"
+    },
+    {
+      "file": "156.SFT",
+      "bytes": 312,
+      "sha256": "f027b6b49a0f36ef8ea75e1f6fb37fa7fd5ed10236589cfe1b65e256401c041b",
+      "headerHex": "30010000000040400000000048e14a401f85eb3f14aea73f"
+    },
+    {
+      "file": "ASAKUSA.DYP",
+      "bytes": 2218652,
+      "sha256": "90cce1bbec6c08ea7131e64dc012322f3d10aae924267a62dc1495ba92f3ec95",
+      "headerHex": "010001009cda2100000000001400000088da2100001d0080"
+    },
+    {
+      "file": "ASAKUSA.DYT",
+      "bytes": 2933260,
+      "sha256": "c129a3a12ea8f7be9b9478a9fcebcb99ecbb32e7e8890facab13d88393579723",
+      "headerHex": "0100010000000000f8c12c000000000000000000001d0080"
+    },
+    {
+      "file": "ASAKUSA.NTP",
+      "bytes": 2215820,
+      "sha256": "69b5f39e49a2f5916546674f68d9f012914a7f11503b54676bd814fdd984b6ac",
+      "headerHex": "010001008ccf2100000000001400000078cf2100001d0080"
+    },
+    {
+      "file": "ASAKUSA.NTT",
+      "bytes": 2912356,
+      "sha256": "600c3cfa6d7c85c647be3f89245567529c6dcb13fac29dfc897d598bd9ac0b8f",
+      "headerHex": "010001000000000050702c000000000000000000001d0080"
+    }
+  ],
+  "historicalReference": {
+    "archive": "areas-B9C3A.rar",
+    "script": "current-7C0ED.py",
+    "source": "Discord research archive, 4 October 2020",
+    "verifiedCounts": {
+      "Asakusa": {
+        "vertices": 43992,
+        "stripTriangles": 37635
+      },
+      "Shibuya": {
+        "vertices": 106905,
+        "stripTriangles": 91252
+      },
+      "Shinjuku": {
+        "vertices": 49258,
+        "stripTriangles": 44730
+      }
+    }
+  },
+  "materialIntegration": {
+    "car": "embedded primary LOD textures",
+    "track": "sibling DYT/NTT; original disk path needed for automatic lookup",
+    "formats": [
+      "Dreamcast VQ RGB565",
+      "Dreamcast VQ ARGB1555",
+      "Dreamcast VQ ARGB4444",
+      "twiddled raw 16-bit records where declared"
+    ],
+    "limitations": [
+      "secondary masks not applied",
+      "source material shaders not recreated",
+      "invalid source UV groups retain geometry without texture assignment"
+    ],
+    "validatedTextures": {
+      "Alfa156": 23,
+      "AsakusaDay": 355,
+      "AsakusaNight": 355
+    }
+  }
+}

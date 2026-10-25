@@ -8,7 +8,7 @@ The project is under active development. Some tools and format variants are stil
 
 ## Download and run
 
-Download **[9XD 0.3.0 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.3.0/9XD-0.3.0-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.3.0) for the SHA-256 checksum and [release notes](docs/releases/v0.3.0.md).
+Download **[9XD 0.3.5 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.3.5/9XD-0.3.5-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.3.5) for the SHA-256 checksum and [release notes](docs/releases/v0.3.5.md).
 
 1. Extract the **entire ZIP** to a writable folder.
 2. Open `9XD.exe` inside the extracted folder.
@@ -68,16 +68,14 @@ The [Scripting Library Manager](docs/scripting-libraries.md) lists the active ru
 
 Python scripting uses the bundled interpreter and standard library in the Windows package. Additional third-party Python packages are not included. C++ scripting requires a compatible local compiler. Run scripts only when you trust their contents: scripts execute local code.
 
-## New in 0.3.0
+## New in 0.3.5
 
-- Native **Scan File**, **Scan for 3D Data**, and **Scan for Textures / Images** inspectors share the binary document reader and include unsaved changes. Recognized regions can be marked in Structure/Formatting.
-- Validated Genki PS2 and ARCP packet profiles reconstruct triangle strips directly. Tested originals recover 26,532 vertices / 21,942 triangles and 3,256 vertices / 2,222 triangles respectively. This is profile-specific support, not a universal console-model importer; hierarchy, part variants and material bindings remain unresolved.
-- Bounded TIM2 discovery now lists all supported pictures up to 128 candidates; the Genki test fixture provides 40 decoded surfaces.
-- Local **Ollama** assistant with user-installed models, permission-controlled document inspection, structure annotations and native preview tools. Ollama and models are installed separately; no cloud API key is bundled. See [AI assistance](docs/ai-assistance.md).
-- Expanded 3D workspace: transform gizmos, split and detached viewports, six orthographic directions, reference grids, framing/visibility/isolation, bounding dimensions, rendering styles, face/vertex normal display, materials and FBX export. See [3D workspace](docs/3d-workspace.md).
-- Updated 9XD identity and transparent application icon. Existing user settings and layouts are preserved.
+- Expanded native racing-format adapters and direct scan-to-viewport loading, including PGR static tracks with STREAM2 companions, NFSU2, R-Tuned, FM1, MSR and supported Fast & Furious Xbox data.
+- Linked material/texture handling, native EA HUFF and LZX decoding, Genki profile isolation, TXRD2 mode-dependent face suppression and TXR Zero transfer-form TIM2 images.
+- One-click Render All, multi-selection, faster searchable/sortable lists, shared caches, configurable memory budgets and hardware-aware settings.
+- Configurable viewport navigation, corrected measurement grids and more convenient multi-file/recent-folder workflows.
 
-See [0.3.0 release notes](docs/releases/v0.3.0.md) and [native scanning](docs/native-scanning.md) for current limits.
+See [0.3.5 release notes](docs/releases/v0.3.5.md) and [native scanning](docs/native-scanning.md) for validation and limits.
 
 ## Programmer calculator
 
@@ -104,6 +102,23 @@ Windows x64 and macOS ARM64 have been built and tested during development. Linux
 
 ## Validation and documentation
 
-The latest Windows validation completed **45 reader tests and 59 interface tests**, with 13 optional checks skipped in the automated suite; native Vulkan textured rendering was also verified separately during development. Packaging checks the application, image handlers and bundled Python scripting with development Qt/Python paths removed from the environment. A separate clean-machine validation is still pending.
+The TXR/Genki/TXRD2 regression run passed 12 checks, including scanner Render All, malformed draw-control rejection and GLB/FBX exports; topology isolation covers 23 local files. Separate NFSU2 validation covers 636 HUFF blocks across 32 archives and a native Vulkan scene with 3,104,048 triangles. Release packaging checks startup, image handlers and bundled Python with development paths removed. A separate clean-machine validation is still pending.
 
 See [the user guide](docs/user-guide.md), [Windows build/release notes](docs/windows-release.md), and [third-party notices](tools/THIRD-PARTY.txt). Additional documentation may still contain older descriptions while the application evolves.
+
+## Native racing-format support
+
+| Family | Current native scope |
+|---|---|
+| FM1 | Supported vehicle/track geometry and linked textures; format variants remain bounded |
+| MSR | Alpha vehicles/tracks and supported retail tracks; retail vehicle decoding remains incomplete |
+| PGR1 / PGR2 | Supported vehicles/tracks with linked maps and selected placed-object layouts |
+| PGR3 / PGR4 | Supported vehicles and static track draws with STREAM2 companions; full instancing/shaders remain incomplete |
+| NFS Underground 2 | Supported vehicle/scenery geometry, material splits and native HUFF images; dynamic game material substitutions remain partial |
+| R-Tuned | Supported visual course/vehicle geometry with base-map bindings |
+| Fast & Furious Xbox | Supported pre-release vehicle/static-stage geometry and selected material/image bindings |
+| Genki PS2 | Isolated C1, explicit GIF-strip TXR Zero/TXR3/TXRD1 and TXRD2 v1 profiles; texture/UV/hierarchy coverage varies |
+
+These are validated decoder paths, not a claim that every file or game scene imports completely. Keep required companion files beside the source. Unsupported layouts remain explicit. No game assets are included.
+
+See [racing-format progress](docs/priority-racing-formats.md), [linked scene materials](docs/linked-scene-materials.md), [Genki topology](docs/genki-topology.md), and [format guides](docs/format-guides/README.md). Some research documents preserve earlier findings; their later updates supersede historical restrictions.

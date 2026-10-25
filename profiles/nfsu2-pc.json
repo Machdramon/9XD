@@ -1,0 +1,52 @@
+{
+  "format": "9XD Mesh Profile",
+  "version": 1,
+  "id": "nfsu2-pc",
+  "name": "NFS Underground 2 \u2014 PC solids",
+  "parser": "chunked-indexed-v1",
+  "rootChunk": "0x80134000",
+  "objectChunk": "0x80134010",
+  "header": {
+    "chunk": "0x00134011",
+    "alignment": 16,
+    "versionOffset": 12,
+    "versionValue": 22,
+    "nameOffset": 164,
+    "nameBytes": 128,
+    "matrixOffset": 64
+  },
+  "descriptor": {
+    "chunk": "0x00134900",
+    "alignment": 16,
+    "vertexCountOffset": 52,
+    "triangleCountOffset": 36
+  },
+  "vertices": {
+    "chunk": "0x00134b01",
+    "alignment": 128,
+    "stride": 36,
+    "positionOffset": 0,
+    "normalOffset": 12,
+    "uvOffset": 28
+  },
+  "indices": {
+    "chunk": "0x00134b03",
+    "alignment": 16,
+    "bytes": 2
+  },
+  "materials": {
+    "chunk": "0x00134b02",
+    "alignment": 16,
+    "stride": 60,
+    "countOffset": 12,
+    "startOffset": 52,
+    "textureSlotOffset": 28,
+    "shaderOffset": 32
+  },
+  "applyTransform": true,
+  "rotationDegrees": [
+    -90,
+    0,
+    0
+  ]
+}

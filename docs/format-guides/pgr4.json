@@ -1,0 +1,103 @@
+{
+  "format": "9XD Format Research Guide",
+  "version": 1,
+  "id": "pgr4",
+  "name": "PGR4 / Xbox 360",
+  "executable": false,
+  "purpose": "Evidence and implementation guide for native adapters; not importable as a generic 9XD Mesh Profile.",
+  "match": {
+    "outerMagic": [
+      "ENDI",
+      "ENSW"
+    ],
+    "wrapperBytes": 12,
+    "sectionHeaderBytes": 12
+  },
+  "status": "Native supported vehicle primary-LOD geometry preview/export; materials, UV scale, component-state assembly and tracks pending",
+  "stages": {
+    "container": [
+      "Parse bounded named sections; standard zlib only when exact framing is supported."
+    ],
+    "geometry": [
+      "Identify vertex declarations, GPU stream pairings, endian conversion, index topology and draw boundaries.",
+      "Validate scene transforms and instance relationships separately for each game."
+    ],
+    "dependencies": [
+      "PAK_HRD for vehicles; scene PAK with referenced STREAM2 / BPR resources for tracks."
+    ]
+  },
+  "limitations": [
+    "Original shader blending/reflection is approximated",
+    "UV0 nominal signed-short /320 needs visual verification; secondary UV channels not applied",
+    "Component states may still overlap",
+    "Track SCNE/STREAM2/BPR assembly is separate and pending"
+  ],
+  "samples": [
+    {
+      "file": "AlfaRomeo_SZ.pak_hrd",
+      "bytes": 2091435,
+      "sha256": "f5eb58e6d070f717bb08b6034a22e25a7d5306efa6618003cddfe7604ac35396",
+      "headerHex": "454e4449010000000000000053434e450000000027cc1f00"
+    },
+    {
+      "file": "Garage_01_game.pak",
+      "bytes": 15697,
+      "sha256": "2abae61ac97672409abc8be5b1b31d7b9142d54dffd60ffdcda4c6bfa86f142b",
+      "headerHex": "454e53570000000000000000525430300000000068010080"
+    },
+    {
+      "file": "Garage_01_mad.bpr",
+      "bytes": 532740,
+      "sha256": "d29e513c6741234c680c12d41720e8a75618d372502f044d5f6ed4c537be0a50",
+      "headerHex": "425a5232030100f000e0000200081c5900000000001c0000"
+    },
+    {
+      "file": "garage_01_rookie_sunny.bpr",
+      "bytes": 143417,
+      "sha256": "77db6220adfd6bce699bbae60f17a7462e851609f35d4c8f1a7d34336b86130a",
+      "headerHex": "425a523203010025001c00010006000000022cb600000000"
+    },
+    {
+      "file": "Garage_01_sunny.pak",
+      "bytes": 14924,
+      "sha256": "43b5f8701f5c3027c3800dfc45b3c636a7f0522773f166a538e63f4086cbbb47",
+      "headerHex": "454e53570000000000000000525430300000000036000080"
+    },
+    {
+      "file": "Garage_01_sunny.stream2",
+      "bytes": 18329601,
+      "sha256": "d93f97801adff79639bf8aadb2dbc6fd3452c7f4f5cd2d82bc081f797b9a0849",
+      "headerHex": "000800060000000000000000000000030100000200000002"
+    }
+  ],
+  "nativeGeometry": {
+    "profileId": "native-pgr34-car",
+    "schema": "SCNE vehicle declaration and draw-metadata versions 3/4",
+    "vertexTypes": "Big-endian Short4 positions; source declaration maps each indexed draw to the correct buffer",
+    "topology": "UInt16 triangle strips, FFFF restarts; primary LOD selected from metadata; all LOD spans must partition the source index stream",
+    "positionScale": "One integer quantizer constrained by all six scene extrema; reject inconsistent or ambiguous bounds",
+    "testedSample": {
+      "name": "AlfaRomeo_SZ.pak_hrd",
+      "primaryDraws": 158,
+      "triangles": 78771,
+      "quantizer": 15468
+    },
+    "limitations": [
+      "Original shader blending/reflection is approximated",
+      "UV0 nominal signed-short /320 needs visual verification; secondary UV channels not applied",
+      "Component states may still overlap",
+      "Track SCNE/STREAM2/BPR assembly is separate and pending"
+    ]
+  },
+  "vehicleMaterials": {
+    "bindings": "Explicit per-node material references; nullable texture slot table",
+    "formats": [
+      "BC1",
+      "BC3",
+      "BC5"
+    ],
+    "layout": "Xbox 360 tiled, swap bytes in each 16-bit word",
+    "display": "Decal/base color maps and source material colors; normal/environment maps retained in surface library",
+    "shaderExact": false
+  }
+}

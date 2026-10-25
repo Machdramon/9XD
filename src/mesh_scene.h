@@ -16,19 +16,21 @@ struct MeshEntry {
     MeshMaterial material;
     std::shared_ptr<MeshData> placedData()const;
 };
-struct MeshSelection {int mesh=-1;MeshElement kind=MeshElement::Vertex;int index=-1;};
+struct MeshSelection {int mesh=-1;MeshElement kind=MeshElement::Mesh;int index=-1;};
 struct MeshSpan {int id,vertexStart,vertexCount,faceStart,faceCount;};
 struct MeshAssembly {std::shared_ptr<MeshData> data;QVector<MeshSpan> spans;};
 struct MeshBounds { bool valid=false; QVector3D minimum,maximum; QVector3D dimensions()const{return maximum-minimum;} };
+MeshAssembly assembleMeshEntries(const QVector<MeshEntry> &,bool includeHidden=false);
 class MeshScene:public QObject {
     Q_OBJECT
 public:
     explicit MeshScene(QObject *parent=nullptr):QObject(parent){}
+    void beginBatch();void endBatch();bool batchLoading()const{return batchDepth_>0;}
     const QVector<MeshEntry> &entries()const{return entries_;}
     const MeshEntry *entry(int id)const;
     int active()const{return active_;}
     MeshSelection selection()const{return selection_;}
-    int add(std::shared_ptr<MeshData>,QString name={},QString source={});
+    int add(std::shared_ptr<MeshData>,QString name={},QString source={},const std::shared_ptr<MeshSurface> &surface={});
     bool replace(int id,std::shared_ptr<MeshData>,QString source={});
     bool setPositionDelta(int id,const std::array<double,3> &delta);
     bool setTransform(int id,const std::array<double,3> &position,const std::array<double,3> &rotation,const std::array<double,3> &scale);
@@ -47,6 +49,9 @@ public:
 signals:
     void geometryChanged();void collectionChanged();void selectionChanged();
 private:
+    struct BoundsCache {std::weak_ptr<MeshData> data;std::array<double,3> position,rotation,scale;MeshBounds bounds;};
+    mutable QHash<int,BoundsCache> boundsCache_;
+    int batchDepth_=0;bool previousBlocked_=false;
     QSet<int> selectedMeshes_;QHash<int,bool> isolation_;
     QVector<MeshEntry> entries_;int active_=-1,nextId_=0;MeshSelection selection_;
 };

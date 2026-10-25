@@ -20,7 +20,7 @@ public:
     void setTransformTool(int tool);
     void setBackgroundGradient(bool enabled,QColor top,QColor bottom);
     // Home resets orientation; All/Selected preserve the current viewing direction.
-    bool frameView(int mode); // 0 Home, 1 All visible, 2 Selected
+    bool frameView(int mode); // 0 Home, 1 All visible, 2 Selected, 3 Reference grid
     QPointF gizmoAxisPosition(int axis)const;
     std::shared_ptr<const MeshData> meshSnapshot()const;
     // Scripting replaces only the active entry; null clears the scene.

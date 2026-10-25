@@ -1,0 +1,172 @@
+{
+  "format": "9XD Format Research Guide",
+  "version": 1,
+  "id": "pgr1",
+  "name": "PGR1 / original Xbox",
+  "executable": false,
+  "purpose": "Evidence and implementation guide for native adapters; not importable as a generic 9XD Mesh Profile.",
+  "match": {
+    "magicHex": "474f5448504f4b1a",
+    "declaredDecodedBytesOffset": 8,
+    "headerBytes": 20
+  },
+  "status": "Native GOTHPOK/zlib decoding, textured P/T/V tracks and primary NRM/HRD/SFT vehicle LODs with vertex/texture companions",
+  "stages": {
+    "container": [
+      "GOTHPOK payload begins at +20; decoded size UInt32 at +8; bit 0 of flags at +12 selects LZ vs stored.",
+      "LZ uses 30 MSB-first token flags per little-endian control word; low two bits select distance bits (14-mode). Match UInt16 encodes distance=(token&mask)+1 and length=(token>>distanceBits)+3.",
+      "Reject truncated tokens, out-of-history references, output overruns and trailing payload bytes."
+    ],
+    "vehicle": [
+      "Resolve NRM, NRM_V and NRM_RES resource relationships."
+    ],
+    "track": [
+      "Open original .DyP/.NtP with same-folder matching T/V companions. Compressed GOTHPOK and decoded on-disk P/T/V resources are accepted. RAM-only resources require the original disk files.",
+      "Validate bounded 60-byte tree nodes, independently reset UInt16 strips, 24/28-byte external vertex declarations and material-to-texture directory IDs.",
+      "Native track material candidates share a snapshot/decompression/texture cache. BC1/BC3 textures are assigned automatically and added to the 2D library when previewed.",
+      "Unknown texture formats use magenta placeholders; invalid-UV triangles are explicitly omitted. Binary alpha, reconstructed normals and missing source vertex lighting are approximations. Additional scene sections remain pending."
+    ]
+  },
+  "limitations": [
+    "Do not reuse MSR Pak, alpha or PGR2 zlib rules.",
+    "Signatures and sample hashes support analysis, not executable extraction."
+  ],
+  "samples": [
+    {
+      "file": "car\\911.nrm",
+      "bytes": 54344,
+      "sha256": "bd12dbc04f3b14f045197e635779dd574773338d3e2a8f3bc3c0ef1dbd9d83b8",
+      "headerHex": "474f5448504f4b1af49501000100cccc96cb4b0010000012"
+    },
+    {
+      "file": "car\\911.nrm_v",
+      "bytes": 333256,
+      "sha256": "63e77bfb4e15280f1da1f4ca92b3be44759d7d9d070c728db659fd3ffe24da56",
+      "headerHex": "474f5448504f4b1a580209000100cccc1e70f60333100000"
+    },
+    {
+      "file": "car\\911_default.nrm_res",
+      "bytes": 342247,
+      "sha256": "287c6c86c5c2431eb36809396f4e6828e8b152e23c6b9e677c615fb8ae9b85b1",
+      "headerHex": "474f5448504f4b1a00fd09000100cccce7c24a0300000000"
+    },
+    {
+      "file": "car\\911_Silver.nrm_res",
+      "bytes": 343702,
+      "sha256": "473b7f7d608896db3668a4d07b044bcdadd8de52369994922801baa1577647e5",
+      "headerHex": "474f5448504f4b1a00fd09000100cccc3e4c540300000000"
+    },
+    {
+      "file": "car\\911__Bronze.nrm_res",
+      "bytes": 345537,
+      "sha256": "a5772a179cfaa5eb0c5b2d76dfc60ed0d7a3666050a2c4215be76aee3c869ccf",
+      "headerHex": "474f5448504f4b1a00fd09000100cccc61786d0300000000"
+    },
+    {
+      "file": "car\\911__Gold.nrm_res",
+      "bytes": 338803,
+      "sha256": "7c0ca3e25fb0a646af1965f1c3a23c47966563e31964f29f2dcf73a251a3071d",
+      "headerHex": "474f5448504f4b1a00fd09000100cccc5869680300000000"
+    },
+    {
+      "file": "car\\911__Silver.nrm_res",
+      "bytes": 343702,
+      "sha256": "473b7f7d608896db3668a4d07b044bcdadd8de52369994922801baa1577647e5",
+      "headerHex": "474f5448504f4b1a00fd09000100cccc3e4c540300000000"
+    },
+    {
+      "file": "track\\Asakusa.DyP",
+      "bytes": 855353,
+      "sha256": "aa78d80e1c1b87230f1a2cedba60bd4c0b6ed1cbb23a43d4ed7cf2e10a9d0569",
+      "headerHex": "474f5448504f4b1aacf119000100cccce6cc17074080a800"
+    },
+    {
+      "file": "track\\Asakusa.DyR",
+      "bytes": 1160845,
+      "sha256": "0b4eb82d9979dd89d4ecc17a00345e801954308bdf9225608f1d659792d5218b",
+      "headerHex": "474f5448504f4b1ac0df1d000100cccc7362840800000000"
+    },
+    {
+      "file": "track\\Asakusa.DyT",
+      "bytes": 892839,
+      "sha256": "5fe293f6ceec045efd811e55f2b5dc71dedc87d3d39421b3918a79c62b408f1b",
+      "headerHex": "474f5448504f4b1ad8ce1c000100cccce215a70b1008c408"
+    },
+    {
+      "file": "track\\Asakusa.DyV",
+      "bytes": 9018099,
+      "sha256": "82223c37af744781e4b8abe97fbd8fb07808a25c910cd726f0b1503f3bc6e765",
+      "headerHex": "474f5448504f4b1a1c35ec000100cccca7f6185603040810"
+    },
+    {
+      "file": "track\\Asakusa.NtP",
+      "bytes": 861377,
+      "sha256": "cfc04df57294f9b742222c7cc4a97ad68d491a62867358f4891b1faf46be8d6e",
+      "headerHex": "474f5448504f4b1a28051a000100ccccec0a0c078000b100"
+    },
+    {
+      "file": "track\\Asakusa.NtR",
+      "bytes": 1160841,
+      "sha256": "30a3a99366393fcfd591fe54d79cc3c488f9c4e5b4985509c30989a8199b94d2",
+      "headerHex": "474f5448504f4b1ac0df1d000100cccc0061840800000000"
+    },
+    {
+      "file": "track\\Asakusa.NtT",
+      "bytes": 883175,
+      "sha256": "f9a2679dd69da281507bbe5528d95263d55f85b9167ff38fcfcd7fbc5ee70d07",
+      "headerHex": "474f5448504f4b1ad8ce1c000100cccc25e41d0b1008c408"
+    },
+    {
+      "file": "track\\Asakusa.NtV",
+      "bytes": 8255851,
+      "sha256": "16abffda9414665432af966c6f07c1ac232a76df61e5f9c27e9994e3ec5623ff",
+      "headerHex": "474f5448504f4b1ac816db000100cccca55f2c5003040810"
+    }
+  ],
+  "references": [
+    "https://github.com/bartek360/BizarreResearch/blob/main/pgr1_unpack.bms",
+    "https://reshax.com/topic/1466-project-gotham-racing-1-map-convert/"
+  ],
+  "validation": {
+    "localSamples": 15,
+    "researchExtraction": "All consume the entire payload and reach their declared size.",
+    "xbeSha256": "5186d77d5248d51d5f89bcfeb309bda99a35d7039eb3b6509ee0e5898432fdd1",
+    "routineFileOffset": "0xB6C90",
+    "routineVirtualAddress": "0xC6C90",
+    "method": "static analysis; no XBE executed or bundled",
+    "tracks": {
+      "samples": [
+        "Asakusa.DyP",
+        "Asakusa.NtP"
+      ],
+      "materialGroupsEach": 470,
+      "trianglesEach": 120695,
+      "omittedInvalidUvTrianglesEach": 2,
+      "unsupportedTextureMaterialsEach": 2,
+      "checks": [
+        "native discovery",
+        "bulk UI preview",
+        "GLB textures/materials",
+        "FBX day export",
+        "missing companions",
+        "stale candidate identities",
+        "cancellation"
+      ]
+    }
+  },
+  "vehicleIntegration": {
+    "testedFile": "study cases/pgr1/car/911.nrm",
+    "materialGroups": 39,
+    "triangles": 9212,
+    "companions": [
+      "911.nrm_v",
+      "911_default.nrm_res"
+    ],
+    "limitations": [
+      "SCR/damaged alternatives excluded",
+      "Roof/component states not automatically resolved",
+      "Glass and original shaders approximate",
+      "RAM-only resources need an original companion path"
+    ]
+  }
+}

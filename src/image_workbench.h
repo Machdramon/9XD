@@ -3,6 +3,7 @@
 #include "hex_view.h"
 #include "image_decode.h"
 #include "image_recipe_io.h"
+#include "memory_budget.h"
 #include "ai_decoder_setup.h"
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
@@ -77,7 +78,7 @@ public:
         auto *row=new QHBoxLayout;calculate_=new QPushButton("Calculate / Add to Library");calculate_->setObjectName("imageCalculate");cancel_=new QPushButton("Cancel");cancel_->setObjectName("imageCancel");row->addWidget(calculate_);row->addWidget(cancel_);controls->addLayout(row);
         progress_=new QProgressBar;progress_->setObjectName("imageProgress");controls->addWidget(progress_);status_=new QLabel("Choose a source and pixel layout.");status_->setObjectName("imageStatus");status_->setWordWrap(true);controls->addWidget(status_);controls->addStretch();
         auto *assign=new QPushButton("Assign to active mesh");assign->setObjectName("imageAssignTexture");auto *unassign=new QPushButton("Remove active mesh texture");unassign->setObjectName("imageRemoveTexture");layout->addWidget(assign);layout->addWidget(unassign);
-        connect(assign,&QPushButton::clicked,this,[this]{int row=list_->currentRow();if(row<0||entries_[row].image.isNull()){status_->setText("Select a decoded image first.");return;}if(assignTexture)status_->setText(assignTexture(entries_[row].image,entries_[row].name)?"Texture assigned to the active mesh.":"Choose a mesh with UVs; the texture collection is limited to 64 MiB.");});
+        connect(assign,&QPushButton::clicked,this,[this]{int row=list_->currentRow();if(row<0||entries_[row].image.isNull()){status_->setText("Select a decoded image first.");return;}if(assignTexture)status_->setText(assignTexture(entries_[row].image,entries_[row].name)?"Texture assigned to the active mesh.":"Choose a mesh with UVs and enough texture memory in Settings > Performance.");});
         connect(unassign,&QPushButton::clicked,this,[this]{if(assignTexture)assignTexture({},{});});
         connect(presets,&QComboBox::activated,this,[this](int index){if(index<1||running_)return;auto recipe=imagePresets()[index-1].recipe;recipe.width=width_->value();recipe.height=height_->value();bool ok;recipe.offset=parse(offset_->text(),ok);recipe.paletteOffset=parse(palette_->text(),ok);applyRecipe(recipe);status_->setText("Preset loaded. Check dimensions, offsets and palette against your source before calculating.");});
         connect(openFiles,&QPushButton::clicked,this,[this]{const auto paths=WorkbenchFiles::getOpenFileNames(collection,"Open images or binary files",{},"Images (*.png *.jpg *.jpeg *.bmp *.tga *.gif *.ico *.pbm *.pgm *.ppm *.xbm *.xpm *.tif *.tiff *.webp *.dds *.tim *.tm2 *.tpl *.gtf *.gnf);;All files (*)");for(const auto &path:paths)addFile(path);});
@@ -100,6 +101,10 @@ public:
     std::function<void(const QImage &)> imageSelected;
     std::function<bool(const QImage &,const QString &)> assignTexture;
     std::function<void(bool,const QString &)> calculationFinished;
+    bool addDecodedTexture(const QImage &image,const QString &name,const QString &source,bool select=false){
+        if(image.isNull()||!imageValidSize(image.width(),image.height()))return false;for(int i=0;i<entries_.size();++i){const auto &e=entries_[i];if(e.name==name&&e.source.path==source&&e.image==image){if(select)list_->setCurrentRow(i);return true;}}
+        if(entries_.size()>=qBound(qint64(512),AssetMemory::textureBytes()/4096,qint64(10000))||retained_+image.sizeInBytes()>AssetMemory::textureBytes())return false;Entry e;e.name=name;e.source.path=source;e.source.expectedSize=-1;e.recipe.format="Encoded image";e.image=image;append(e);if(select)list_->setCurrentRow(entries_.size()-1);return true;
+    }
     int imageCount()const{return entries_.size();}
     const Entry &entry(int index)const{return entries_[index];}
     bool busy()const{return running_;}
@@ -140,7 +145,7 @@ public:
         if(recipe.format=="Encoded image"&&count_->value()!=1){status_->setText("Encoded images are decoded individually. Use a raw format for a batch.");return;}
         if(entries_.size()+count_->value()>512){status_->setText("Library limit: 512 entries. Remove entries first.");return;}
         const qint64 output=recipe.format=="Encoded image"?16*1024*1024:qint64(recipe.width)*recipe.height*4;
-        if(output*count_->value()>128*1024*1024-retained_){status_->setText("The batch exceeds the 128 MiB image library limit. Reduce dimensions/count or remove images.");return;}
+        if(output*count_->value()>AssetMemory::textureBytes()-retained_){status_->setText("The batch exceeds the configured image memory budget. Raise Settings > Performance, reduce dimensions/count or remove images.");return;}
         for(int i=0;i<count_->value();++i){auto entry=base;if(recipe.offset>base.source.expectedSize||qint64(i)> (base.source.expectedSize-recipe.offset)/qMax(qint64(1),step)){queue_.clear();status_->setText("The image batch extends outside the source.");return;}entry.recipe.offset=recipe.offset+i*step;if(recipe.format!="Encoded image"&&span>base.source.expectedSize-entry.recipe.offset){queue_.clear();status_->setText("The image batch extends outside the source.");return;}entry.name+=QString(" @0x%1").arg(entry.recipe.offset,0,16);queue_.append(entry);}
         completed_=0;total_=queue_.size();progress_->setRange(0,total_);progress_->setValue(0);setRunning(true);next();
     }
@@ -151,7 +156,7 @@ public:
     void loadLibrary(const QString &path){
         if(running_)return;QFile file(path);if(!file.open(QIODevice::ReadOnly)||file.size()>192*1024*1024){status_->setText("Cannot open library (maximum 192 MiB).");return;}const auto root=QJsonDocument::fromJson(file.readAll()).object();if(root.value("version").toInt()!=1||!root.value("images").isArray()){status_->setText("Invalid image library.");return;}auto array=root.value("images").toArray();QList<Entry> imported;qint64 bytes=0;
         if(entries_.size()+array.size()>512){status_->setText("Library exceeds 512 entries.");return;}
-        for(const auto &value:array){auto object=value.toObject();auto png=QByteArray::fromBase64(object.value("png").toString().toLatin1());QBuffer buffer(&png);buffer.open(QIODevice::ReadOnly);QImageReader reader(&buffer,"PNG");auto size=reader.size();if(!size.isValid()||size.width()>8192||size.height()>8192||qint64(size.width())*size.height()>4*1024*1024||(bytes+=qint64(size.width())*size.height()*4)>128*1024*1024-retained_){status_->setText("Invalid image or library memory limit exceeded.");return;}Entry entry;entry.source.expectedSize=-1;entry.name=object.value("name").toString();entry.recipe.format="Encoded image";entry.image=reader.read().convertToFormat(QImage::Format_ARGB32);if(entry.image.isNull()){status_->setText("Invalid library image.");return;}imported.append(entry);}
+        for(const auto &value:array){auto object=value.toObject();auto png=QByteArray::fromBase64(object.value("png").toString().toLatin1());QBuffer buffer(&png);buffer.open(QIODevice::ReadOnly);QImageReader reader(&buffer,"PNG");auto size=reader.size();if(!size.isValid()||size.width()>8192||size.height()>8192||qint64(size.width())*size.height()>4*1024*1024||(bytes+=qint64(size.width())*size.height()*4)>AssetMemory::textureBytes()-retained_){status_->setText("Invalid image or library memory limit exceeded.");return;}Entry entry;entry.source.expectedSize=-1;entry.name=object.value("name").toString();entry.recipe.format="Encoded image";entry.image=reader.read().convertToFormat(QImage::Format_ARGB32);if(entry.image.isNull()){status_->setText("Invalid library image.");return;}imported.append(entry);}
         for(const auto &entry:imported)append(entry);status_->setText(QString("Loaded %1 image snapshots.").arg(imported.size()));
     }
 private:

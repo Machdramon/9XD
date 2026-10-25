@@ -1,0 +1,88 @@
+{
+  "format": "9XD Format Research Guide",
+  "version": 1,
+  "id": "msr-retail",
+  "name": "MSR retail / Dreamcast",
+  "executable": false,
+  "purpose": "Evidence and implementation guide for native adapters; not importable as a generic 9XD Mesh Profile.",
+  "match": {
+    "compressedMagicHex": "50616b1b",
+    "secondaryMagicHex": "797a625f"
+  },
+  "status": "Native Pak/Bizarre extraction and separate retail track adapter with companion textures; retail vehicles and yzb_ wrappers pending",
+  "stages": {
+    "container": [
+      "Validate Pak magic and declared decoded size; preserve original compressed bytes.",
+      "Determine codec using decoded alpha structural invariants, not the same filename alone."
+    ],
+    "geometry": [
+      "Validate hierarchy, pointer origin, vertex encoding and strip boundaries after decompression."
+    ],
+    "dependencies": [
+      "DYP/DYT and NTP/NTT are separate variants; texture/geometry roles must be checked from decoded headers."
+    ]
+  },
+  "limitations": [
+    "Do not pass compressed bytes to the alpha parser.",
+    "No faces or automatic settings claimed."
+  ],
+  "samples": [
+    {
+      "file": "ASAKUSA.DYP",
+      "bytes": 2450801,
+      "sha256": "83cba332146425bf84402ffbc05f875db9fdbb473bb47bd80944ab8d1dedffa8",
+      "headerHex": "50616b1b18e6520000a880000100010018e6520040001400"
+    },
+    {
+      "file": "ASAKUSA.DYR",
+      "bytes": 1046528,
+      "sha256": "8a0b92613c2ba6596f6489eb3f291230696fcae25f2d4a8a05738e93abc1b4c8",
+      "headerHex": "797a625f1b00ff0100302b0060f40f00000000b0fea10000"
+    },
+    {
+      "file": "ASAKUSA.DYT",
+      "bytes": 3248593,
+      "sha256": "5d24b2c18dc397d6b122ae52a06a4c8d8ec21b617634c4d359b3c4502e61ba65",
+      "headerHex": "50616b1bb8bd420008c40000010001004000a4bd42800780"
+    },
+    {
+      "file": "ASAKUSA.NTP",
+      "bytes": 2478037,
+      "sha256": "692a2afc551c23ba3968d70d845be11e3bb5dbaaaaaf20bb445737d4d0f13a74",
+      "headerHex": "50616b1b5401530000a88000010001005401530040001400"
+    },
+    {
+      "file": "ASAKUSA.NTR",
+      "bytes": 1046528,
+      "sha256": "8a0b92613c2ba6596f6489eb3f291230696fcae25f2d4a8a05738e93abc1b4c8",
+      "headerHex": "797a625f1b00ff0100302b0060f40f00000000b0fea10000"
+    },
+    {
+      "file": "ASAKUSA.NTT",
+      "bytes": 3143518,
+      "sha256": "b7e55556565f948864b929069764e8d7583d15438099822f1955be2fd729ac1a",
+      "headerHex": "50616b1ba0d3420008c400000100010040008cd342800780"
+    }
+  ],
+  "compression": {
+    "magic": "Pak 0x1b",
+    "decodedSizeOffset": 4,
+    "payloadOffset": 8,
+    "controlAndTokenEndian": "big",
+    "algorithm": "30 MSB-first flags per UInt32; low two control bits select 14-mode distance bits; UInt16 match distance=(token&mask)+1 length=(token>>bits)+3",
+    "validation": "Native bounded extraction tests against supplied Pak resources; do not use alpha geometry declarations for decoded retail data.",
+    "references": [
+      "https://github.com/bartek360/BizarreResearch/blob/main/msr_unpack.bms",
+      "https://github.com/LittleBigBug/QuickBMS/blob/master/src/included/old_bizarre.c"
+    ]
+  },
+  "retailTrack": {
+    "geometryHeader": 128,
+    "geometryLengthField": 120,
+    "rootsField": 100,
+    "textureHeader": 108,
+    "textureCountField": 84,
+    "validation": "Independent strips, bounded BSP nodes, local centers, finite coordinates and per-corner UVs. Invalid UV groups retain untextured geometry.",
+    "tested": "Asakusa day: 77617 valid triangles, 466 texture directory entries, native GLB export."
+  }
+}

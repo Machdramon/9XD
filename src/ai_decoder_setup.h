@@ -1,6 +1,7 @@
 #pragma once
 #include "image_recipe_io.h"
 #include "mesh_data.h"
+#include "memory_budget.h"
 #include "mesh_setup_session.h"
 #include <QLineEdit>
 #include <QComboBox>
@@ -62,19 +63,19 @@ inline bool mesh(const QJsonObject &args,qint64 size,MeshSpec &s,QString &error)
     s=MeshSpec{};s.uv=false;s.normals=false;s.strip=false;s.vertexCount=0;s.indexCount=0;s.positionScale=1;
     auto off=[&](const char *key,qint64 &out){if(args.contains(key)&&!offset(args[key],out)){error="Invalid byte offset: "+QString(key);return false;}return true;};
     if(!off("vertexOffset",s.vertexOffset)||!off("indexOffset",s.indexOffset)||!off("uvOffset",s.uvOffset)||!off("normalOffset",s.normalOffset)||!off("deltaOffset",s.deltaOffset))return false;
-    auto number=[&](const char *key,qint64 &out){if(!args.contains(key))return true;auto n=args[key].toDouble();if(n<0||n>600000){error="Count/stride out of range: "+QString(key);return false;}out=qint64(n);return true;};
+    auto number=[&](const char *key,qint64 &out){if(!args.contains(key))return true;auto n=args[key].toDouble();if(!std::isfinite(n)||n!=std::floor(n)||n<0||n>AssetMemory::indices()){error="Count/stride out of range: "+QString(key);return false;}out=qint64(n);return true;};
     if(!number("vertexCount",s.vertexCount)||!number("vertexStride",s.vertexStride)||!number("indexCount",s.indexCount)||!number("indexStride",s.indexStride)||!number("uvStride",s.uvStride)||!number("normalStride",s.normalStride)||!number("deltaStride",s.deltaStride))return false;
     auto str=[&](const char *key,QString &out){if(args.contains(key))out=args[key].toString();};str("positionType",s.positionType);str("indexType",s.indexType);str("uvType",s.uvType);str("normalType",s.normalType);str("deltaType",s.deltaType);
     auto boolean=[&](const char *key,bool &out){if(args.contains(key))out=args[key].toBool();};boolean("uv",s.uv);boolean("normals",s.normals);boolean("bigEndian",s.bigEndian);boolean("deltaFromBinary",s.deltaFromBinary);boolean("deltaBigEndian",s.deltaBigEndian);
     s.strip=args.value("topology").toString()=="Triangle strip";s.homogeneous=args.value("coordinates").toString()=="XYZW";
     s.positionScale=args["positionScale"].toDouble();s.deltaScale=args.value("deltaScale").toDouble(1);
-    if(s.vertexCount<1||s.vertexCount>100000||s.indexCount<3||s.indexCount>600000||(!s.strip&&s.indexCount%3)||s.positionScale<1e-8||s.positionScale>1e6||s.deltaScale<1e-8||s.deltaScale>1e6||(s.homogeneous&&s.positionType!="Float16"&&s.positionType!="Float32")){error="Invalid mesh counts, scale or coordinates.";return false;}
+    if(s.vertexCount<1||s.vertexCount>AssetMemory::vertices()||s.indexCount<3||s.indexCount>AssetMemory::indices()||(!s.strip&&s.indexCount%3)||s.positionScale<1e-8||s.positionScale>1e6||s.deltaScale<1e-8||s.deltaScale>1e6||(s.homogeneous&&s.positionType!="Float16"&&s.positionType!="Float32")){error="Invalid mesh counts, scale or coordinates.";return false;}
     if(s.uv&&!required(args,{"uvOffset","uvStride","uvType"},error))return false;
     if(s.normals&&!required(args,{"normalOffset","normalStride","normalType"},error))return false;
     if(s.deltaFromBinary&&!required(args,{"deltaOffset"},error))return false;
-    qint64 budget=0;auto block=[&](qint64 offset,qint64 count,qint64 stride,int item){if(offset>size||stride<item||stride>65536||item>size-offset||(count-1)>(size-offset-item)/stride)return false;budget+=(count-1)*stride+item;return budget<=64*1024*1024;};
+    qint64 budget=0;auto block=[&](qint64 offset,qint64 count,qint64 stride,int item){if(offset>size||stride<item||stride>65536||item>size-offset||(count-1)>(size-offset-item)/stride)return false;budget+=(count-1)*stride+item;return AssetMemory::fits(s.vertexCount,s.indexCount,budget);};
     if(size<=0||!block(s.vertexOffset,s.vertexCount,s.vertexStride,(s.homogeneous?4:3)*width(s.positionType))||!block(s.indexOffset,s.indexCount,s.indexStride,width(s.indexType))||
-       s.uv&&!block(s.uvOffset,s.vertexCount,s.uvStride,2*width(s.uvType))||s.normals&&!block(s.normalOffset,s.vertexCount,s.normalStride,3*width(s.normalType))||s.deltaFromBinary&&!block(s.deltaOffset,3,s.deltaStride,width(s.deltaType))){error="Mesh range/stride is invalid or exceeds the active document / 64 MiB budget.";return false;}
+       s.uv&&!block(s.uvOffset,s.vertexCount,s.uvStride,2*width(s.uvType))||s.normals&&!block(s.normalOffset,s.vertexCount,s.normalStride,3*width(s.normalType))||s.deltaFromBinary&&!block(s.deltaOffset,3,s.deltaStride,width(s.deltaType))){error="Mesh range/stride is invalid or exceeds the active document / configured memory budget.";return false;}
     return true;
 }
 // Changes only known decoding controls. No file access, button clicks or rendering.
