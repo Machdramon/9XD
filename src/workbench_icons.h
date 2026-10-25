@@ -94,7 +94,7 @@ protected:
                 const auto name=icons().value(button->objectName());
                 if(!name.isEmpty()){
                     button->setIcon(workbenchIcon(name,workbenchPrimaryButtons().contains(button->objectName())?QColor(Qt::white):QColor()));
-                    if(auto *tool=qobject_cast<QToolButton *>(button);tool&&tool->popupMode()==QToolButton::InstantPopup)tool->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+                    if(auto *tool=qobject_cast<QToolButton *>(button);tool&&tool->popupMode()==QToolButton::InstantPopup&&!tool->property("iconOnly").toBool())tool->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
                 }
             }
         }

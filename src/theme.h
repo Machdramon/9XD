@@ -108,6 +108,17 @@ inline void applyWorkbenchTheme(const QString &requested){
     css+="QMenu { background: "+base+"; border: 1px solid "+border+"; border-radius: 8px; padding: 4px; } QMenu::item { padding: 6px 24px 6px 12px; border-radius: 5px; }";
     css+="QMenu::item:selected { background: "+p.color(QPalette::Highlight).name()+"; color: "+p.color(QPalette::HighlightedText).name()+"; } QMenu::separator { height: 1px; background: "+border+"; margin: 4px 8px; }";
     css+="QToolTip { background: "+p.color(QPalette::ToolTipBase).name()+"; color: "+p.color(QPalette::ToolTipText).name()+"; border: 1px solid "+border+"; border-radius: 6px; padding: 6px 8px; }";
+    // 3D module: toolbar and tool column as rounded bars, segmented render styles, section cards.
+    const QString surface=darkBase?QColor(window).lighter(118).name():base;
+    css+="QWidget#viewportToolbar, QWidget#viewportTransformBar { background: "+surface+"; border: 1px solid "+border+"; border-radius: 10px; }";
+    css+="QFrame#viewportToolbarSeparator { background: "+border+"; border: none; }";
+    css+="QToolButton[segment=\"true\"] { padding: 4px 8px; color: "+muted+"; } QToolButton[segment=\"true\"]:hover { color: "+text+"; }";
+    css+="QToolButton[segment=\"true\"]:checked { background: "+primary+"; color: #FFFFFF; font-weight: 600; border-color: "+primary+"; }";
+    css+="QWidget#viewportTransformBar QToolButton:checked { background: "+p.color(QPalette::Highlight).name()+"; border-color: "+focus+"; }";
+    css+="QLabel#vulkanStatus { background: "+surface+"; border: 1px solid "+border+"; border-radius: 10px; padding: 4px 10px; color: "+muted+"; }";
+    css+="QFrame#meshSectionCard { background: "+surface+"; border: 1px solid "+border+"; border-radius: 9px; }";
+    css+="QPushButton[compact=\"true\"] { padding: 2px 8px; min-height: 14px; font-size: 11px; }";
+    css+="QLabel#axisTagX { color: #FF7A7A; font-weight: 700; } QLabel#axisTagY { color: "+QString(darkBase?"#6BE09A":"#1E8F4E")+"; font-weight: 700; } QLabel#axisTagZ { color: "+QString(darkBase?"#6AA6FF":"#2457B8")+"; font-weight: 700; }";
     css+="QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 1px solid "+color("accent.focus",QColor(focus))+"; }";
     if(!options.value("fieldBackground").toBool(true))css+="QLineEdit, QSpinBox, QDoubleSpinBox { background: transparent; }";
     if(!options.value("borders").toBool(true))css+="QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QGroupBox { border: none; }";
