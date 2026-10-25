@@ -1,6 +1,6 @@
 # 9XD coordination plan
 
-Updated: 2026-10-25 (0.3.7 release preparation and validation). Shared between you, ChatGPT and Claude.
+Updated: 2026-10-25 (stable 0.3.7 published; validation and receipt complete). Shared between you, ChatGPT and Claude.
 
 ## Where things stand
 
@@ -270,10 +270,21 @@ User authorized update, push and full stable release. Owner: ChatGPT/Codex. Incl
 
 - [x] Version CMake/application/Windows metadata, README and release notes to 0.3.7; state feature limits and optional external dependencies explicitly.
 - [x] Release build, reader/window regression with vcvars64/offscreen, fixture-enabled material checks and portable ZIP verification.
-- [ ] Review staged source for private assets, commit/push main, tag v0.3.7 and publish stable ZIP/checksum/public logo.
+- [x] Review staged source for private assets, commit/push main, tag v0.3.7 and publish stable ZIP/checksum/public logo.
 
 Changed version/release files: CMakeLists.txt, src/main.cpp, assets/app.rc, README.md, docs/releases/v0.3.7.md. No external reconstruction binaries or game captures enter public source/package. Next: complete validation and publication, then record receipt.
 
 Release 0.3.7 validation: Windows Release/package build and deployment/runtime checks passed; reader 45 passed/0 failed; window 99 passed/0 failed/75 optional skipped; fixture-enabled Genki 14 passed/0 failed/0 skipped. Claude's requested compiler/offscreen rerun is complete. Final package regenerated with completed release notes before archive verification/publication. Qt deployment warns only that optional translation catalogs are unavailable; the app UI is English. Clean-machine validation remains pending.
 
 Final portable archive verified: 9XD-0.3.7-windows-x64.zip, 73,939,562 bytes; SHA-256 3cc15d2d5885cafee1b672d6b0443bfbf4bdeaee02fe5ab33a084dddc31dc846. ZIP contents, required dependencies, Windows GUI subsystem and equality with tested Release executable verified. No research captures, reconstruction binaries/model weights or standalone splash art included. Commit/push and stable publication follow; receipt will be recorded afterward.
+
+## Release 0.3.7 publication receipt — 2026-10-25
+
+- Stable public release, verified latest (not draft/prerelease): https://github.com/Machdramon/9XD/releases/tag/v0.3.7
+- Release code commit/tag target: beb47d932cc5d5b6a7d458b61cce33ef941db1e3.
+- Verified uploaded assets: 9XD-0.3.7-windows-x64.zip, its .zip.sha256 and 9XD-logo.png.
+- ZIP SHA-256: 3cc15d2d5885cafee1b672d6b0443bfbf4bdeaee02fe5ab33a084dddc31dc846; 73,939,562 bytes.
+- Build/deployment/portable checks passed; reader 45 passed/0 failed; window 99 passed/0 failed/75 optional skipped; fixture-enabled Genki 14 passed/0 failed/0 skipped.
+- Optional FFmpeg/COLMAP/Python packages and weights are not bundled. Game assets/captures and standalone splash artwork remain excluded. Existing embedded About presentation is retained.
+- This documentation follow-up records publication after the release code commit; the tag identifies the tested build. No application change in this receipt.
+- Next: user validates portable 0.3.7 and spline UI with their images. Claude retains cosmetic inspector follow-ups; backend reconstruction/import/calibration and unresolved Genki resources remain pending.
