@@ -1,14 +1,14 @@
 # 9XD coordination plan
 
-Updated: 2026-10-25 (0.3.6 release validated; publication pending). Shared between you, ChatGPT and Claude. Whoever finishes or changes something updates this file in the same step.
+Updated: 2026-10-25 (0.3.6 stable release published). Shared between you, ChatGPT and Claude. Whoever finishes or changes something updates this file in the same step.
 
 ## Where things stand
 
-The Windows UI refresh is built and running, and the Genki reference captures are finished; the work left is turning those captures into native 9XD readers. The canonical research checklist is now at `docs/research/genki/GENKI-CROSS-ANALYSIS-TODO.md`. Capture migration and TXRD2 March archive-to-fixture provenance are complete; other provenance, render tracing and native integration remain open.
+The Windows UI refresh is committed, pushed and published in stable release 0.3.6, and the Genki reference captures are finished; the work left is turning those captures into native 9XD readers. The canonical research checklist is now at `docs/research/genki/GENKI-CROSS-ANALYSIS-TODO.md`. Capture migration and TXRD2 March archive-to-fixture provenance are complete; other provenance, render tracing and native integration remain open.
 
 | Area | State | Where it lives |
 | --- | --- | --- |
-| Mac UI port to Windows | Built and running with `windows-local`, not committed | `binary-workbench`, branch `main` |
+| Mac UI port to Windows | Committed and pushed; Windows 0.3.6 Release and regression checks passed | `binary-workbench`, branch `main` |
 | Mac branch on GitHub | `build/macos-support`, 5 commits ahead of `main`, not merged | GitHub `Machdramon/9XD` |
 | Genki PCSX2 references | 9 captures from 5 games, with serials and SHA-256 | `docs/research/genki/`; original workspace copies preserved |
 | Cross-analysis | Inventory and per-game separation done; linking, render tracing, validation and native integration open | `docs/research/genki/GENKI-CROSS-ANALYSIS-TODO.md` |
@@ -79,7 +79,7 @@ Only rules marked verified in C cross into D.
 
 ### E. UI follow-ups from the Mac port (Claude, then you)
 
-- [ ] Commit the UI port on `main` and push it
+- [x] Commit the UI port on `main` and push it (release commit `83630b7`, stable 0.3.6 published)
 - [ ] Merge or retire `build/macos-support` so the two platforms don't drift
 - [ ] Check the Mesh Collection count badge ("0 / 0 visible") shows when the panel is narrow
 - [ ] Show Cmd+K instead of Ctrl+K in the search tooltip on macOS
@@ -110,8 +110,8 @@ Only rules marked verified in C cross into D.
 
 ## Next three actions
 
-1. You: commit the UI port in CLion and push `main`.
-2. You: review and commit/push the research migration together with the desired repository changes; ChatGPT has not committed or pushed the UI or research files.
+1. Claude / user: review the remaining narrow Mesh Collection badge and macOS shortcut-label UI follow-ups; the Windows UI port is already committed and released.
+2. User: test the portable 0.3.6 Windows release; Claude / user retain ownership of merging or retiring build/macos-support. Research reports/checklists are pushed; game-derived capture files remain local.
 3. ChatGPT: continue March upload/draw tracing and bounded headerless-bank validation. Provenance is exact; per-mesh bindings and alias semantics still need proof before Claude integrates them.
 
 ## Research hand-off — 2026-10-25
@@ -135,9 +135,20 @@ Owner: ChatGPT, explicitly authorized by the user to commit/push the UI update a
 - [x] Update CMake project version, application version, Windows version resource, README and release notes to 0.3.6.
 - [x] Keep game-derived captures/media local and Git-ignored; publish research reports/checklists only. Exclude docs/research from the portable package. Files: docs/research/genki/.gitignore, docs/research/genki/README.md, tools/package_windows.py.
 - [x] Build Windows Release and test targets; reader 45 passed/0 failed, window 95 passed/0 failed/74 optional skipped. Focused command-palette/module-rail UI check and portable ZIP/runtime checks passed.
-- [ ] Commit and push main, tag v0.3.6 and publish stable GitHub release with ZIP, checksum and public logo.
+- [x] Commit and push main, tag v0.3.6 and publish stable GitHub release with ZIP, checksum and public logo.
 - Next: finish validation, replace the pending release-note validation text with actual results, then publish. The source-provenance/renderer work remains separate and is not advertised as new reader support.
 
 Release validation complete: docs/releases/v0.3.6.md records actual results; docs/user-guide.md now explains the module sidebar and Ctrl+K. No game decoder changes were introduced. The local Genki images/dumps are excluded from public Git and the portable ZIP; scripts, inventories and reports remain shared documentation. Next: ChatGPT commits/pushes the authorized changes and publishes the stable release, then records its exact URL and commit.
 
 Pre-publication source check: normalized whitespace in migrated research helpers; staged diff checked for game assets, raw dumps, private splash art and local presets. No application behavior changed by this cleanup.
+
+## Release publication receipt — 2026-10-25
+
+- Stable public release (not draft, not prerelease): https://github.com/Machdramon/9XD/releases/tag/v0.3.6
+- Release code commit and tag target: `83630b7c0b2cb5caaaffe90435fa94ed1fe614dd` (`v0.3.6`).
+- Assets verified through GitHub API: Windows ZIP, .zip.sha256 and 9XD-logo.png; release verified as latest.
+- ZIP SHA-256: `d2be554a811e5680bdbc267e3e9b1d9735f112ffa8e1e0c162a6a637bef96e70`.
+- Windows Release deployment and portable Python checks passed; reader 45 passed/0 failed; window 95 passed/0 failed/74 optional skipped; focused command-palette/module-rail smoke passed.
+- Standalone splash art and game-derived captures excluded from public source/package. Local captures are preserved.
+- This follow-up documentation records publication after the release code commit; the tag continues to identify the tested application build. No application code changes in this receipt.
+- Next: user validates 0.3.6 in normal workflows; ChatGPT resumes March draw/upload tracing and verified reader hand-off; Claude owns native integration and remaining UI items.

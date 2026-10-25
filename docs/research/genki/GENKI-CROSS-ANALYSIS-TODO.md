@@ -73,3 +73,7 @@ Las carpetas de extracción de C1 usan diferentes convenciones de numeración; n
 - README.md e informes JSON de cada carpeta de captura: evidencia detallada.
 
 No se requieren más capturas por ahora. Pedir una adicional solo si falta un estado concreto que el historial existente no permita comprobar. Las referencias ayudan a descubrir reglas; el objetivo es extracción nativa sin depender del emulador o de la IA durante el uso habitual.
+
+## Publicación y coordinación — 25 de octubre de 2026
+
+Los informes, scripts, inventario y esta lista se han publicado con el código de 0.3.6. Las capturas/imágenes de juegos permanecen locales y excluidas de Git y del paquete público. La procedencia exacta de March está documentada; la versión 0.3.6 actualiza la UI, sin declarar nuevos lectores derivados de estas capturas. Mantener abiertas las tareas de renderizado e integración anteriores. Release: https://github.com/Machdramon/9XD/releases/tag/v0.3.6
