@@ -118,6 +118,9 @@ inline void applyWorkbenchTheme(const QString &requested){
     css+="QLabel#vulkanStatus { background: "+surface+"; border: 1px solid "+border+"; border-radius: 10px; padding: 4px 10px; color: "+muted+"; }";
     css+="QFrame#meshSectionCard { background: "+surface+"; border: 1px solid "+border+"; border-radius: 9px; }";
     css+="QPushButton[compact=\"true\"] { padding: 2px 8px; min-height: 14px; font-size: 11px; }";
+    css+="QLabel#meshSectionBadge, QLabel#meshCountBadge { background: "+button+"; color: "+muted+"; border: 1px solid "+border+"; border-radius: 7px; padding: 1px 8px; font-size: 11px; }";
+    css+="QTreeWidget#meshCollection { border: 1px solid "+border+"; border-radius: 8px; } QTreeWidget#meshCollection::item { padding: 5px 2px; }";
+    css+="QLabel#meshBoundsDimensions, QLabel#meshPlacementNote, QLabel#meshStatus, QLabel#meshSetupState { color: "+muted+"; font-size: 11px; }";
     css+="QLabel#axisTagX { color: #FF7A7A; font-weight: 700; } QLabel#axisTagY { color: "+QString(darkBase?"#6BE09A":"#1E8F4E")+"; font-weight: 700; } QLabel#axisTagZ { color: "+QString(darkBase?"#6AA6FF":"#2457B8")+"; font-weight: 700; }";
     css+="QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 1px solid "+color("accent.focus",QColor(focus))+"; }";
     if(!options.value("fieldBackground").toBool(true))css+="QLineEdit, QSpinBox, QDoubleSpinBox { background: transparent; }";
