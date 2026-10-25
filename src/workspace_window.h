@@ -1,5 +1,8 @@
 #pragma once
 #include "workbench_icons.h"
+#include "command_palette.h"
+#include <QShortcut>
+#include <QToolButton>
 #include "file_dialogs.h"
 #include <QMdiArea>
 #include <QMdiSubWindow>
@@ -38,9 +41,18 @@ public:
         mdi_=new QMdiArea(this);mdi_->setObjectName("documentWorkspace");
         mdi_->setViewMode(QMdiArea::TabbedView);mdi_->setTabsClosable(true);mdi_->setTabsMovable(true);
         mdi_->setDocumentMode(true);mdi_->setActivationOrder(QMdiArea::ActivationHistoryOrder);
-        auto *body=new QWidget(this);auto *layout=new QVBoxLayout(body);layout->setContentsMargins(0,0,0,0);layout->setSpacing(0);
+        auto *body=new QWidget(this);auto *layout=new QHBoxLayout(body);layout->setContentsMargins(0,0,0,0);layout->setSpacing(0);
         moduleTabs_=new ModuleTabBar;moduleTabs_->setObjectName("moduleTabs");moduleTabs_->setDocumentMode(true);moduleTabs_->setExpanding(false);
-        modulePages_=new QStackedWidget;modulePages_->setObjectName("modulePages");layout->addWidget(moduleTabs_);layout->addWidget(modulePages_,1);setCentralWidget(body);
+        modulePages_=new QStackedWidget;modulePages_->setObjectName("modulePages");
+        // Module rail: logo, module icons, then command search and settings at the bottom.
+        auto *rail=new QWidget;rail->setObjectName("moduleRail");rail->setAttribute(Qt::WA_StyledBackground);auto *railLayout=new QVBoxLayout(rail);railLayout->setContentsMargins(0,12,0,12);railLayout->setSpacing(6);
+        auto *logo=new QLabel("9XD");logo->setObjectName("railLogo");logo->setAlignment(Qt::AlignCenter);logo->setFixedSize(36,36);railLayout->addWidget(logo,0,Qt::AlignHCenter);railLayout->addSpacing(6);
+        railLayout->addWidget(moduleTabs_,0,Qt::AlignHCenter);railLayout->addStretch();
+        auto railButton=[&](const QString &name,const QString &icon,const QString &tip){auto *button=new QToolButton;button->setObjectName(name);button->setIcon(workbenchIcon(icon));button->setIconSize({20,20});button->setFixedSize(44,44);button->setToolTip(tip);railLayout->addWidget(button,0,Qt::AlignHCenter);return button;};
+        connect(railButton("railSearch","search","Search commands (Ctrl+K)"),&QToolButton::clicked,this,[this]{showCommandPalette();});
+        connect(railButton("railSettings","gear","Settings"),&QToolButton::clicked,this,[this]{showSettings();});
+        connect(new QShortcut(QKeySequence("Ctrl+K"),this),&QShortcut::activated,this,[this]{showCommandPalette();});
+        layout->addWidget(rail);layout->addWidget(modulePages_,1);setCentralWidget(body);
         const QStringList ids{"hex","3d","uv","scripting","tools"},names{"Hex Viewer","3D","UV / 2D","Scripting","Other Tools"};
         for(int i=0;i<ids.size();++i){
             auto *slot=new QWidget(modulePages_);auto *slotLayout=new QVBoxLayout(slot);slotLayout->setContentsMargins(0,0,0,0);
@@ -59,7 +71,7 @@ public:
             noticeLayout->addWidget(show,0,Qt::AlignHCenter);noticeLayout->addWidget(bringBack,0,Qt::AlignHCenter);noticeLayout->addStretch();
             connect(show,&QPushButton::clicked,this,[this,id=ids[i]]{selectModule(id);});connect(bringBack,&QPushButton::clicked,this,[this,id=ids[i]]{attachModule(id);});
             moduleNotices_.insert(ids[i],notice);slotLayout->addWidget(host);slotLayout->addWidget(notice);notice->hide();
-            moduleHosts_.insert(ids[i],host);modulePages_->addWidget(slot);moduleTabs_->addTab(workbenchIcon(QHash<QString,QString>{{"hex","hex"},{"3d","cube"},{"uv","image"},{"scripting","code"},{"tools","tools"}}.value(ids[i])),names[i]);moduleTabs_->setTabData(i,ids[i]);
+            moduleHosts_.insert(ids[i],host);modulePages_->addWidget(slot);moduleTabs_->addTab(workbenchIcon(QHash<QString,QString>{{"hex","hex"},{"3d","cube"},{"uv","image"},{"scripting","code"},{"tools","tools"}}.value(ids[i])),names[i]);moduleTabs_->setTabData(i,ids[i]);moduleTabs_->setTabToolTip(i,names[i]);
         }
         connect(moduleTabs_,&QTabBar::currentChanged,this,[this](int index){selectModule(moduleTabs_->tabData(index).toString());});
         moduleTabs_->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -152,6 +164,21 @@ public:
         applyWorkbenchTheme(name);if(!statePath_.isEmpty())workspaceSettings().setValue("theme",name);
         for(auto *action:themeMenu_->actions())action->setChecked(action->text().toLower()==name);
         for(auto *window:mdi_->subWindowList())window->update();
+    }
+    void showCommandPalette(){
+        QList<CommandPalette::Entry> entries;
+        for(int i=0;i<moduleTabs_->count();++i){const auto id=moduleTabs_->tabData(i).toString();entries.append({"Go to "+moduleNames_.value(id),[this,id]{selectModule(id);}});}
+        entries.append({"Settings",[this]{showSettings();}});
+        // Main panel actions: switch to their module, then press the button.
+        QSet<QString> seen;
+        for(const auto &name:workbenchPrimaryButtons())for(auto *button:findChildren<QPushButton *>(name)){
+            QString module;for(QWidget *w=button;w;w=w->parentWidget())if(w->objectName().startsWith("moduleHost_")){module=w->objectName().mid(11);break;}
+            const auto label=(module.isEmpty()?QString("Actions"):moduleNames_.value(module))+" \u203a "+(button->toolTip().isEmpty()||button->toolTip().size()>40?button->text():button->toolTip());
+            if(seen.contains(label))continue;seen.insert(label);QPointer<QPushButton> target(button);
+            entries.append({label,[this,target,module]{if(!module.isEmpty())selectModule(module);if(target&&target->isEnabled())target->click();}});
+        }
+        entries+=CommandPalette::menuEntries(menuBar());
+        (new CommandPalette(this,entries))->popup();
     }
     void showSettings(){
         auto settings=workspaceSettings();

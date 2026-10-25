@@ -95,7 +95,6 @@ inline void applyWorkbenchTheme(const QString &requested){
     css+="QComboBox QLineEdit, QAbstractSpinBox QLineEdit { border: none; border-radius: 0; padding: 0; background: transparent; }";
     css+="QTabBar::tab { background: transparent; color: "+muted+"; border: none; border-bottom: 2px solid transparent; padding: 6px 12px; }";
     css+="QTabBar::tab:hover { color: "+text+"; background: "+hover+"; } QTabBar::tab:selected { color: "+text+"; border-bottom: 2px solid "+primary+"; }";
-    css+="QTabBar#moduleTabs::tab { padding: 8px 18px; } QTabBar#moduleTabs::tab:selected { background: "+button+"; }";
     // Tabified panels scroll instead of truncating their titles.
     css+="QMainWindow > QTabBar { qproperty-elideMode: 3; qproperty-usesScrollButtons: 1; }";
     css+="QTabWidget::pane { border: 1px solid "+border+"; border-radius: 8px; top: -1px; }";
@@ -122,6 +121,19 @@ inline void applyWorkbenchTheme(const QString &requested){
     css+="QTreeWidget#meshCollection { border: 1px solid "+border+"; border-radius: 8px; } QTreeWidget#meshCollection::item { padding: 5px 2px; }";
     css+="QLabel#meshBoundsDimensions, QLabel#meshPlacementNote, QLabel#meshStatus, QLabel#meshSetupState { color: "+muted+"; font-size: 11px; }";
     css+="QLabel#axisTagX { color: #FF7A7A; font-weight: 700; } QLabel#axisTagY { color: "+QString(darkBase?"#6BE09A":"#1E8F4E")+"; font-weight: 700; } QLabel#axisTagZ { color: "+QString(darkBase?"#6AA6FF":"#2457B8")+"; font-weight: 700; }";
+    // Module rail, command palette, segmented inspector tabs and the status bar.
+    const QString rail=darkBase?QColor(window).darker(125).name():QColor(window).darker(104).name();
+    css+="QWidget#moduleRail { background: "+rail+"; border-right: 1px solid "+border+"; }";
+    css+="QLabel#railLogo { background: #F5C451; color: #1A1300; border-radius: 9px; font-weight: 700; font-size: 12px; }";
+    css+="QWidget#moduleRail QToolButton { border-radius: 10px; } QWidget#moduleRail QToolButton:hover { background: "+hover+"; border-color: transparent; }";
+    css+="QDialog#commandPalette { background: "+base+"; border: 1px solid "+border+"; border-radius: 12px; }";
+    css+="QListWidget#commandPaletteList { border: none; background: transparent; } QListWidget#commandPaletteList::item { padding: 7px 8px; border-radius: 6px; }";
+    css+="QListWidget#commandPaletteList::item:selected { background: "+p.color(QPalette::Highlight).name()+"; color: "+p.color(QPalette::HighlightedText).name()+"; }";
+    css+="QLabel#commandPaletteEmpty { color: "+muted+"; padding: 24px; }";
+    css+="QTabWidget#meshInspectorTabs QTabBar::tab { border: 1px solid transparent; border-radius: 7px; padding: 5px 12px; margin: 2px; }";
+    css+="QTabWidget#meshInspectorTabs QTabBar::tab:selected { background: "+button+"; border-color: "+border+"; color: "+text+"; }";
+    css+="QStatusBar { color: "+muted+"; border-top: 1px solid "+border+"; } QStatusBar QLabel { color: "+muted+"; }";
+    css+="QToolButton#threadActivityToggle { border: 1px solid "+border+"; border-radius: 9px; padding: 1px 9px; color: "+muted+"; }";
     css+="QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 1px solid "+color("accent.focus",QColor(focus))+"; }";
     if(!options.value("fieldBackground").toBool(true))css+="QLineEdit, QSpinBox, QDoubleSpinBox { background: transparent; }";
     if(!options.value("borders").toBool(true))css+="QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QGroupBox { border: none; }";

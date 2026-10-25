@@ -62,6 +62,7 @@ private:
         else if(n=="scale"){p->drawRect(QRectF(4,13,7,7));poly({{14,4},{20,4},{20,10}});lines({{20,4,12,12}});}
         else if(n=="eye"){QPainterPath path;path.moveTo(2,12);path.quadTo(12,2,22,12);path.quadTo(12,22,2,12);p->drawPath(path);p->drawEllipse(QPointF(12,12),3,3);}
         else if(n=="layers"){p->drawPolygon(QPolygonF({{12,4},{21,9},{12,14},{3,9}}));poly({{3,13},{12,18},{21,13}});}
+        else if(n=="gear"){p->drawEllipse(QPointF(12,12),3,3);for(int k=0;k<8;++k){const qreal a=qDegreesToRadians(45.0*k);p->drawLine(QPointF(12+5.5*qCos(a),12+5.5*qSin(a)),QPointF(12+8.5*qCos(a),12+8.5*qSin(a)));}p->drawEllipse(QPointF(12,12),5.5,5.5);}
         else if(n=="sun"){p->drawEllipse(QPointF(12,12),4,4);for(int i=0;i<8;++i){const qreal a=qDegreesToRadians(45.0*i);p->drawLine(QPointF(12+7*qCos(a),12+7*qSin(a)),QPointF(12+9.5*qCos(a),12+9.5*qSin(a)));}}
         else if(n=="frame"){poly({{4,9},{4,4},{9,4}});poly({{15,4},{20,4},{20,9}});poly({{20,15},{20,20},{15,20}});poly({{9,20},{4,20},{4,15}});p->drawEllipse(QPointF(12,12),3,3);}
         else if(n=="select"){QPen pen=p->pen();pen.setDashPattern({2,2});p->setPen(pen);p->drawRoundedRect(QRectF(4,4,16,16),2,2);}
