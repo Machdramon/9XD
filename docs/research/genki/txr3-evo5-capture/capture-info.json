@@ -1,0 +1,15 @@
+{
+  "stateVersion": 9,
+  "stateSize": 4194813,
+  "serialOffset": 36,
+  "serialSize": 10,
+  "crc": 261303681,
+  "screenshotWidth": 640,
+  "screenshotHeight": 480,
+  "screenshotOffset": 46,
+  "screenshotSize": 1228800,
+  "serial": "SLUS-20831",
+  "source": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer 3_SLUS-20831_20261025171654.gs.zst",
+  "decompressedBytes": 17507535,
+  "sha256": "720d5d6f1ec3b7c233ec5627bbc17904b3ee53174da6fc0e87e5cdaa84918ef9"
+}

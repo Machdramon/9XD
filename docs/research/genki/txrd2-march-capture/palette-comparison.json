@@ -1,0 +1,24 @@
+[
+  {
+    "pictureOffset": 278848,
+    "palettePsm": 0,
+    "paletteMode": 0,
+    "paletteBaseBytes": 3343872,
+    "paletteBank": 0,
+    "identical": true,
+    "equalEntries": 256,
+    "sourceSha256": "fc0e8b76f2b8aa2e8a53575229e5ac7ea8fb9941f23394c56100adbb4827e834",
+    "capturedSha256": "fc0e8b76f2b8aa2e8a53575229e5ac7ea8fb9941f23394c56100adbb4827e834"
+  },
+  {
+    "pictureOffset": 559776,
+    "palettePsm": 0,
+    "paletteMode": 0,
+    "paletteBaseBytes": 3344896,
+    "paletteBank": 0,
+    "identical": true,
+    "equalEntries": 256,
+    "sourceSha256": "9af22c3cb416e0e6bd7f32f6852e5cc1373db832251e83539a09ac9064e68f31",
+    "capturedSha256": "9af22c3cb416e0e6bd7f32f6852e5cc1373db832251e83539a09ac9064e68f31"
+  }
+]

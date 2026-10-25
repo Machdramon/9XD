@@ -1,0 +1,59 @@
+{
+  "status": "exact_match",
+  "scope": "Archive entry to extracted source to test fixture; not proof of exact runtime geometry/LOD selection",
+  "game": "Tokyo Xtreme Racer Drift 2",
+  "serial": "SLUS-21394",
+  "archive": {
+    "path": "F:\\copia de seguridad 08.04.2019\\downloads\\Tokyo Xtreme Racer Drift 2 (USA)\\Tokyo Xtreme Racer - Drift 2 [NTSC-U] [SLUS-21394]\\BUILD.DAT",
+    "bytes": 1789513728
+  },
+  "toc": {
+    "path": "F:\\copia de seguridad 08.04.2019\\downloads\\Tokyo Xtreme Racer Drift 2 (USA)\\Tokyo Xtreme Racer - Drift 2 [NTSC-U] [SLUS-21394]\\BUILD.TOC",
+    "bytes": 317920,
+    "sha256": "d4c945933ad953ea8f597312428ad059264a9ac19deb2654e831ba02023ab6ac",
+    "header": [
+      19869,
+      147834243,
+      1424201809,
+      1789513728
+    ],
+    "recordBytes": 16,
+    "entryIndexBase": 0,
+    "declaredEntries": 19869,
+    "allPackedRangesInArchive": true,
+    "extractedOrdinalBase": 0,
+    "emittedEntries": 19798
+  },
+  "entry": {
+    "tocIndex": 672,
+    "tocRecordOffset": 10768,
+    "sector": 89280,
+    "offset": 182845440,
+    "packedBytes": 181593,
+    "unpackedBytes": 626528,
+    "flag": 0,
+    "recordHex": "c05c010059c50200608f090000000000",
+    "packedSha256": "87c41b674ba29753edcb5cd0cb96b1e37dc11ec36891efd2ce5e85014ffae286",
+    "uclMagic": "00e955434cff011a"
+  },
+  "extracted": {
+    "source": "F:\\copia de seguridad 08.04.2019\\downloads\\Tokyo Xtreme Racer Drift 2 (USA)\\Tokyo Xtreme Racer - Drift 2 [NTSC-U] [SLUS-21394]\\2022\\000002a0.sdb",
+    "fixture": "C:\\Users\\Jarky\\Documents\\study cases\\txrd2\\car\\000002a0.sdb",
+    "reextracted": "txrd2-march-capture\\provenance-reextract\\march-from-build.sdb",
+    "bytes": 626528,
+    "sha256": "fbf9042dde61c5de82e6b458c83d003c7c36fd9433b2d6f425ff99349aa618ed",
+    "allThreeByteIdentical": true
+  },
+  "verification": {
+    "tool": "User-installed QuickBMS 0.7.6a; own two-line bounded uclpack extraction script",
+    "script": "march-provenance.bms",
+    "sourceModified": false,
+    "readerIntegrated": false
+  },
+  "captureSha256": "1c33568a0c210f3ccb4cd2caaef5d46a0494d31612420ae94b2f4dc6d302ab67",
+  "remaining": [
+    "Per-draw material binding and visibility/LOD",
+    "Unresolved image and alias slots",
+    "Native bank-reader integration owned by Claude"
+  ]
+}

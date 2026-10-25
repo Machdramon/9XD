@@ -1,0 +1,15 @@
+{
+  "tocEntries": 19869,
+  "emittedEntries": 19798,
+  "badRanges": [],
+  "ordinalCandidate": {
+    "tocIndex": 672,
+    "tocRecordOffset": 10768,
+    "sector": 89280,
+    "offset": 182845440,
+    "packedBytes": 181593,
+    "unpackedBytes": 626528,
+    "flag": 0
+  },
+  "packedHead": "00e955434cff011a000000002b0700098f6000098f600002c53b0fb077cb0200200340410400003049fbc887fd565830302e310f4c444d4d524f4e071176b0ee01132c1bb000003b2c6457030fcb012f65816c08303b006c642b7b803f0f0300"
+}

@@ -536,7 +536,7 @@ private:
 #ifndef WORKBENCH_NO_MAIN
 int main(int argc,char **argv){
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
-    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");QGuiApplication::setApplicationDisplayName("9XD");QCoreApplication::setApplicationVersion("0.3.5");app.setWindowIcon(QIcon(":/branding/logo-sticker.png"));
+    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");QGuiApplication::setApplicationDisplayName("9XD");QCoreApplication::setApplicationVersion("0.3.6");app.setWindowIcon(QIcon(":/branding/logo-sticker.png"));
     if(app.arguments().contains("--deployment-check")){
         const auto formats=QImageReader::supportedImageFormats();
         for(const auto &format:{"png","jpeg","bmp","tiff","webp"})if(!formats.contains(format))return 3;

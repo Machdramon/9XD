@@ -1,0 +1,22 @@
+{
+  "candidate": "F:\\copia de seguridad 08.04.2019\\downloads\\Tokyo Xtreme Racer Drift 2 (USA)\\Tokyo Xtreme Racer - Drift 2 [NTSC-U] [SLUS-21394]\\2022\\000002a0.sdb",
+  "matches": [
+    {
+      "sourcePictureOffset": 278848,
+      "width": 512,
+      "height": 512,
+      "TEX0": "0x200660c6653238c0",
+      "gsBaseBytes": 3719168,
+      "indexSha256": "4189a06a123dc63ad0957ed09b9b8ac267801183b385f6ba7962b41cf148666e"
+    },
+    {
+      "sourcePictureOffset": 559776,
+      "width": 256,
+      "height": 256,
+      "TEX0": "0x20066146213134c0",
+      "gsBaseBytes": 3457024,
+      "indexSha256": "a94e388671503dd7a8553ecf6a1c9a46ccc6de4935a986dd467521086ceee687"
+    }
+  ],
+  "scope": "Exact base-level indexed-pixel equality against initial GS VRAM; palette identity and per-mesh material assignment are separate."
+}

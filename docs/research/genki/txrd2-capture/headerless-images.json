@@ -1,0 +1,17 @@
+{
+  "candidate": "F:\\copia de seguridad 08.04.2019\\downloads\\Tokyo Xtreme Racer Drift 2 (USA)\\Tokyo Xtreme Racer - Drift 2 [NTSC-U] [SLUS-21394]\\2022\\00000127.sdb",
+  "pictures": [
+    {
+      "offset": 336000,
+      "total": 263296,
+      "width": 512,
+      "height": 512,
+      "type": 5,
+      "imageBytes": 262144,
+      "prefixCaptureOffset": -1
+    }
+  ],
+  "end": 599296,
+  "sourceBytes": 691984,
+  "remaining": 92688
+}

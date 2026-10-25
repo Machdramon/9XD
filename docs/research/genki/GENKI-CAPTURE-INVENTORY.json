@@ -1,0 +1,68 @@
+{
+  "updated": "2026-10-25",
+  "captures": [
+    {
+      "folder": "c1-nikko-capture",
+      "serial": "SLPM-65897",
+      "sha256": "010c822a81fea5ccd6633224a7b4b6cfaea1b2eccf1f525f37ae4f7d13acb03b",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Racing Battle - C1 Grand Prix_SLPM-65897_20261025181534.gs.zst",
+      "decompressedBytes": 12785327
+    },
+    {
+      "folder": "c1-wrx-capture",
+      "serial": "SLPM-65897",
+      "sha256": "69f16be96526690ee3cdeb5c2c349de09a92378b8ea6a742968d228e6b3d0bf2",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Racing Battle - C1 Grand Prix_SLPM-65897_20261025180437.gs.zst",
+      "decompressedBytes": 17224503
+    },
+    {
+      "folder": "txr3-evo5-capture",
+      "serial": "SLUS-20831",
+      "sha256": "720d5d6f1ec3b7c233ec5627bbc17904b3ee53174da6fc0e87e5cdaa84918ef9",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer 3_SLUS-20831_20261025171654.gs.zst",
+      "decompressedBytes": 17507535
+    },
+    {
+      "folder": "txrd1-alto-capture",
+      "serial": "SLES-53191",
+      "sha256": "1ea4b8dc7e0ff19fc9e127b429478dee4fe50ac67c736b2980fd2d399dbd9d82",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Kaido Racer_SLES-53191_20261025173456.gs.zst",
+      "decompressedBytes": 23442343
+    },
+    {
+      "folder": "txrd1-hakone-capture",
+      "serial": "SLES-53191",
+      "sha256": "6f26bb913184e77916659c05d54edfba415f230e6c513c239e7d3d4aa64aca23",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Kaido Racer_SLES-53191_20261025173712.gs.zst",
+      "decompressedBytes": 14534151
+    },
+    {
+      "folder": "txrd2-capture",
+      "serial": "SLUS-21394",
+      "sha256": "2f7f287b74665db7f13e6010b77359cd5b18b33b51c13317879852cc6819c06d",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer Drift 2_SLUS-21394_20261025164204.gs.zst",
+      "decompressedBytes": 15460687
+    },
+    {
+      "folder": "txrd2-hakone-capture",
+      "serial": "SLUS-21394",
+      "sha256": "df5a440f792398c86a920eb96b053991c114783702db4285f15dfb3914177f0d",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer Drift 2_SLUS-21394_20261025170533.gs.zst",
+      "decompressedBytes": 16852063
+    },
+    {
+      "folder": "txrd2-march-capture",
+      "serial": "SLUS-21394",
+      "sha256": "1c33568a0c210f3ccb4cd2caaef5d46a0494d31612420ae94b2f4dc6d302ab67",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer Drift 2_SLUS-21394_20261025165628.gs.zst",
+      "decompressedBytes": 16811695
+    },
+    {
+      "folder": "txrzero-ae86-capture",
+      "serial": "SLUS-20189",
+      "sha256": "9546b6df44f1d6d774abee10c24048e42f48d2bef09777e3bb687cd293ce546f",
+      "captureSource": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer Zero_SLUS-20189_20261025175121.gs.zst",
+      "decompressedBytes": 8039079
+    }
+  ]
+}

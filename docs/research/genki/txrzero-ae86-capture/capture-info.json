@@ -1,0 +1,15 @@
+{
+  "stateVersion": 9,
+  "stateSize": 4194813,
+  "serialOffset": 36,
+  "serialSize": 10,
+  "crc": 3245736583,
+  "screenshotWidth": 640,
+  "screenshotHeight": 480,
+  "screenshotOffset": 46,
+  "screenshotSize": 1228800,
+  "serial": "SLUS-20189",
+  "source": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer Zero_SLUS-20189_20261025175121.gs.zst",
+  "decompressedBytes": 8039079,
+  "sha256": "9546b6df44f1d6d774abee10c24048e42f48d2bef09777e3bb687cd293ce546f"
+}

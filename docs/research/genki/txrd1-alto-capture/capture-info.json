@@ -1,0 +1,15 @@
+{
+  "stateVersion": 9,
+  "stateSize": 4194813,
+  "serialOffset": 36,
+  "serialSize": 10,
+  "crc": 4151840262,
+  "screenshotWidth": 640,
+  "screenshotHeight": 480,
+  "screenshotOffset": 46,
+  "screenshotSize": 1228800,
+  "serial": "SLES-53191",
+  "source": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Kaido Racer_SLES-53191_20261025173456.gs.zst",
+  "decompressedBytes": 23442343,
+  "sha256": "1ea4b8dc7e0ff19fc9e127b429478dee4fe50ac67c736b2980fd2d399dbd9d82"
+}

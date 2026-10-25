@@ -1,0 +1,93 @@
+{
+  "source": "F:\\copia de seguridad 08.04.2019\\downloads\\Tokyo Xtreme Racer Drift 2 (USA)\\Tokyo Xtreme Racer - Drift 2 [NTSC-U] [SLUS-21394]\\2022\\000002a0.sdb",
+  "entries": [
+    {
+      "offset": 278848,
+      "total": 263296,
+      "imageBytes": 262144,
+      "paletteBytes": 1024,
+      "headerSize": 128,
+      "width": 512,
+      "height": 512,
+      "type": 5,
+      "format": 0,
+      "levels": 1,
+      "kind": "pixels",
+      "TEX0": "0xca653205c0"
+    },
+    {
+      "offset": 542144,
+      "total": 48,
+      "imageBytes": 0,
+      "paletteBytes": 0,
+      "headerSize": 128,
+      "width": 256,
+      "height": 256,
+      "type": 5,
+      "format": 0,
+      "levels": 1,
+      "kind": "reference-only",
+      "TEX0": "0x1ca213102c0"
+    },
+    {
+      "offset": 542192,
+      "total": 48,
+      "imageBytes": 0,
+      "paletteBytes": 0,
+      "headerSize": 128,
+      "width": 512,
+      "height": 256,
+      "type": 5,
+      "format": 0,
+      "levels": 1,
+      "kind": "reference-only",
+      "TEX0": "0x24a253203c0"
+    },
+    {
+      "offset": 542240,
+      "total": 17536,
+      "imageBytes": 16384,
+      "paletteBytes": 1024,
+      "headerSize": 128,
+      "width": 128,
+      "height": 128,
+      "type": 5,
+      "format": 0,
+      "levels": 1,
+      "kind": "pixels",
+      "TEX0": "0x2c5dd308080"
+    },
+    {
+      "offset": 559776,
+      "total": 66688,
+      "imageBytes": 65536,
+      "paletteBytes": 1024,
+      "headerSize": 128,
+      "width": 256,
+      "height": 256,
+      "type": 5,
+      "format": 0,
+      "levels": 1,
+      "kind": "pixels",
+      "TEX0": "0x14a213101c0"
+    },
+    {
+      "offset": 626464,
+      "total": 48,
+      "imageBytes": 0,
+      "paletteBytes": 0,
+      "headerSize": 48,
+      "width": 128,
+      "height": 128,
+      "type": 5,
+      "format": 0,
+      "levels": 1,
+      "kind": "reference-only",
+      "TEX0": "0x41dd3100c0"
+    }
+  ],
+  "parsedEnd": 626512,
+  "sourceBytes": 626528,
+  "remaining": 16,
+  "studyFixtureIdentical": true
+}

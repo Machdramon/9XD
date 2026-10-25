@@ -1,0 +1,74 @@
+{
+  "verifiedRelocationBlocks": 13056,
+  "verifiedMatches": [
+    {
+      "pixelDeltaBlocks": 13056,
+      "paletteDeltaBlocks": 13056
+    },
+    {
+      "pixelDeltaBlocks": 13056,
+      "paletteDeltaBlocks": 13056
+    }
+  ],
+  "entries": [
+    {
+      "pictureOffset": 278848,
+      "kind": "pixels",
+      "width": 512,
+      "height": 512,
+      "sourceBaseBlocks": 1472,
+      "expectedRuntimeBaseBlocks": 14528,
+      "observedBindings": [
+        "0x200660c6653238c0"
+      ]
+    },
+    {
+      "pictureOffset": 542144,
+      "kind": "reference-only",
+      "width": 256,
+      "height": 256,
+      "sourceBaseBlocks": 704,
+      "expectedRuntimeBaseBlocks": 13760,
+      "observedBindings": []
+    },
+    {
+      "pictureOffset": 542192,
+      "kind": "reference-only",
+      "width": 512,
+      "height": 256,
+      "sourceBaseBlocks": 960,
+      "expectedRuntimeBaseBlocks": 14016,
+      "observedBindings": []
+    },
+    {
+      "pictureOffset": 542240,
+      "kind": "pixels",
+      "width": 128,
+      "height": 128,
+      "sourceBaseBlocks": 128,
+      "expectedRuntimeBaseBlocks": 13184,
+      "observedBindings": []
+    },
+    {
+      "pictureOffset": 559776,
+      "kind": "pixels",
+      "width": 256,
+      "height": 256,
+      "sourceBaseBlocks": 448,
+      "expectedRuntimeBaseBlocks": 13504,
+      "observedBindings": [
+        "0x20066146213134c0"
+      ]
+    },
+    {
+      "pictureOffset": 626464,
+      "kind": "reference-only",
+      "width": 128,
+      "height": 128,
+      "sourceBaseBlocks": 192,
+      "expectedRuntimeBaseBlocks": 13248,
+      "observedBindings": []
+    }
+  ],
+  "scope": "Relocation verified for two exact pixel-and-palette matches only; alias content and original generation still need tracing."
+}

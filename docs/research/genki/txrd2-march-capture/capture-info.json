@@ -1,0 +1,15 @@
+{
+  "stateVersion": 9,
+  "stateSize": 4194813,
+  "serialOffset": 36,
+  "serialSize": 10,
+  "crc": 3006136718,
+  "screenshotWidth": 640,
+  "screenshotHeight": 480,
+  "screenshotOffset": 46,
+  "screenshotSize": 1228800,
+  "serial": "SLUS-21394",
+  "source": "C:\\Users\\Jarky\\Documents\\PCSX2\\snaps\\Tokyo Xtreme Racer Drift 2_SLUS-21394_20261025165628.gs.zst",
+  "decompressedBytes": 16811695,
+  "sha256": "1c33568a0c210f3ccb4cd2caaef5d46a0494d31612420ae94b2f4dc6d302ab67"
+}

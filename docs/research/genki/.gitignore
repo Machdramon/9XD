@@ -1,0 +1,8 @@
+# Derived local capture data; retain compact GS originals, PNGs and research reports.
+*.gs
+gs-state.bin
+provenance-reextract/
+
+# Local game-derived capture/media stays off the public repository.
+*.gs.zst
+*.png

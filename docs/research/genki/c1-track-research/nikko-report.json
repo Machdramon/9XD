@@ -1,0 +1,18 @@
+{
+  "identifiedBank": "2025/00002498.dat",
+  "identityEvidence": "TIM2 pictures 1 and 57 visibly say NIKKO CIRCUIT. 93 pictures decoded from first bank.",
+  "stagedRange": "2025 decimal filenames 00002498 through 00002531, before next analogous bank 00002532",
+  "rangeStatus": "Provisional group by adjacency and repeated bank boundary. Per-resource placement/material links not yet proven.",
+  "resources": 34,
+  "bytes": 2563408,
+  "admittedGeometryResources": 29,
+  "admittedTriangles": 29654,
+  "unsupportedOrNonMesh": [
+    "00002498.dat",
+    "00002499.dat",
+    "00002529.dat",
+    "00002530.bin",
+    "00002531.bin"
+  ],
+  "limitations": "Research staging, not complete assembled track extraction. Main-bank geometry not admitted by current native rules; no speculative face generation. Original sources unchanged."
+}

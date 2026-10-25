@@ -14,6 +14,12 @@ Type hexadecimal pairs in the byte columns, or characters in the decoded text co
 
 Editing is limited to 1 MiB per operation and 4096 rows for rectangular operations. History retains at most 20 MiB of replacement bytes, 1024 operations or 16384 regions. Saving resets history. Disabled menu items represent planned features.
 
+## Modules and command search
+
+The left sidebar switches between Hex Viewer, 3D, UV / 2D, Scripting and Other Tools. Hover an icon to see its module name. Drag a module tab out of the sidebar to detach it; its context menu also provides window controls. Search and Settings shortcuts sit at the bottom of the sidebar.
+
+Press **Ctrl+K** or click Search to find modules, enabled menu commands and main panel actions. Type words to filter, use the arrow keys to select and Enter to run a command. Escape closes the search.
+
 ## Documents, layout and appearance
 
 Open documents appear as movable, closable tabs. Each document keeps its own contents, selection, undo history and interpretation settings. The inspector and other shared panels follow the active document. Opening an already open path focuses its existing document.

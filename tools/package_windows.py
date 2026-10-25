@@ -77,7 +77,7 @@ def main():
         shutil.copy2(installer, stage / 'prerequisites' / installer.name)
     shutil.copy2(options.vulkan_loader, stage / 'vulkan-1.dll')
     shutil.copy2(options.vulkan_license, licenses / 'Vulkan-Loader.txt')
-    shutil.copytree(source / 'docs', stage / 'docs')
+    shutil.copytree(source / 'docs', stage / 'docs', ignore=shutil.ignore_patterns('research'))
     if (source / 'profiles').is_dir():
         shutil.copytree(source / 'profiles', stage / 'profiles')
     shutil.copy2(source / 'src/bcdec-LICENSE.txt', licenses / 'bcdec.txt')
