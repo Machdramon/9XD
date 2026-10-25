@@ -18,11 +18,24 @@
       "inherits": "windows-local",
       "binaryDir": "${sourceDir}/build/windows-release",
       "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "BUILD_TESTING": false}
+    },
+    {
+      "name": "mac-local",
+      "displayName": "macOS ARM64 - Qt and Vulkan",
+      "inherits": "base-macos",
+      "binaryDir": "${sourceDir}/build/mac-local",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.2/macos",
+        "CMAKE_OSX_SYSROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+        "WORKBENCH_VULKAN_DRIVER": "$env{HOME}/VulkanSDK/1.4.357.1/macOS/share/vulkan/icd.d/MoltenVK_icd.json"
+      },
+      "environment": {"VULKAN_SDK": "$env{HOME}/VulkanSDK/1.4.357.1/macOS"}
     }
   ],
   "buildPresets": [
     {"name": "windows-local", "configurePreset": "windows-local"},
     {"name": "windows-release", "configurePreset": "windows-release"},
-    {"name": "windows-package", "configurePreset": "windows-release", "targets": ["windows_package"]}
+    {"name": "windows-package", "configurePreset": "windows-release", "targets": ["windows_package"]},
+    {"name": "mac-local", "configurePreset": "mac-local"}
   ]
 }
