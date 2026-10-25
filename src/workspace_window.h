@@ -1,4 +1,5 @@
 #pragma once
+#include "workbench_icons.h"
 #include "file_dialogs.h"
 #include <QMdiArea>
 #include <QMdiSubWindow>
@@ -58,7 +59,7 @@ public:
             noticeLayout->addWidget(show,0,Qt::AlignHCenter);noticeLayout->addWidget(bringBack,0,Qt::AlignHCenter);noticeLayout->addStretch();
             connect(show,&QPushButton::clicked,this,[this,id=ids[i]]{selectModule(id);});connect(bringBack,&QPushButton::clicked,this,[this,id=ids[i]]{attachModule(id);});
             moduleNotices_.insert(ids[i],notice);slotLayout->addWidget(host);slotLayout->addWidget(notice);notice->hide();
-            moduleHosts_.insert(ids[i],host);modulePages_->addWidget(slot);moduleTabs_->addTab(names[i]);moduleTabs_->setTabData(i,ids[i]);
+            moduleHosts_.insert(ids[i],host);modulePages_->addWidget(slot);moduleTabs_->addTab(workbenchIcon(QHash<QString,QString>{{"hex","hex"},{"3d","cube"},{"uv","image"},{"scripting","code"},{"tools","tools"}}.value(ids[i])),names[i]);moduleTabs_->setTabData(i,ids[i]);
         }
         connect(moduleTabs_,&QTabBar::currentChanged,this,[this](int index){selectModule(moduleTabs_->tabData(index).toString());});
         moduleTabs_->setContextMenuPolicy(Qt::CustomContextMenu);

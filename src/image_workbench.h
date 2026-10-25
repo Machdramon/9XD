@@ -1,4 +1,5 @@
 #pragma once
+#include "empty_state.h"
 #include "file_dialogs.h"
 #include "hex_view.h"
 #include "image_decode.h"
@@ -29,7 +30,7 @@
 
 class ImagePreview final:public QGraphicsView {
 public:
-    explicit ImagePreview(QWidget *parent=nullptr):QGraphicsView(parent){setObjectName("imagePreview");setScene(new QGraphicsScene(this));setDragMode(ScrollHandDrag);setTransformationAnchor(AnchorUnderMouse);setBackgroundBrush(palette().brush(QPalette::Dark));}
+    explicit ImagePreview(QWidget *parent=nullptr):QGraphicsView(parent){setObjectName("imagePreview");setScene(new QGraphicsScene(this));addEmptyState(this,"image","No image to preview","Select an image in the collection, or calculate one with the settings on the right.");setDragMode(ScrollHandDrag);setTransformationAnchor(AnchorUnderMouse);setBackgroundBrush(palette().brush(QPalette::Dark));}
     void showImage(const QImage &image){scene()->clear();if(!image.isNull())scene()->addPixmap(QPixmap::fromImage(image));scene()->setSceneRect(QRectF(QPointF(0,0),image.size()));resetTransform();if(!image.isNull())fitInView(scene()->sceneRect(),Qt::KeepAspectRatio);}
 protected:
     void wheelEvent(QWheelEvent *event)override{const double factor=std::exp(event->angleDelta().y()*.001);const auto next=transform().m11()*factor;if(next>=.01&&next<=128)scale(factor,factor);event->accept();}
@@ -45,7 +46,7 @@ public:
         auto *open=new QPushButton("Open Folder...");open->setObjectName("imageOpenFolder");layout->addWidget(open);
         auto *openFiles=new QPushButton("Open Files...");openFiles->setObjectName("imageOpenFiles");layout->addWidget(openFiles);
         filter_=new QLineEdit;filter_->setPlaceholderText("Filter library...");layout->addWidget(filter_);
-        list_=new QListWidget;list_->setObjectName("imageLibrary");list_->setIconSize({64,64});layout->addWidget(list_,1);
+        list_=new QListWidget;list_->setObjectName("imageLibrary");list_->setIconSize({64,64});layout->addWidget(list_,1);addEmptyState(list_,"image","No images in the collection","Open files or a folder, or calculate an image from the current document.");
         auto *exportImage=new QPushButton("Export Selected PNG...");layout->addWidget(exportImage);
         auto *save=new QPushButton("Save Library...");auto *load=new QPushButton("Open Library...");auto *libraryButtons=new QHBoxLayout;libraryButtons->addWidget(save);libraryButtons->addWidget(load);layout->addLayout(libraryButtons);
         auto *remove=new QPushButton("Remove Selected");layout->addWidget(remove);

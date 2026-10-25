@@ -12,7 +12,8 @@ public:
     std::function<void()> returnRequested;
 protected:
     void closeEvent(QCloseEvent *event)override{
-        if(returnRequested){returnRequested();event->ignore();}
+        // Call a copy: the callback clears returnRequested, which would destroy the running lambda.
+        if(returnRequested){auto callback=returnRequested;callback();event->ignore();}
         else QMainWindow::closeEvent(event);
     }
 };

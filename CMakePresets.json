@@ -6,6 +6,17 @@
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}
+    },
+    {
+      "name": "base-macos",
+      "hidden": true,
+      "inherits": "base-debug",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"},
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "CMAKE_OSX_ARCHITECTURES": "arm64"
+      }
     }
   ]
 }

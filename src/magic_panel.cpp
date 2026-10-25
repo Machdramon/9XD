@@ -1,3 +1,4 @@
+#include "empty_state.h"
 #include "file_dialogs.h"
 #include "magic_panel.h"
 #include "hex_view.h"
@@ -42,7 +43,7 @@ MagicPanel::MagicPanel(HexView *view,FormatPanel *format,QWidget *parent):QWidge
     auto *controls=new QHBoxLayout;right->addLayout(controls);scope_=new QComboBox;scope_->addItems({"Entire file","Start of file","Start of selection","Starts of marked regions"});controls->addWidget(scope_);
     start_=new QPushButton("Analyze");start_->setObjectName("magicScan");controls->addWidget(start_);connect(start_,&QPushButton::clicked,this,[this]{scan();});
     auto *cancel=new QPushButton("Cancel");controls->addWidget(cancel);connect(cancel,&QPushButton::clicked,view_,&HexView::cancelMagicScan);
-    results_=new QTableWidget(0,4);results_->setObjectName("magicResults");results_->setHorizontalHeaderLabels({"Matching signature","Offset ↗","Candidate start","Bytes"});results_->setEditTriggers(QAbstractItemView::NoEditTriggers);results_->setSelectionBehavior(QAbstractItemView::SelectRows);results_->setSelectionMode(QAbstractItemView::ExtendedSelection);results_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);results_->horizontalHeader()->setStretchLastSection(true);right->addWidget(results_);
+    results_=new QTableWidget(0,4);results_->setObjectName("magicResults");addEmptyState(results_,"search","No matches to show","Analyze searches the scope for the active signatures.");results_->setHorizontalHeaderLabels({"Matching signature","Offset ↗","Candidate start","Bytes"});results_->setEditTriggers(QAbstractItemView::NoEditTriggers);results_->setSelectionBehavior(QAbstractItemView::SelectRows);results_->setSelectionMode(QAbstractItemView::ExtendedSelection);results_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);results_->horizontalHeader()->setStretchLastSection(true);right->addWidget(results_);
     auto navigate=[this](QTableWidgetItem *item){if(!item||item->row()>=matches_.size())return;auto r=matches_[item->row()];view_->selectMatch(r.offset,r.length);};
     connect(results_,&QTableWidget::itemClicked,this,navigate);connect(results_,&QTableWidget::itemActivated,this,navigate);
     auto *markButton=new QPushButton("Outline selected rows with the current style");right->addWidget(markButton);connect(markButton,&QPushButton::clicked,this,[this]{mark();});
