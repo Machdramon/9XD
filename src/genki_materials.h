@@ -1,6 +1,7 @@
 #pragma once
 #include "genki_mesh_evidence.h"
 #include "tim2_storage.h"
+#include "genki_texture_bank.h"
 // Material recognition does not admit a new topology profile. Each descriptor is
 // anchored to a recognized DMA start, and every packet and declared span is checked.
 namespace GenkiMaterials {
@@ -11,6 +12,9 @@ inline QJsonObject inspect(const QByteArray &bytes,const QJsonObject &geometry,c
     if(directoryValid)for(int section=0;section<directory.size();++section){auto start=directory[section],end=section+1<directory.size()?directory[section+1]:bytes.size();if(end-start<16||bytes.mid(start,4)!="TIM2")continue;int alignment=quint8(bytes[start+5]),pictures=h(start+6);if(alignment>1||pictures<1||pictures>4096)continue;qint64 p=start+(alignment?128:16);QJsonArray images;bool valid=true;
         for(int i=0;i<pictures;++i){if(cancel.load())return {};if(p>end-48){valid=false;break;}qint64 size=u(p),palette=u(p+4),pixels=u(p+8);int header=h(p+12),w=h(p+20),height=h(p+22);if(size<48||size>end-p||header<48||header+pixels+palette>size||!w||!height||qint64(w)*height>4194304){valid=false;break;}auto tex0=qFromLittleEndian<quint64>(bytes.constData()+p+24);int storedWidth=1<<((tex0>>26)&15),storedHeight=1<<((tex0>>30)&15);int pictureFormat=quint8(bytes[p+16]),levels=quint8(bytes[p+17]),type=quint8(bytes[p+19]);bool decodeSupported=(pictureFormat==0||tim2TransferBits(bytes,p))&&levels<=8&&type>=1&&type<=5;images.append(QJsonObject{{"decodeSupported",decodeSupported},{"pictureFormat",pictureFormat},{"storageWidth",storedWidth},{"storageHeight",storedHeight},{"index",i},{"width",w},{"height",height},{"pictureOffset",QString::number(p)}});p+=size;}
         banks.append(QJsonObject{{"valid",valid},{"index",banks.size()},{"offset",QString::number(start)},{"end",QString::number(end)},{"images",valid?images:QJsonArray()}});
+    }
+    if(directoryValid&&directory.size()==2&&geometry["topologyProfile"]==GenkiTopology::Txrd2Profile&&bytes.mid(directory[0]+16,8)=="LDMX00.1"){
+        auto bank=GenkiTextureBank::headerless(bytes,directory[1],bytes.size(),&cancel);if(!bank.isEmpty()){bank["index"]=banks.size();banks.append(bank);}
     }
     QSet<qint64> packetStarts;QMap<qint64,QJsonObject> chunks;for(auto value:geometry["previewChunks"].toArray()){auto chunk=value.toObject();auto p=chunk["dmaOffset"].toString().toLongLong();packetStarts.insert(p);chunks[p]=chunk;}
     QSet<qint64> covered;
@@ -43,6 +47,24 @@ inline QJsonObject inspect(const QByteArray &bytes,const QJsonObject &geometry,c
         QString status="Bounded v1 material/state block; its texture-bank/index encoding and face topology are unresolved.";
         QJsonObject material{{"name",QString("Genki v1 / Material 0x%1").arg(descriptor,0,16)},{"offset",QString::number(descriptor)},{"dmaStart",QString::number(first)},{"dmaEnd",QString::number(end)},{"packetCount",packets},{"vertexCount",vertices},{"descriptorBytes",208},{"uvType",hasUvs?"Int16 / 4096":"UV layout incomplete or unsupported"},{"textureExpected",hasUvs},{"textureReferenceResolved",false},{"textureAssigned",false},{"topologyValidated",false},{"basis",status},{"textureStatus",status}};
         bool supported=geometry["topologyProfile"]==GenkiTopology::Txrd2Profile&&geometry["renderSupported"].toBool();material["topologyValidated"]=supported;if(supported){int triangles=0;for(auto it=chunks.lowerBound(first);it!=chunks.end()&&it.key()<end;++it)triangles+=GenkiTopology::chunkFaces(bytes,it.value()).size()/3;material["triangleCount"]=triangles;material["basis"]="TXRD2 v1 mode/ADC strip; texture binding remains unresolved.";material["textureStatus"]="TXRD2 v1 geometry decoded; texture-bank/index encoding remains unresolved.";if(triangles){auto c=material;c["profileId"]="native-genki-part";c["profileName"]="TXRD2 v1 material group";c["nativeDecoder"]=true;c["objectOffset"]=QString::number(descriptor);c["settings"]=QJsonObject{{"vertexOffset",chunks.value(first)["positionsOffset"]},{"vertexCount",vertices}};candidates.append(c);}}
+        // v1 local primary reference: namespace 2 and an explicit slot at +70.
+        // +72 is the stored GS primitive state (TME bit 4); +88 is CLAMP.
+        // Secondary stages and empty slots are not substituted for the primary.
+        if(supported&&hasUvs&&banks.size()==1&&banks[0].toObject()["headerless"].toBool()){
+            auto bank=banks[0].toObject();const auto images=bank["images"].toArray();auto ref=u(descriptor+68),state=u(descriptor+72),load=u(descriptor+64);int slot=(ref>>16)&255;auto clamp=qFromLittleEndian<quint64>(bytes.constData()+descriptor+88);
+            bool local=(ref&0xffff)==0x200&&(ref&0xff000000)==0&&(load==0x800040||load==0xa00040)&&(state&16);material["textureExpected"]=bool(state&16);material["textureIndex"]=slot;material["bank"]=0;material["v1PrimaryReference"]=QString::number(ref);material["v1PrimitiveState"]=QString::number(state);
+            QString reason=!(state&16)?"untextured-material":!local?"external-or-unsupported-v1-reference":slot>=images.size()?"image-index-out-of-range":"material/image-layout-disagreement";
+            if(local&&slot<images.size()){
+                auto image=images[slot].toObject();int maxU=(clamp>>14)&1023,maxV=(clamp>>34)&1023,minU=(clamp>>4)&1023,minV=(clamp>>24)&1023;
+                bool agrees=(clamp&15)==10&&!minU&&!minV&&maxU+1==image["width"].toInt()&&maxV+1==image["height"].toInt();
+                if(image["referenceOnly"].toBool())reason="unresolved-reference-only-slot";
+                else if(agrees&&image["decodeSupported"].toBool()){
+                    reason="v1-local-primary-slot";material["textureAssigned"]=true;material["textureReferenceResolved"]=true;material["textureDecodeSupported"]=true;material["headerlessBank"]=true;material["textureWrapU"]="Clamp";material["textureWrapV"]="Clamp";material["textureOffset"]=bank["offset"];material["textureEnd"]=bank["end"];material["textureWidth"]=image["width"];material["textureHeight"]=image["height"];material["uvScaleU"]=1.;material["uvScaleV"]=1.;material["textureStatus"]="Verified v1 primary slot and CLAMP dimensions; primary Int16 UV pair, stride 4 or 8 bytes. Secondary game shader stages are not applied.";
+                }
+            }
+            material["resolution"]=reason;if(!material["textureAssigned"].toBool())material["textureStatus"]="TXRD2 v1 primary texture unresolved: "+reason;material["basis"]=material["textureStatus"];
+            for(int i=0;i<candidates.size();++i)if(candidates[i].toObject()["objectOffset"]==QString::number(descriptor)){auto c=candidates[i].toObject();for(auto it=material.begin();it!=material.end();++it)c[it.key()]=it.value();candidates[i]=c;}
+        }
         materials.append(material);
     }
     // Validated packets without a recognized material still belong to the model.

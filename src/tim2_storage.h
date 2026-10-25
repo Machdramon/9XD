@@ -9,7 +9,8 @@ inline int tim2TransferBits(const QByteArray &b,qint64 at){
     if(at<0||at>b.size()-48)return 0;const auto *p=reinterpret_cast<const uchar *>(b.constData()+at);
     auto h=[&](int n){return qFromLittleEndian<quint16>(p+n);};auto u=[&](int n){return qFromLittleEndian<quint32>(p+n);};auto tex=qFromLittleEndian<quint64>(p+24);
     int bits=p[16]==0x10&&p[19]==4?4:p[16]==0x30&&p[19]==5?8:0,w=h(20),height=h(22);
-    if(!bits||p[17]!=1||p[18]!=3||h(12)!=128||!imageValidSize(w,height)||(w!=32&&w!=64)||(height!=32&&height!=64&&height!=128)||((tex>>14)&63)!=2||((tex>>20)&63)!=(bits==4?20:19)||(1<<((tex>>26)&15))!=w||(1<<((tex>>30)&15))!=height||h(14)!=(bits==4?16:256)||u(8)!=quint32(w*height*bits/8)||u(4)!=(bits==4?128u:1024u)||u(0)<128+u(8)+u(4)||u(0)>b.size()-at)return 0;
+    int clut=p[18],entries=bits==4?16:256,paletteStep=clut==1?2:4;quint32 bankBytes=entries*paletteStep;
+    if(!bits||p[17]!=1||(clut!=1&&clut!=3)||h(12)!=128||!imageValidSize(w,height)||(w!=16&&w!=32&&w!=64)||(height!=16&&height!=32&&height!=64&&height!=128)||((tex>>14)&63)!=2||((tex>>20)&63)!=(bits==4?20:19)||(1<<((tex>>26)&15))!=w||(1<<((tex>>30)&15))!=height||h(14)!=entries||u(8)!=quint32(w*height*bits/8)||u(4)<bankBytes||u(4)>bankBytes*16||u(4)%bankBytes||u(0)<128+u(8)+u(4)||u(0)>b.size()-at)return 0;
     return bits==4?16:32;
 }
 inline QByteArray tim2TransferLinear(const QByteArray &raw,int w,int h,int bits,int transfer,const std::atomic_bool &cancel){

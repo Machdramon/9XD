@@ -60,7 +60,7 @@ public:
         format_=new QComboBox;format_->setObjectName("imageFormat");format_->addItems(imageFormats());format_->setCurrentText("RGBA8");format_->setMaxVisibleItems(16);form->addRow("Pixel format",format_);
         memoryLayout_=new QComboBox;memoryLayout_->setObjectName("imageMemoryLayout");memoryLayout_->addItems({"Linear","Morton Z-order","Morton rectangular","Tiled 8x8","PS2 GS pages","PS2 GS 16S","Xbox 360 tiled","PS4 1D thin"});form->addRow("Memory layout / Unswizzle",memoryLayout_);
         auto *formatsLabel=new QLabel("Encoded images: "+QString::fromLatin1(QImageReader::supportedImageFormats().join(", "))+", tga, dds, tim, tm2, tpl, gtf, gnf");formatsLabel->setWordWrap(true);form->addRow(formatsLabel);
-        container_=new QComboBox;container_->setObjectName("imageContainer");container_->addItems({"Auto","GTF"});form->addRow("Container hint",container_);
+        container_=new QComboBox;container_->setObjectName("imageContainer");container_->addItems(imageContainers());form->addRow("Container hint",container_);
         mip_=number(0,13,0,"imageMipLevel");surface_=number(0,2047,0,"imageSurface");form->addRow("Container mip level",mip_);form->addRow("Image / surface / page",surface_);
         byteSwap_=new QComboBox;byteSwap_->setObjectName("imageByteSwap");byteSwap_->addItems({"None","Swap 8 in 16","Swap 8 in 32","Swap 16 in 32"});form->addRow("Raw byte swap",byteSwap_);
         offset_=field("0","imageOffset");form->addRow("Start offset",offset_);

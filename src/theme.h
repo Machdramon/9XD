@@ -121,6 +121,18 @@ inline void applyWorkbenchTheme(const QString &requested){
     css+="QTreeWidget#meshCollection { border: 1px solid "+border+"; border-radius: 8px; } QTreeWidget#meshCollection::item { padding: 5px 2px; }";
     css+="QLabel#meshBoundsDimensions, QLabel#meshPlacementNote, QLabel#meshStatus, QLabel#meshSetupState { color: "+muted+"; font-size: 11px; }";
     css+="QLabel#axisTagX { color: #FF7A7A; font-weight: 700; } QLabel#axisTagY { color: "+QString(darkBase?"#6BE09A":"#1E8F4E")+"; font-weight: 700; } QLabel#axisTagZ { color: "+QString(darkBase?"#6AA6FF":"#2457B8")+"; font-weight: 700; }";
+    // Reconstruction inspectors: section cards, pipeline steps, state-coloured status lines, drawing canvas.
+    css+="QFrame#inspectorCard { background: "+surface+"; border: 1px solid "+border+"; border-radius: 9px; } QLabel#inspectorCardTitle { font-weight: 600; }";
+    css+="QLabel#inspectorHint, QLabel#reconstructionVideoInfo, QLabel#reconstructionEstimate, QLabel#reconstructionResult, QLabel#reconstructionToolState, QLabel#splineImageInfo, QLabel#splinePointCount, QLabel#splineProject { color: "+muted+"; font-size: 11px; }";
+    css+="QWidget#reconstructionPipeline { background: "+surface+"; border: 1px solid "+border+"; border-radius: 10px; } QLabel#pipelineArrow { color: "+muted+"; }";
+    css+="QLabel#pipelineStep { padding: 3px 9px; border-radius: 7px; color: "+muted+"; } QLabel#pipelineStep[state=\"current\"] { background: "+primary+"; color: #FFFFFF; font-weight: 600; } QLabel#pipelineStep[state=\"done\"] { color: "+text+"; font-weight: 600; } QLabel#pipelineStep[state=\"unavailable\"] { color: "+muted+"; font-style: italic; }";
+    css+="QLabel#reconstructionStatus, QLabel#splineStatus { background: "+button+"; border: 1px solid "+border+"; border-radius: 8px; padding: 6px 10px; }";
+    css+="QLabel#reconstructionStatus[state=\"running\"] { border-color: "+primary+"; }";
+    css+="QLabel#reconstructionStatus[state=\"done\"], QLabel#splineStatus[state=\"done\"], QLabel#reconstructionToolState[state=\"done\"] { border-color: "+QString(darkBase?"#6BE09A":"#1E8F4E")+"; color: "+QString(darkBase?"#6BE09A":"#1E8F4E")+"; }";
+    css+="QLabel#reconstructionStatus[state=\"attention\"], QLabel#reconstructionStatus[state=\"canceled\"], QLabel#splineStatus[state=\"attention\"], QLabel#reconstructionToolState[state=\"attention\"] { border-color: "+QString(darkBase?"#F5C87A":"#9B4F08")+"; color: "+QString(darkBase?"#F5C87A":"#9B4F08")+"; }";
+    css+="QLabel#reconstructionStatus[state=\"failed\"], QLabel#splineStatus[state=\"failed\"] { border-color: "+QString(darkBase?"#FF8A8A":"#C2413B")+"; color: "+QString(darkBase?"#FF8A8A":"#C2413B")+"; }";
+    css+="QGraphicsView#splineCanvas { border: 1px solid "+border+"; border-radius: 8px; } QListWidget#reconstructionThumbnails { border: none; background: transparent; }";
+    css+="QToolButton#inspectorDisclosure { font-weight: 600; color: "+muted+"; padding: 2px 4px; } QToolButton#inspectorDisclosure:hover { color: "+text+"; }";
     // Module rail, command palette, segmented inspector tabs and the status bar.
     const QString rail=darkBase?QColor(window).darker(125).name():QColor(window).darker(104).name();
     css+="QWidget#moduleRail { background: "+rail+"; border-right: 1px solid "+border+"; }";

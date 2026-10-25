@@ -66,6 +66,12 @@ private:
         else if(n=="sun"){p->drawEllipse(QPointF(12,12),4,4);for(int i=0;i<8;++i){const qreal a=qDegreesToRadians(45.0*i);p->drawLine(QPointF(12+7*qCos(a),12+7*qSin(a)),QPointF(12+9.5*qCos(a),12+9.5*qSin(a)));}}
         else if(n=="frame"){poly({{4,9},{4,4},{9,4}});poly({{15,4},{20,4},{20,9}});poly({{20,15},{20,20},{15,20}});poly({{9,20},{4,20},{4,15}});p->drawEllipse(QPointF(12,12),3,3);}
         else if(n=="select"){QPen pen=p->pen();pen.setDashPattern({2,2});p->setPen(pen);p->drawRoundedRect(QRectF(4,4,16,16),2,2);}
+        else if(n=="plus"){lines({{12,5,12,19},{5,12,19,12}});}
+        else if(n=="minus"){lines({{5,12,19,12}});}
+        else if(n=="up"){poly({{6,14.5},{12,8.5},{18,14.5}});}
+        else if(n=="down"){poly({{6,9.5},{12,15.5},{18,9.5}});}
+        else if(n=="film"){p->drawRoundedRect(QRectF(3,5,18,14),2,2);lines({{7.5,5,7.5,19},{16.5,5,16.5,19},{3,9.5,7.5,9.5},{3,14.5,7.5,14.5},{16.5,9.5,21,9.5},{16.5,14.5,21,14.5}});}
+        else if(n=="curve"){QPainterPath path;path.moveTo(4,18);path.cubicTo(8,3,16,21,20,6);p->drawPath(path);QPainterPath dots;dots.addEllipse(QPointF(4,18),2,2);dots.addEllipse(QPointF(20,6),2,2);filled(dots);}
         else if(n=="chat"){QPainterPath path;path.moveTo(4,6);path.quadTo(4,4,6,4);path.lineTo(18,4);path.quadTo(20,4,20,6);path.lineTo(20,15);path.quadTo(20,17,18,17);path.lineTo(10,17);path.lineTo(5,21);path.lineTo(6,17);path.quadTo(4,17,4,15);path.closeSubpath();p->drawPath(path);}
     }
     QString name_;QColor fixed_;

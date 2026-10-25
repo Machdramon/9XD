@@ -8,7 +8,7 @@ The project is under active development. Some tools and format variants are stil
 
 ## Download and run
 
-Download **[9XD 0.3.6 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.3.6/9XD-0.3.6-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.3.6) for the SHA-256 checksum and [release notes](docs/releases/v0.3.6.md).
+Download **[9XD 0.3.7 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.3.7/9XD-0.3.7-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.3.7) for the SHA-256 checksum and [release notes](docs/releases/v0.3.7.md).
 
 1. Extract the **entire ZIP** to a writable folder.
 2. Open `9XD.exe` inside the extracted folder.
@@ -68,15 +68,15 @@ The [Scripting Library Manager](docs/scripting-libraries.md) lists the active ru
 
 Python scripting uses the bundled interpreter and standard library in the Windows package. Additional third-party Python packages are not included. C++ scripting requires a compatible local compiler. Run scripts only when you trust their contents: scripts execute local code.
 
-## New in 0.3.6
+## New in 0.3.7
 
-- Refreshed dark/light styling, unified icons and clearer primary actions.
-- Vertical module sidebar with the 9XD logo and quick access to Search and Settings; modules still detach by dragging their tabs.
-- Ctrl+K command palette for modules, menu commands and panel actions.
-- Compact 3D viewport toolbar, larger transform controls, axis colours and clearer settings sections.
-- Empty-state guidance for analysis, images, mesh collections and scripting panels.
+- TXRD2 March primary materials and textures, corrected dual-UV strides and clamp sampling.
+- TIM2 RGB24 decoding fixes and expanded validated TXR Zero indexed texture layouts.
+- Video Reconstruction inspector: asynchronous frame extraction, sampling budgets, progress, previews and cancellation.
+- Image / Spline Modeling inspector: reference canvas, editable grouped points, zoom/pan and project save/load.
+- Refined inspector cards, status feedback and theme integration.
 
-See [0.3.6 release notes](docs/releases/v0.3.6.md) and [native scanning](docs/native-scanning.md) for validation and limits. Existing native format support carries forward from 0.3.5; the new emulator-reference research is not yet a new reader implementation.
+See [0.3.7 release notes](docs/releases/v0.3.7.md), [reconstruction tools](docs/reconstruction-tools.md) and [native scanning](docs/native-scanning.md). Video-to-3D reconstruction, calibrated spline fitting and segmentation are still pending. FFmpeg is a separate optional installation.
 
 ## Programmer calculator
 

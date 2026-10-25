@@ -193,9 +193,17 @@ Nested relative offset tables in an already bounded container section establish 
 | Study case | Native material groups | Triangles | Texture bindings |
 |---|---:|---:|---|
 | `txrd2/00000000.xvi` | 19 | 1,692 | Pending |
-| `txrd2/car/000002a0.sdb` | 54 | 8,328 | Pending |
+| `txrd2/car/000002a0.sdb` | 54 | 8,328 | 19 primary local texture bindings (development update 2026-10-25) |
 | Embedded models in `txrd2/00004336.dat` | 22 | 352 | Pending |
 
 The 8,328-triangle car contains 7,286 normal-bearing faces; all agree in orientation with their stored normals. In the XVI, 1,470 agree and 10 disagree, so stored normal agreement is corroborating evidence, not a universal face filter. Exported car silhouettes were inspected locally. The 352 embedded faces are small scattered resources, not a claim of a reconstructed complete track scene or hierarchy.
 
 Tests cover a synthetic omitted-face sequence without parity reset, exact single-face removal by a draw-bit mutation, rejection of missing initial markers and mismatched mode, GLB/FBX export of all three files, and actual scanner Render All of the car. Existing C1/TXR profiles remain isolated. Material bank/index interpretation, some v1 UV encodings (V4-16 at 0x8003), external assets, hierarchy and game shaders remain separate work.
+
+## Native primary texture update — 2026-10-25
+
+The March v1 path now reads the bounded headerless Indexed8 bank with all six slot IDs preserved, resolves the primary namespace-2 material slot at prefix +68/+70 against TME (+72) and CLAMP (+88), and uses the first pair of V4-16 UV records at 0x8003 with stride 8. V2-16 UV records remain stride 4. Full-image zero-minimum CLAMP is carried to the native renderer and model exporters. Empty reference-only records are not pixel data and remain unresolved. The image scanner exposes only the three stored surfaces.
+
+TIM2 RGB24 images/palettes use 3-byte colours. Verified transfer-form TIM2 layouts also admit observed 16-pixel sizes and RGB16 palette storage; reconstructed writes must cover every requested pixel byte. The Zero AE86 candidate decodes all 42 source images. Existing C1/GIF-strip/v1 face profiles remain separate; primary image support does not reconstruct secondary shader stages, visibility/LOD selection or external banks.
+
+See [implementation and validation evidence](research/genki/checks/MATERIAL-INTEGRATION.md). These changes are in the development checkout and were made after the public 0.3.6 release.

@@ -18,3 +18,11 @@ March provenance was independently verified against BUILD.TOC/BUILD.DAT through 
 ## Public-source policy — 2026-10-25
 
 Research reports, scripts and inventories are shareable project documentation. Game-derived compressed dumps and images remain local and Git-ignored, along with raw states and reextracted payloads. The portable application package excludes this research directory. No game assets are published by the 0.3.6 release.
+
+## Capture checks — 2026-10-25
+
+All nine captures passed integrity and bounded structural checks. Supported host uploads were replayed chronologically; stored pixel/palette matches, Europe/USA Alto provenance correction, March bank prototype and remaining limitations are documented in [checks/RESULTS.md](checks/RESULTS.md). Full timelines remain local under checks/local/. Native reader integration is still owned by Claude and is not declared complete.
+
+## Native development integration — 2026-10-25
+
+The user-requested March primary bank/material/UV integration, common TIM2 colour/storage fixes and final tests are documented in [checks/MATERIAL-INTEGRATION.md](checks/MATERIAL-INTEGRATION.md). The earlier cross-check report is a research-stage snapshot; its no-code-change statement predates this implementation. External aliases/shaders and broader track bindings remain pending.

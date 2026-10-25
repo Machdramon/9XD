@@ -130,3 +130,9 @@ Tokyo Night validation recovered 116 nonconflicting resource hints, rejected 29 
 ## Fast and Furious: Xbox ARCX static geometry
 
 The July 7, 2006 prototype has a native static-geometry decoder. Open `03IS300_LOD0_GRA.ARC`, scan for 3D data, then use **Render All** for the placed stock parts. Native triangle lists/strips, material names and parent transforms are reconstructed. Alternative body kits and unplaced LOD geometry remain explicitly selectable without being loaded automatically on top of the stock assembly. Track-sector ARCs, including `TOKYO004_1A.ARC`, use the same decoder. Textures, UV normalization, runtime effects, external wheel assembly and skinned/morph resources remain separate work. See [the supported layout and validation details](faf-xbox-geometry.md).
+
+## TXRD2 primary images and materials — development update 2026-10-25
+
+Open the March reference `txrd2/car/000002a0.sdb`, run **Scan for 3D Data**, then **Render All**. The validated source contains 54 parts / 8,328 triangles; 19 parts now carry their primary local image. **Preview Texture** reads the same bounded bank as **Scan for Textures / Images**; slots 0, 3 and 4 contain pixels, while the three empty references remain explicit. Raw/RAM documents use the same readers.
+
+The native material recipe preserves wide-UV stride and primary UV selection, source slot identities and clamp sampling in the viewport and GLB/FBX. Shared TIM2 decoding also corrects RGB24 colours and extends validated Zero transfer-form/RGB16 palette storage. Full game shaders, reflection stages and arbitrary external texture banks are still separate work. See [the implementation report](research/genki/checks/MATERIAL-INTEGRATION.md) for validation and sample-specific scope.

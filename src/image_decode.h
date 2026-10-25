@@ -28,6 +28,9 @@ inline DecodedImage decodeBinaryImage(ReadRequest source,const PatchList &patche
         auto bytes=read(recipe.offset,remaining);if(!out.error.isEmpty()||out.cancelled)return out;
         if(bytes.startsWith("GNF "))out.image=decodeGnf(bytes,recipe,out.error,cancel);
         else if(bytes.startsWith("TIM2"))out.image=decodeTim2(bytes,recipe,out.error,cancel);
+        else if(recipe.container=="Genki image bank"){
+            auto bank=GenkiTextureBank::headerless(bytes,0,bytes.size(),&cancel);auto adapted=GenkiTextureBank::pictureTim2(bytes,bank,recipe.surface,out.error);auto selected=recipe;selected.surface=0;if(!adapted.isEmpty())out.image=decodeTim2(adapted,selected,out.error,cancel);
+        }
         else if(recipe.container=="GTF"||source.path.endsWith(".gtf",Qt::CaseInsensitive))out.image=decodeGtf(bytes,recipe,out.error,cancel);
         else if(bytes.startsWith("DDS "))out.image=decodeDds(bytes,recipe,out.error,cancel);
         else if(bytes.startsWith(QByteArray::fromHex("10000000")))out.image=decodeTim(bytes,recipe,out.error,cancel);

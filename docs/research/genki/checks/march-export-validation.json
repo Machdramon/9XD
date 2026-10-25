@@ -1,0 +1,24 @@
+{
+  "file": "genki-integration\\exports\\txrd2_car_000002a0.sdb.glb",
+  "meshes": 54,
+  "triangles": 8328,
+  "texturedMaterials": 19,
+  "embeddedImageEntries": 19,
+  "uniqueImagePayloads": 3,
+  "uniqueImageDimensions": [
+    [
+      128,
+      128
+    ],
+    [
+      256,
+      256
+    ],
+    [
+      512,
+      512
+    ]
+  ],
+  "fbxExists": true,
+  "scope": "GLB geometry/material/image structure checked; FBX export success is checked by Qt corpus regression."
+}

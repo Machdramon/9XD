@@ -1,0 +1,108 @@
+{
+  "source": "F:\\copia de seguridad 08.04.2019\\downloads\\Tokyo Xtreme Racer Drift 2 (USA)\\Tokyo Xtreme Racer - Drift 2 [NTSC-U] [SLUS-21394]\\2022\\000002a0.sdb",
+  "sourceSha256": "fbf9042dde61c5de82e6b458c83d003c7c36fd9433b2d6f425ff99349aa618ed",
+  "marchPositive": {
+    "bankOffset": 278848,
+    "records": [
+      {
+        "slot": 0,
+        "offset": 278848,
+        "total": 263296,
+        "declaredHeaderSize": 128,
+        "kind": "pixels",
+        "width": 512,
+        "height": 512,
+        "TEX0": "0xca653205c0",
+        "imageOffset": 278976,
+        "imageBytes": 262144,
+        "paletteOffset": 541120,
+        "paletteBytes": 1024,
+        "pixelSha256": "4189a06a123dc63ad0957ed09b9b8ac267801183b385f6ba7962b41cf148666e",
+        "paletteSha256": "fc0e8b76f2b8aa2e8a53575229e5ac7ea8fb9941f23394c56100adbb4827e834"
+      },
+      {
+        "slot": 1,
+        "offset": 542144,
+        "total": 48,
+        "declaredHeaderSize": 128,
+        "kind": "reference-only",
+        "width": 256,
+        "height": 256,
+        "TEX0": "0x1ca213102c0"
+      },
+      {
+        "slot": 2,
+        "offset": 542192,
+        "total": 48,
+        "declaredHeaderSize": 128,
+        "kind": "reference-only",
+        "width": 512,
+        "height": 256,
+        "TEX0": "0x24a253203c0"
+      },
+      {
+        "slot": 3,
+        "offset": 542240,
+        "total": 17536,
+        "declaredHeaderSize": 128,
+        "kind": "pixels",
+        "width": 128,
+        "height": 128,
+        "TEX0": "0x2c5dd308080",
+        "imageOffset": 542368,
+        "imageBytes": 16384,
+        "paletteOffset": 558752,
+        "paletteBytes": 1024,
+        "pixelSha256": "0b1d59df15d1cacc810605c5a37adfa5a2d12a173e286a023483f8550c18d39f",
+        "paletteSha256": "67d2526e4f33abd6a10cd5e9c3508e5186b52d7e5165872fdd59c757d0027251"
+      },
+      {
+        "slot": 4,
+        "offset": 559776,
+        "total": 66688,
+        "declaredHeaderSize": 128,
+        "kind": "pixels",
+        "width": 256,
+        "height": 256,
+        "TEX0": "0x14a213101c0",
+        "imageOffset": 559904,
+        "imageBytes": 65536,
+        "paletteOffset": 625440,
+        "paletteBytes": 1024,
+        "pixelSha256": "a94e388671503dd7a8553ecf6a1c9a46ccc6de4935a986dd467521086ceee687",
+        "paletteSha256": "9af22c3cb416e0e6bd7f32f6852e5cc1373db832251e83539a09ac9064e68f31"
+      },
+      {
+        "slot": 5,
+        "offset": 626464,
+        "total": 48,
+        "declaredHeaderSize": 48,
+        "kind": "reference-only",
+        "width": 128,
+        "height": 128,
+        "TEX0": "0x41dd3100c0"
+      }
+    ],
+    "trailerOffset": 626512,
+    "trailerBytes": 16,
+    "scope": "Observed layout only. Empty alias slots stay unresolved; no image substitution or mesh binding inferred."
+  },
+  "negativeChecksPassed": [
+    "bad directory count",
+    "bank beyond file",
+    "zero total size",
+    "huge total size",
+    "short indexed pixels",
+    "short palette",
+    "unknown picture format",
+    "unexpected mip count",
+    "wrong image dimensions",
+    "alias with image payload",
+    "alias with unsafe header",
+    "nonzero trailer",
+    "truncated payload",
+    "truncated trailer"
+  ],
+  "negativeChecks": 14,
+  "nativeIntegration": false
+}

@@ -1,6 +1,7 @@
 #pragma once
 #include "texture_decode.h"
 #include "tim2_storage.h"
+#include "genki_texture_bank.h"
 #include <QMap>
 inline QImage decodeGnf(const QByteArray &bytes,const ImageRecipe &selection,QString &error,const std::atomic_bool &cancel){
     auto fail=[&](QString text){error=text;return QImage();};if(bytes.size()<48||!bytes.startsWith("GNF "))return fail("Incomplete GNF header.");const auto *p=reinterpret_cast<const uchar *>(bytes.constData());auto u=[&](int n){return qFromLittleEndian<quint32>(p+n);};
@@ -21,7 +22,7 @@ inline QImage decodeTim2(const QByteArray &bytes,const ImageRecipe &selection,QS
     for(int i=0;i<selection.surface;++i){if(at>bytes.size()-48||u32(at)<48||u32(at)>bytes.size()-at)return fail("Invalid TIM2 picture size.");at+=u32(at);}
     if(at>bytes.size()-48)return fail("Incomplete TIM2 picture.");qint64 total=u32(at),paletteSize=u32(at+4),imageSize=u32(at+8);int header=u16(at+12),levels=qMax(1,int(p[at+17])),type=p[at+19],clut=p[at+18]&63;
     if(total<48||total>bytes.size()-at||header<48||header+imageSize+paletteSize>total||levels>8||selection.mipLevel>=levels||(p[at+16]!=0&&!tim2TransferBits(bytes,at)))return fail("Unsupported or invalid TIM2 picture layout.");
-    ImageRecipe r;r.width=u16(at+20);r.height=u16(at+22);r.format=type==1?"PS2 RGBA16":type==2?"RGBX8":type==3?"PS2 RGBA8":type==4?"Indexed4":type==5?"Indexed8":"";r.lowNibbleFirst=true;r.paletteFormat=clut==1?"PS2 RGBA16":clut==2?"RGBX8":"PS2 RGBA8";if(r.format.isEmpty())return fail("Unsupported TIM2 color type.");
+    ImageRecipe r;r.width=u16(at+20);r.height=u16(at+22);r.format=type==1?"PS2 RGBA16":type==2?"RGB8":type==3?"PS2 RGBA8":type==4?"Indexed4":type==5?"Indexed8":"";r.lowNibbleFirst=true;r.paletteFormat=clut==1?"PS2 RGBA16":clut==2?"RGB8":"PS2 RGBA8";if(r.format.isEmpty())return fail("Unsupported TIM2 color type.");
     qint64 imageOffset=at+header,available=imageSize;
     if(selection.mipLevel){if(header<64+levels*4)return fail("TIM2 mip size table is missing.");qint64 skipped=0;for(int i=0;i<selection.mipLevel;++i)skipped+=u32(at+64+i*4);available=u32(at+64+selection.mipLevel*4);if(skipped+available>imageSize)return fail("Invalid TIM2 mip sizes.");imageOffset+=skipped;r.width=qMax(1,r.width>>selection.mipLevel);r.height=qMax(1,r.height>>selection.mipLevel);}
     QByteArray palette;if(imageIndexed(r.format)){

@@ -6,3 +6,7 @@ provenance-reextract/
 # Local game-derived capture/media stays off the public repository.
 *.gs.zst
 *.png
+
+# Detailed replay timelines are local reproducible research output.
+checks/local/
+capture-checks/

@@ -7,6 +7,7 @@ struct ImageRecipe {
     QString format="RGBA8",layout="Linear",paletteFormat="RGBA8",byteSwap="None",container="Auto";
     bool bigEndian=false,flipX=false,flipY=false,lowNibbleFirst=false,ps2Clut=false,ps2Alpha=false;
 };
+inline QStringList imageContainers(){return {"Auto","GTF","Genki image bank"};}
 inline QStringList imageFormats(){return {"RG8","R16 UNORM","RG16 UNORM","RGBA16 UNORM","R16 FLOAT","RG16 FLOAT","RGBA16 FLOAT","R32 FLOAT","RGBA32 FLOAT","RGBA8","BGRA8","ARGB8","ABGR8","RGB8","BGR8","Gray8","Gray4","IA8","IA4","RGB565","RGB555","RGBA5551","ARGB1555","RGBA4444","PS1 BGR555","PS2 RGBA8","PS2 RGBA16","PS2 Indexed8H","PS2 Indexed4HL","PS2 Indexed4HH","RGBX8","Indexed8","Indexed4","BC1","BC2","BC3","BC4","BC4 SNORM","BC5","BC5 SNORM","BC6H","BC6H signed","BC7","NES CHR2","SNES 2bpp","SNES 4bpp","SNES 8bpp","SNES Mode7","GC I4","GC I8","GC IA4","GC IA8","GC RGB565","GC RGB5A3","GC RGBA8","GC CI4","GC CI8","GC CI14X2","GC CMPR","Encoded image"};}
 inline QStringList imagePaletteFormats(){return {"RGBA8","BGRA8","RGB8","BGR8","RGB565","RGB555","PS1 BGR555","PS2 RGBA8","PS2 RGBA16","RGBX8","GC RGB5A3","GC IA8"};}
 inline bool imageBlockCompressed(const QString &f){return f.startsWith("BC");}

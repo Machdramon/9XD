@@ -44,7 +44,7 @@ Las carpetas de extracción de C1 usan diferentes convenciones de numeración; n
 
 ### 3. Casos de validación
 
-- [ ] **TXRD2 March primero:** implementar lectura acotada de bancos sin cabecera TIM2 global, registros con píxeles y alias; usar las dos coincidencias completas como fixture positivo.
+- [x] **TXRD2 March primero:** implementar lectura acotada de bancos sin cabecera TIM2 global, registros con píxeles y alias; usar las dos coincidencias completas como fixture positivo.
 - [ ] **TXRD2 Hakone:** cerrar el caso RGB24 y buscar bancos locales en el historial de subidas; verificar carretera, vegetación, carteles y transparencias.
 - [ ] **C1 WRX:** contrastar geometría SportsWagon/sedán y distinguir kits/LOD; resolver atlas principal y color de carrocería. No deducir modelo únicamente por logotipos compartidos.
 - [ ] **C1 Nikko:** determinar qué variante de banco corresponde a Hare/Dry; comparar imágenes de 00002498.dat contra la captura, resolver geometría del banco principal y verificar el grupo 2498–2531 y colocaciones. Conservar límites por recurso.
@@ -77,3 +77,30 @@ No se requieren más capturas por ahora. Pedir una adicional solo si falta un es
 ## Publicación y coordinación — 25 de octubre de 2026
 
 Los informes, scripts, inventario y esta lista se han publicado con el código de 0.3.6. Las capturas/imágenes de juegos permanecen locales y excluidas de Git y del paquete público. La procedencia exacta de March está documentada; la versión 0.3.6 actualiza la UI, sin declarar nuevos lectores derivados de estas capturas. Mantener abiertas las tareas de renderizado e integración anteriores. Release: https://github.com/Machdramon/9XD/releases/tag/v0.3.6
+
+## Comprobación de capturas — 25 de octubre de 2026
+
+Informe canónico: [checks/RESULTS.md](checks/RESULTS.md). Este avance no modifica los lectores de 9XD.
+
+- [x] Validar los nueve hashes, descomprimir de nuevo y comparar dumps, seriales, estado y límites GIF.
+- [x] Reproducir 10.546 transacciones host→VRAM de formatos observados, con invalidación conservadora de destinos de dibujo/copia. Esto no completa la emulación GS/CLUT.
+- [x] Comparar índices y almacenamiento de paletas en eventos de dibujo; caso RGB24 global de Hakone comprobado en 0x6ef40.
+- [x] Prototipo de admisión acotada del banco March: seis slots preservados, tres con píxeles y tres alias vacíos; muestra positiva y 14 mutaciones rechazadas. Nueve comprobaciones sintéticas del replay correctas.
+- [x] Corregir la procedencia del Alto: muestra USA SLUS-21236 frente a captura Europa SLES-53191; dos pares exactos en candidatos europeos 00000442/00000447.
+- [ ] CLUT/CLD/CSA completo, paletas de 16 bits, TEX1/CLAMP y copia local→local de Zero.
+- [ ] Resolver alias/tercera imagen y asignación por malla de March, variantes Nikko/Hakone y selección de kits/LOD.
+- [ ] Claude: integrar solo las reglas concretas verificadas y validar scan/render/export; no asumir que el banco completo o la escena ya están reconstruidos.
+
+Nuevos recuentos deduplicados de pares de índices+paleta almacenada: March 2, TXRD2 Hakone 36, C1 Nikko 30, C1 WRX 6, Alto europeo 2, TXR3 c4 1 y referencia AZ1 1. Zero sigue sin paleta confirmada. Los números no equivalen a materiales o mallas y no validan por sí solos los colores finales del shader. La búsqueda europea de Hakone obtiene 11 payloads/4 pares, compartidos entre muchos bancos; no identifica una variante única.
+
+## Implementación nativa verificada — 25 de octubre de 2026
+
+Por petición explícita del usuario, ChatGPT implementó este bloque además de su investigación. Informe: [checks/MATERIAL-INTEGRATION.md](checks/MATERIAL-INTEGRATION.md).
+
+- [x] Banco March sin cabecera global, seis slots conservados: tres imágenes y tres referencias vacías sin sustituciones.
+- [x] Vínculo primario material/slot + UV primarias de stride 4/8, comprobado con ST/Q de la captura.
+- [x] Scan/Render All, Preview Texture, tres previews de imagen RAM y exportación GLB/FBX; CLAMP de bordes preservado.
+- [x] Corrección TIM2 RGB24 y ampliación acotada de transferencias Zero/RGB16; 42 imágenes de la muestra AE86 decodificadas.
+- [x] Build actualizado; 14 comprobaciones Genki con fixtures correctas, lector 45 correctas e interfaz 96 correctas, sin fallos; 75 comprobaciones opcionales omitidas en la suite general.
+- [ ] Resolver referencias externas/alias, capas secundarias, tintes/shaders y selección de piezas/LOD.
+- [ ] Ampliar enlaces entre archivos y variantes de pistas basándose en nuevas pruebas, sin reutilizar IDs entre regiones.

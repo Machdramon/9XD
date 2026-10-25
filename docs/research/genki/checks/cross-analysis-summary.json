@@ -1,0 +1,316 @@
+{
+  "date": "2026-10-25",
+  "captureChecks": [
+    {
+      "capture": "txrd2-march-capture",
+      "integrity": "passed",
+      "gifTags": 9756,
+      "drawBindingKicks": 55311,
+      "sourceImages": 3,
+      "distinctMatchedSourcePictures": 2,
+      "distinctMatchedAtDraw": 2,
+      "unsupported": {},
+      "hostTransfers": 748,
+      "replayedTransfers": 748,
+      "distinctDrawMatchesWithStoredPalette": 2,
+      "distinctIndexedPayloadsAtDraw": 2,
+      "distinctIndexedAndStoredPalettePairs": 2,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "txrd2-capture",
+      "integrity": "passed",
+      "gifTags": 8652,
+      "drawBindingKicks": 45940,
+      "sourceImages": 4,
+      "distinctMatchedSourcePictures": 1,
+      "distinctMatchedAtDraw": 1,
+      "unsupported": {},
+      "hostTransfers": 676,
+      "replayedTransfers": 676,
+      "distinctDrawMatchesWithStoredPalette": 1,
+      "distinctIndexedPayloadsAtDraw": 1,
+      "distinctIndexedAndStoredPalettePairs": 1,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "txrd2-hakone-capture",
+      "integrity": "passed",
+      "gifTags": 10596,
+      "drawBindingKicks": 64228,
+      "sourceImages": 191,
+      "distinctMatchedSourcePictures": 37,
+      "distinctMatchedAtDraw": 37,
+      "unsupported": {},
+      "hostTransfers": 1052,
+      "replayedTransfers": 1052,
+      "distinctDrawMatchesWithStoredPalette": 37,
+      "distinctIndexedPayloadsAtDraw": 36,
+      "distinctIndexedAndStoredPalettePairs": 36,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "txr3-evo5-capture",
+      "integrity": "passed",
+      "gifTags": 19232,
+      "drawBindingKicks": 49322,
+      "sourceImages": 100,
+      "distinctMatchedSourcePictures": 7,
+      "distinctMatchedAtDraw": 7,
+      "unsupported": {},
+      "hostTransfers": 1440,
+      "replayedTransfers": 1440,
+      "distinctDrawMatchesWithStoredPalette": 1,
+      "distinctIndexedPayloadsAtDraw": 7,
+      "distinctIndexedAndStoredPalettePairs": 1,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "txrd1-alto-capture",
+      "integrity": "passed",
+      "gifTags": 27300,
+      "drawBindingKicks": 58954,
+      "sourceImages": 4,
+      "distinctMatchedSourcePictures": 0,
+      "distinctMatchedAtDraw": 0,
+      "unsupported": {},
+      "hostTransfers": 1320,
+      "replayedTransfers": 1320,
+      "distinctDrawMatchesWithStoredPalette": 0,
+      "distinctIndexedPayloadsAtDraw": 0,
+      "distinctIndexedAndStoredPalettePairs": 0,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "txrd1-hakone-capture",
+      "integrity": "passed",
+      "gifTags": 30424,
+      "drawBindingKicks": 39257,
+      "sourceImages": 0,
+      "distinctMatchedSourcePictures": 0,
+      "distinctMatchedAtDraw": 0,
+      "unsupported": {},
+      "hostTransfers": 2244,
+      "replayedTransfers": 2244,
+      "distinctDrawMatchesWithStoredPalette": 0,
+      "distinctIndexedPayloadsAtDraw": 0,
+      "distinctIndexedAndStoredPalettePairs": 0,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "txrzero-ae86-capture",
+      "integrity": "passed",
+      "gifTags": 6642,
+      "drawBindingKicks": 22854,
+      "sourceImages": 42,
+      "distinctMatchedSourcePictures": 1,
+      "distinctMatchedAtDraw": 1,
+      "unsupported": {
+        "local-to-local transfer (destination invalidated, not copied)": 12
+      },
+      "hostTransfers": 254,
+      "replayedTransfers": 254,
+      "distinctDrawMatchesWithStoredPalette": 0,
+      "distinctIndexedPayloadsAtDraw": 1,
+      "distinctIndexedAndStoredPalettePairs": 0,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "c1-wrx-capture",
+      "integrity": "passed",
+      "gifTags": 12564,
+      "drawBindingKicks": 56354,
+      "sourceImages": 40,
+      "distinctMatchedSourcePictures": 11,
+      "distinctMatchedAtDraw": 11,
+      "unsupported": {},
+      "hostTransfers": 1456,
+      "replayedTransfers": 1456,
+      "distinctDrawMatchesWithStoredPalette": 8,
+      "distinctIndexedPayloadsAtDraw": 9,
+      "distinctIndexedAndStoredPalettePairs": 6,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    },
+    {
+      "capture": "c1-nikko-capture",
+      "integrity": "passed",
+      "gifTags": 13824,
+      "drawBindingKicks": 33290,
+      "sourceImages": 286,
+      "distinctMatchedSourcePictures": 85,
+      "distinctMatchedAtDraw": 85,
+      "unsupported": {},
+      "hostTransfers": 1356,
+      "replayedTransfers": 1356,
+      "distinctDrawMatchesWithStoredPalette": 85,
+      "distinctIndexedPayloadsAtDraw": 30,
+      "distinctIndexedAndStoredPalettePairs": 30,
+      "scope": "Exact indexed bytes and CBP storage comparisons at observed draw bindings; not full CLUT-cache/final-shader validation"
+    }
+  ],
+  "totalHostTransfers": 10546,
+  "additionalSourceSearches": [
+    {
+      "analysis": "alto-europe-family",
+      "distinctIndexedPayloadsAtDraw": 2,
+      "distinctIndexedAndStoredPalettePairs": 2,
+      "bySource": [
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00000442.dat",
+          "matchedPictureRecords": 2,
+          "matchedPictureRecordsWithStoredPalette": 2
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00000447.dat",
+          "matchedPictureRecords": 1,
+          "matchedPictureRecordsWithStoredPalette": 1
+        }
+      ]
+    },
+    {
+      "analysis": "hakone-europe-bank-search",
+      "distinctIndexedPayloadsAtDraw": 11,
+      "distinctIndexedAndStoredPalettePairs": 4,
+      "bySource": [
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000020e7.dat",
+          "matchedPictureRecords": 3,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000021d7.dat",
+          "matchedPictureRecords": 3,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000022c7.dat",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000023b7.dat",
+          "matchedPictureRecords": 3,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000024a7.dat",
+          "matchedPictureRecords": 7,
+          "matchedPictureRecordsWithStoredPalette": 0
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00002528.dat",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 0
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000025a9.dat",
+          "matchedPictureRecords": 5,
+          "matchedPictureRecordsWithStoredPalette": 0
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\0000262a.dat",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 0
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000026ab.dat",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00002726.dat",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000027a1.dat",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\0000281c.dat",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00002a74.dat",
+          "matchedPictureRecords": 3,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00002b67.dat",
+          "matchedPictureRecords": 3,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00002df9.dat",
+          "matchedPictureRecords": 3,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00002ecb.dat",
+          "matchedPictureRecords": 3,
+          "matchedPictureRecordsWithStoredPalette": 3
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00002f9d.dat",
+          "matchedPictureRecords": 1,
+          "matchedPictureRecordsWithStoredPalette": 0
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\0000306c.tap",
+          "matchedPictureRecords": 5,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\0000310a.tap",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000031a8.tap",
+          "matchedPictureRecords": 5,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00003246.tap",
+          "matchedPictureRecords": 4,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000032e4.tap",
+          "matchedPictureRecords": 6,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000033a1.tap",
+          "matchedPictureRecords": 5,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\0000345e.tap",
+          "matchedPictureRecords": 5,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\0000351b.tap",
+          "matchedPictureRecords": 5,
+          "matchedPictureRecordsWithStoredPalette": 4
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\000035d8.tap",
+          "matchedPictureRecords": 1,
+          "matchedPictureRecordsWithStoredPalette": 0
+        },
+        {
+          "file": "F:\\copia de seguridad 08.04.2019\\downloads\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer [NTSC-PAL] [Es,Fr,De,En,It]\\Kaido Racer\\out\\00003874.tap",
+          "matchedPictureRecords": 1,
+          "matchedPictureRecordsWithStoredPalette": 0
+        }
+      ]
+    }
+  ],
+  "bankValidationNegativeChecks": 14,
+  "syntheticReplayChecks": 9,
+  "nativeApplicationChanged": false
+}

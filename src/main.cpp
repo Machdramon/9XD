@@ -1,3 +1,4 @@
+#include "reconstruction_inspectors.h"
 #include "about_dialog.h"
 #include "file_dialogs.h"
 #include "ai_chat_panel.h"
@@ -169,6 +170,8 @@ public:
         connect(exportAction,&QAction::triggered,this,[this,vulkanPanel]{ExportDialog dialog(vulkanPanel->scene(),path_,vulkanPanel->visualStyle().face,this);dialog.exec();});
         auto *meshDock=new QDockWidget("3D Settings",this);meshDock->setObjectName("meshControlsDock");meshDock->setWidget(vulkanPanel->createMeshControls(view_));addDockWidget(Qt::LeftDockWidgetArea,meshDock);meshDock->hide();viewMenu->addAction(meshDock->toggleViewAction());auto *meshAction=tools->addAction("3D Mesh Settings");connect(meshAction,&QAction::triggered,this,[meshDock]{meshDock->show();meshDock->raise();});
         auto *vulkanAction=tools->addAction("3D View · Vulkan");connect(vulkanAction,&QAction::triggered,this,[vulkanDock]{vulkanDock->show();vulkanDock->raise();});
+        auto *videoReconstructionDock=new QDockWidget("Video Reconstruction",this);videoReconstructionDock->setObjectName("videoReconstructionDock");videoReconstructionDock->setWidget(new Reconstruction::VideoInspector(videoReconstructionDock));addDockWidget(Qt::RightDockWidgetArea,videoReconstructionDock);videoReconstructionDock->hide();
+        auto *splineModelingDock=new QDockWidget("Image / Spline Modeling",this);splineModelingDock->setObjectName("splineModelingDock");splineModelingDock->setWidget(new Reconstruction::SplineInspector(splineModelingDock));addDockWidget(Qt::RightDockWidgetArea,splineModelingDock);splineModelingDock->hide();
         auto *collectionDock=new QDockWidget("Mesh Collection",this);collectionDock->setObjectName("meshCollectionDock");collectionDock->setWidget(vulkanPanel->createMeshCollection());addDockWidget(Qt::LeftDockWidgetArea,collectionDock);collectionDock->hide();viewMenu->addAction(collectionDock->toggleViewAction());
         auto *uvDock=new QDockWidget("UV View",this);uvDock->setObjectName("uvDock");auto *imageTools=new ImageWorkbench(view_,uvDock);auto *views=new QTabWidget;views->setObjectName("uvImageTabs");views->addTab(imageTools->preview,"Image Preview");views->addTab(new UvPanel(vulkanPanel,views),"UV Layout");uvDock->setWidget(views);addDockWidget(Qt::BottomDockWidgetArea,uvDock);uvDock->hide();viewMenu->addAction(uvDock->toggleViewAction());auto *uvAction=tools->addAction("UV View");connect(uvAction,&QAction::triggered,this,[uvDock]{uvDock->show();uvDock->raise();});
         auto *imageLibraryDock=new QDockWidget("Texture / Image Collection",this);imageLibraryDock->setObjectName("imageLibraryDock");imageLibraryDock->setWidget(imageTools->collection);addDockWidget(Qt::LeftDockWidgetArea,imageLibraryDock);imageLibraryDock->hide();viewMenu->addAction(imageLibraryDock->toggleViewAction());
@@ -499,6 +502,9 @@ private:
         return !destination.isEmpty()&&view_->saveFile(destination);
     }
     bool resolvePending(std::function<void()> next){
+        if(auto *panel=(sessionDock("videoReconstructionDock")?static_cast<Reconstruction::VideoInspector *>(sessionDock("videoReconstructionDock")->widget()):nullptr);panel&&!panel->confirmClose())return false;
+        if(auto *panel=(sessionDock("splineModelingDock")?static_cast<Reconstruction::SplineInspector *>(sessionDock("splineModelingDock")->widget()):nullptr);panel&&!panel->confirmClose())return false;
+
         if(auto *setup=meshSetupSession(sessionDock("meshControlsDock"));setup&&!setup->confirmClose())return false;
         if(!view_->dirty())return formatPanel_->confirmLeave();
         const auto answer=QMessageBox::warning(this,"Unsaved Changes",
@@ -536,7 +542,7 @@ private:
 #ifndef WORKBENCH_NO_MAIN
 int main(int argc,char **argv){
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
-    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");QGuiApplication::setApplicationDisplayName("9XD");QCoreApplication::setApplicationVersion("0.3.6");app.setWindowIcon(QIcon(":/branding/logo-sticker.png"));
+    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");QGuiApplication::setApplicationDisplayName("9XD");QCoreApplication::setApplicationVersion("0.3.7");app.setWindowIcon(QIcon(":/branding/logo-sticker.png"));
     if(app.arguments().contains("--deployment-check")){
         const auto formats=QImageReader::supportedImageFormats();
         for(const auto &format:{"png","jpeg","bmp","tiff","webp"})if(!formats.contains(format))return 3;

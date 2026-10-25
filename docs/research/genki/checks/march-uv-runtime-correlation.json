@@ -1,0 +1,277 @@
+[
+  {
+    "descriptor": "0x1b0",
+    "image": 0,
+    "formats": {
+      "0x65": 22
+    },
+    "primaryUnique": 403,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 403,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x58b0",
+    "image": 0,
+    "formats": {
+      "0x6d": 33
+    },
+    "primaryUnique": 342,
+    "secondaryUnique": 650,
+    "primaryRuntimeMatches": 342,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0xf410",
+    "image": 0,
+    "formats": {
+      "0x6d": 5
+    },
+    "primaryUnique": 107,
+    "secondaryUnique": 107,
+    "primaryRuntimeMatches": 107,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x10ca0",
+    "image": 0,
+    "formats": {
+      "0x6d": 9
+    },
+    "primaryUnique": 167,
+    "secondaryUnique": 306,
+    "primaryRuntimeMatches": 167,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x164a0",
+    "image": 0,
+    "formats": {
+      "0x65": 6
+    },
+    "primaryUnique": 63,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 63,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x193a0",
+    "image": 0,
+    "formats": {
+      "0x65": 1
+    },
+    "primaryUnique": 9,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 9,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x196e0",
+    "image": 0,
+    "formats": {
+      "0x6d": 4
+    },
+    "primaryUnique": 44,
+    "secondaryUnique": 88,
+    "primaryRuntimeMatches": 44,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x1a870",
+    "image": 0,
+    "formats": {
+      "0x65": 9
+    },
+    "primaryUnique": 128,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 128,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x1cd20",
+    "image": 3,
+    "formats": {
+      "0x65": 1
+    },
+    "primaryUnique": 8,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x1d030",
+    "image": 3,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 50,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x1d820",
+    "image": 3,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 50,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x1fb70",
+    "image": 2,
+    "formats": {
+      "0x65": 1
+    },
+    "primaryUnique": 4,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x1fdd0",
+    "image": 4,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 28,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 28,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x204e0",
+    "image": 5,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 64,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x20bf0",
+    "image": 0,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 4,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x27a00",
+    "image": 0,
+    "formats": {
+      "0x65": 7
+    },
+    "primaryUnique": 73,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 73,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x29490",
+    "image": 0,
+    "formats": {
+      "0x65": 4
+    },
+    "primaryUnique": 39,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 39,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x2a500",
+    "image": 4,
+    "formats": {
+      "0x65": 1
+    },
+    "primaryUnique": 4,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 4,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x2a730",
+    "image": 3,
+    "formats": {
+      "0x65": 1
+    },
+    "primaryUnique": 4,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x32c90",
+    "image": 0,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 60,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x35ca0",
+    "image": 0,
+    "formats": {
+      "0x65": 3
+    },
+    "primaryUnique": 91,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x39230",
+    "image": 0,
+    "formats": {
+      "0x65": 5
+    },
+    "primaryUnique": 193,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x3d140",
+    "image": 0,
+    "formats": {
+      "0x65": 6
+    },
+    "primaryUnique": 268,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x420c0",
+    "image": 0,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 41,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  },
+  {
+    "descriptor": "0x432c0",
+    "image": 0,
+    "formats": {
+      "0x65": 2
+    },
+    "primaryUnique": 30,
+    "secondaryUnique": 0,
+    "primaryRuntimeMatches": 0,
+    "secondaryRuntimeMatches": 0
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "passed": 9,
+  "checks": [
+    "split host transfer PSM 0 exact write/read with nonzero origin",
+    "split host transfer PSM 1 exact write/read with nonzero origin",
+    "split host transfer PSM 2 exact write/read with nonzero origin",
+    "split host transfer PSM 19 exact write/read with nonzero origin",
+    "split host transfer PSM 20 exact write/read with nonzero origin",
+    "reject incomplete transfer",
+    "reject image without start",
+    "local copy invalidates destination, not unrelated texture storage",
+    "unsupported pixel storage explicitly rejected"
+  ],
+  "scope": "Synthetic transfer and invalidation checks; not independent GPU validation or full GS conformance."
+}

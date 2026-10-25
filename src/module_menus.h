@@ -20,7 +20,7 @@ inline void configureModuleMenus(MainWindow *document,const std::function<void(c
     consoleDock->setWidget(document->findChild<QPlainTextEdit *>("scriptConsole"));document->registerSessionDock(consoleDock,Qt::BottomDockWidgetArea);
     for(auto *dock:document->sessionDocks()){
         const auto name=dock->objectName();QString module="hex";
-        if(name=="vulkanDock"||name=="meshControlsDock"||name=="meshCollectionDock"||name=="meshScanDock")module="3d";
+        if(name=="vulkanDock"||name=="meshControlsDock"||name=="meshCollectionDock"||name=="meshScanDock"||name=="videoReconstructionDock"||name=="splineModelingDock")module="3d";
         else if(name=="uvDock"||name=="imageLibraryDock"||name=="imageCalculatorDock"||name=="imageScanDock")module="uv";
         else if(name=="scriptDock"||name=="scriptConsoleDock"||name=="scriptLibraryDock")module="scripting";
         else if(name=="threadActivityDock"||name=="aiChatDock")module="tools";
@@ -53,6 +53,7 @@ inline void configureModuleMenus(MainWindow *document,const std::function<void(c
     dockAction(hexModule,"Checksum","checksumDock");dockAction(hexModule,"File Scan","assetScanDock");
     auto *three=new QMenu("3D",document);three->setObjectName("module3dMenu");
     dockAction(three,"3D Data Scan","meshScanDock");dockAction(three,"3D View","vulkanDock");dockAction(three,"Mesh Collection","meshCollectionDock");dockAction(three,"3D Settings / Geometry Calculator","meshControlsDock");
+    three->addSeparator();dockAction(three,"Video Reconstruction","videoReconstructionDock");dockAction(three,"Image / Spline Modeling","splineModelingDock");
     three->addSeparator();if(auto *exportAction=document->findChild<QAction *>("exportModelAction"))three->addAction(exportAction);
     auto *uv=new QMenu("UV / 2D",document);uv->setObjectName("moduleUvMenu");dockAction(uv,"Texture / Image Scan","imageScanDock");dockAction(uv,"2D View","uvDock");dockAction(uv,"Texture / Image Collection","imageLibraryDock");dockAction(uv,"2D Settings / Image Calculator","imageCalculatorDock");
     auto *scripting=new QMenu("Scripting",document);scripting->setObjectName("moduleScriptingMenu");dockAction(scripting,"Scripting Window","scriptDock");dockAction(scripting,"Console","scriptConsoleDock");dockAction(scripting,"Library Manager","scriptLibraryDock");

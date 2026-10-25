@@ -20,7 +20,7 @@ inline QJsonObject scalar(QString type,QString description={}){QJsonObject p{{"t
 inline QJsonObject choice(QStringList values){QJsonArray a;for(auto v:values)a.append(v);return {{"type","string"},{"enum",a}};}
 inline QJsonObject imageProperties(){return {
     {"offset",scalar("string","Absolute byte offset, decimal or 0x hex")},{"width",scalar("integer")},{"height",scalar("integer")},
-    {"format",choice(imageFormats())},{"layout",choice(imageLayouts())},{"paletteOffset",scalar("string")},
+    {"format",choice(imageFormats())},{"container",choice(imageContainers())},{"layout",choice(imageLayouts())},{"paletteOffset",scalar("string")},
     {"paletteFormat",choice(imagePaletteFormats())},{"paletteEntries",scalar("integer")},{"paletteBank",scalar("integer")},
     {"rowStride",scalar("string","0 means packed rows")},{"lowNibbleFirst",scalar("boolean")},{"ps2Clut",scalar("boolean")},
     {"ps2Alpha",scalar("boolean")},{"bigEndian",scalar("boolean")},{"flipX",scalar("boolean")},{"flipY",scalar("boolean")},
