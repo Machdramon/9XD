@@ -46,7 +46,10 @@ public:
         modulePages_=new QStackedWidget;modulePages_->setObjectName("modulePages");
         // Module rail: logo, module icons, then command search and settings at the bottom.
         auto *rail=new QWidget;rail->setObjectName("moduleRail");rail->setAttribute(Qt::WA_StyledBackground);auto *railLayout=new QVBoxLayout(rail);railLayout->setContentsMargins(0,12,0,12);railLayout->setSpacing(6);
-        auto *logo=new QLabel("9XD");logo->setObjectName("railLogo");logo->setAlignment(Qt::AlignCenter);logo->setFixedSize(36,36);railLayout->addWidget(logo,0,Qt::AlignHCenter);railLayout->addSpacing(6);
+        // The project logo, scaled for the rail at the screen's pixel density.
+        auto *logo=new QLabel;logo->setObjectName("railLogo");logo->setToolTip("9XD");logo->setAlignment(Qt::AlignCenter);logo->setFixedSize(52,34);
+        {const qreal ratio=qMax<qreal>(2,qApp->devicePixelRatio());QPixmap image(":/branding/logo-sticker.png");if(!image.isNull()){image=image.scaled(QSize(52,34)*ratio,Qt::KeepAspectRatio,Qt::SmoothTransformation);image.setDevicePixelRatio(ratio);logo->setPixmap(image);}else logo->setText("9XD");}
+        railLayout->addWidget(logo,0,Qt::AlignHCenter);railLayout->addSpacing(8);
         railLayout->addWidget(moduleTabs_,0,Qt::AlignHCenter);railLayout->addStretch();
         auto railButton=[&](const QString &name,const QString &icon,const QString &tip){auto *button=new QToolButton;button->setObjectName(name);button->setIcon(workbenchIcon(icon));button->setIconSize({20,20});button->setFixedSize(44,44);button->setToolTip(tip);railLayout->addWidget(button,0,Qt::AlignHCenter);return button;};
         connect(railButton("railSearch","search","Search commands (Ctrl+K)"),&QToolButton::clicked,this,[this]{showCommandPalette();});

@@ -124,7 +124,6 @@ inline void applyWorkbenchTheme(const QString &requested){
     // Module rail, command palette, segmented inspector tabs and the status bar.
     const QString rail=darkBase?QColor(window).darker(125).name():QColor(window).darker(104).name();
     css+="QWidget#moduleRail { background: "+rail+"; border-right: 1px solid "+border+"; }";
-    css+="QLabel#railLogo { background: #F5C451; color: #1A1300; border-radius: 9px; font-weight: 700; font-size: 12px; }";
     css+="QWidget#moduleRail QToolButton { border-radius: 10px; } QWidget#moduleRail QToolButton:hover { background: "+hover+"; border-color: transparent; }";
     css+="QDialog#commandPalette { background: "+base+"; border: 1px solid "+border+"; border-radius: 12px; }";
     css+="QListWidget#commandPaletteList { border: none; background: transparent; } QListWidget#commandPaletteList::item { padding: 7px 8px; border-radius: 6px; }";
