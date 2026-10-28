@@ -1,18 +1,19 @@
 # 9XD coordination plan
 
-Updated: 2026-10-28 (Codex: preparing owner-authorized 0.4.0 commit, push and stable release).
+Updated: 2026-10-28 (Codex: 0.4.0 stable release published and assets verified).
 
 
 
 
 
 
-## Release 0.4.0 - 2026-10-28 (in progress)
+## Release 0.4.0 - 2026-10-28 (published)
 
 - [x] Owner authorized committing/pushing the current combined work and publishing stable 0.4.0. Reviewed changes since 0.3.7; notes distinguish validated fixture coverage from incomplete readers/material semantics. Preserved Claude contributions.
 - [x] Version bumped in CMakeLists.txt and src/main.cpp; README download links and docs/releases/v0.4.0.md updated. Added required Windows runtime cat icon to public asset allowlist so clean Windows source builds have their referenced resource. Private splash and game/capture assets remain excluded.
 - [x] Clean windows-release build/package passed (build/release-configure.log, build/release-package.log); EXE file/product version 0.4.0. Reader 45 passed /0 failed /0 skipped; window132 /0 /86 optional fixture skips (build/windows-local/release040-*-tests.txt). Portable deployment, bundled Python/script runner, ZIP CRC, GUI subsystem, required runtimes and source EXE equality checked. Separate clean-machine test pending. Whitespace-only cleanup in two research files; no raw game/capture/splash source assets staged.
-- [ ] Commit/push/tag and stable publication pending. No new format claims introduced by release preparation; newer validation above supersedes historical untested UI notes for build/test coverage, not every visual combination.
+- [x] Commit 8935d01c729ba715585c8de43ad645e8beebd2bf pushed to main; annotated v0.4.0 tag pushed. Stable latest release published (draft=false, prerelease=false): https://github.com/Machdramon/9XD/releases/tag/v0.4.0. GitHub confirms ZIP size74,601,476 bytes and SHA256 8c514752915bc82082012319706ef01f3f03066a7db28b517501bdd8027e7ea4; ZIP, checksum and public maximum-resolution logo uploaded. No standalone splash published.
+- [x] Publication receipt synchronized in this follow-up documentation commit. No new format claims introduced by release preparation; newer validation above supersedes historical untested UI notes for build/test coverage, not every visual combination. Next: owner tests the portable 0.4.0 build; Codex/Claude continue the remaining format/shader and UI roadmap items.
 
 ## Viewport ignore-alpha preview - 2026-10-28 (tested and installed)
 
