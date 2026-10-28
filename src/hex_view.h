@@ -19,12 +19,15 @@ class QScrollBar;
 class QSpinBox;
 class QComboBox;
 class DataInspector;
+class ScanSweepOverlay;
 
 class HexView final : public QWidget {
     Q_OBJECT
 public:
     explicit HexView(QWidget *parent = nullptr);
     void applyDisplayPreferences();
+    // Decorative scanner sweep over the byte area while a scan of this document runs (calls nest).
+    void setScanAnimation(bool active);
     int offsetBase()const{return offsetBase_;}
     int columnMode()const{return columnMode_;}
     int byteGroup()const{return byteGroup_;}
@@ -119,6 +122,7 @@ signals:
     void selectionAvailable(bool available);
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void changeEvent(QEvent *event) override;
 private:
     int offsetBase_=16,columnMode_=0,byteGroup_=1;
     QLineEdit *offsetEditor_;
@@ -178,7 +182,8 @@ private:
     BinaryReader checksumReader_;
     class QHBoxLayout *statusLayout_;
     QWidget *statusFooter_;
-    QTableWidget *table_;
+    QTableWidget *table_=nullptr;
+    ScanSweepOverlay *scanSweep_=nullptr;
     QLabel *status_;
     QScrollBar *scrollbar_;
     QSpinBox *stride_;

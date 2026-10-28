@@ -3,6 +3,7 @@
 #include <QJsonObject>
 #include <QSettings>
 #include <QApplication>
+#include "release_defaults.h"
 // Product defaults captured from the approved workspace. Personal layouts always take priority.
 inline QJsonObject standardWorkspaceLayout(){
     static const auto layout=QJsonDocument::fromJson(R"layout(
@@ -21,7 +22,8 @@ inline QJsonObject standardWorkspaceLayout(){
 }
 )layout").object();return layout;
 }
-inline QByteArray standardModuleLayout(const QString &id){return QByteArray::fromBase64(standardWorkspaceLayout()["modules"].toObject()[id].toString().toLatin1());}
+// The release defaults (release_defaults.h) take precedence once captured.
+inline QByteArray standardModuleLayout(const QString &id){const auto captured=ReleaseDefaults::moduleLayout(id);if(!captured.isEmpty())return captured;return QByteArray::fromBase64(standardWorkspaceLayout()["modules"].toObject()[id].toString().toLatin1());}
 inline QByteArray workspaceModuleLayout(QSettings &settings,const QString &id){auto saved=settings.value("moduleLayouts/v1/"+id).toByteArray();return saved.isEmpty()?standardModuleLayout(id):saved;}
 inline QSettings workspaceSettings(){auto path=qApp->property("workspaceSettingsFile").toString();if(path.isEmpty())return QSettings("BinaryWorkbench","Workspace");return QSettings(path,QSettings::IniFormat);}
 

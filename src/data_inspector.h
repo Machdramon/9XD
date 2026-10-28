@@ -12,12 +12,14 @@ public:
     void setPlainText(const QString &message);
     QString toPlainText() const;
     void setData(const QByteArray &, const ByteSelection &, qint64 fileSize, const QString &encoding, bool bigEndian);
+protected:
+    void changeEvent(QEvent *event) override;
 signals:
     void endianChanged(bool bigEndian);
 private:
     void refresh();
     QLabel *position_;
-    QTableWidget *values_;
+    QTableWidget *values_=nullptr;
     QComboBox *endian_;
     QCheckBox *hex_;
     QByteArray bytes_;

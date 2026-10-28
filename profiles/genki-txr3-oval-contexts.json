@@ -1,0 +1,170 @@
+[
+  {
+    "schema": 1,
+    "game": "txr3",
+    "variant": "oval-A",
+    "condition": "unlabelled",
+    "global": {
+      "0": {
+        "path": "00004a5e.dat",
+        "section": 0,
+        "sha256": "962cfc7d1bf1276d85596a318598e2ec22b9eabf9d913043ece2fd8460c0953c"
+      },
+      "4": {
+        "path": "00004a5e.dat",
+        "section": 1,
+        "sha256": "962cfc7d1bf1276d85596a318598e2ec22b9eabf9d913043ece2fd8460c0953c"
+      }
+    },
+    "segments": [
+      {
+        "startId": "0x4a5f",
+        "endId": "0x4a7c",
+        "local": {
+          "1": {
+            "path": "00004a5f.dat",
+            "section": 3,
+            "sha256": "927cdd7372c9fcb90be9939358134e4c0a5b163d350547658d0b720f098f445a"
+          },
+          "2": {
+            "path": "00004a5f.dat",
+            "section": 4,
+            "sha256": "927cdd7372c9fcb90be9939358134e4c0a5b163d350547658d0b720f098f445a"
+          }
+        }
+      },
+      {
+        "startId": "0x4a7c",
+        "endId": "0x4a9a",
+        "local": {
+          "1": {
+            "path": "00004a7c.dat",
+            "section": 3,
+            "sha256": "6998782f268c7f2ac5934baec6335d05cd20c3f09dc85be842c8069a2160aaf0"
+          },
+          "2": {
+            "path": "00004a7c.dat",
+            "section": 4,
+            "sha256": "6998782f268c7f2ac5934baec6335d05cd20c3f09dc85be842c8069a2160aaf0"
+          }
+        }
+      },
+      {
+        "startId": "0x4a9a",
+        "endId": "0x4ab7",
+        "local": {
+          "1": {
+            "path": "00004a9a.dat",
+            "section": 3,
+            "sha256": "f8983e10c17b57b3ef72892932b662d83c69fd47bb15c58ff1171ac93f8ef17b"
+          },
+          "2": {
+            "path": "00004a9a.dat",
+            "section": 4,
+            "sha256": "f8983e10c17b57b3ef72892932b662d83c69fd47bb15c58ff1171ac93f8ef17b"
+          }
+        }
+      },
+      {
+        "startId": "0x4ab7",
+        "endId": "0x4ad5",
+        "local": {
+          "1": {
+            "path": "00004ab7.dat",
+            "section": 3,
+            "sha256": "3193b083438b71458a468d4dba03021c6104e563662fd250b113a84cb19dd702"
+          },
+          "2": {
+            "path": "00004ab7.dat",
+            "section": 4,
+            "sha256": "3193b083438b71458a468d4dba03021c6104e563662fd250b113a84cb19dd702"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "schema": 1,
+    "game": "txr3",
+    "variant": "oval-B",
+    "condition": "unlabelled",
+    "global": {
+      "0": {
+        "path": "00004ad7.dat",
+        "section": 0,
+        "sha256": "0723fcaaea25728b5b3b5cf80941b16775caa9e1abedae976a05440045a26fcd"
+      },
+      "4": {
+        "path": "00004ad7.dat",
+        "section": 1,
+        "sha256": "0723fcaaea25728b5b3b5cf80941b16775caa9e1abedae976a05440045a26fcd"
+      }
+    },
+    "segments": [
+      {
+        "startId": "0x4ad8",
+        "endId": "0x4af5",
+        "local": {
+          "1": {
+            "path": "00004ad8.dat",
+            "section": 3,
+            "sha256": "bc606bd3c0b91ef5d3f2d2193763f56d261c74d608418bd173218022ad242c8b"
+          },
+          "2": {
+            "path": "00004ad8.dat",
+            "section": 4,
+            "sha256": "bc606bd3c0b91ef5d3f2d2193763f56d261c74d608418bd173218022ad242c8b"
+          }
+        }
+      },
+      {
+        "startId": "0x4af5",
+        "endId": "0x4b13",
+        "local": {
+          "1": {
+            "path": "00004af5.dat",
+            "section": 3,
+            "sha256": "7cc4ee92a5ef8ae1fe4222f3bbc0e188e7d7259aa5f0be0fc4191d613c6f76b5"
+          },
+          "2": {
+            "path": "00004af5.dat",
+            "section": 4,
+            "sha256": "7cc4ee92a5ef8ae1fe4222f3bbc0e188e7d7259aa5f0be0fc4191d613c6f76b5"
+          }
+        }
+      },
+      {
+        "startId": "0x4b13",
+        "endId": "0x4b30",
+        "local": {
+          "1": {
+            "path": "00004b13.dat",
+            "section": 3,
+            "sha256": "e7ef804940c94af4c4ae271a2331d45cf64d7b551ca00fa1ab97b5294e5c5945"
+          },
+          "2": {
+            "path": "00004b13.dat",
+            "section": 4,
+            "sha256": "e7ef804940c94af4c4ae271a2331d45cf64d7b551ca00fa1ab97b5294e5c5945"
+          }
+        }
+      },
+      {
+        "startId": "0x4b30",
+        "endId": "0x4b4e",
+        "local": {
+          "1": {
+            "path": "00004b30.dat",
+            "section": 3,
+            "sha256": "d6654949f47f46ab742b8df3d9ad47a0f6cb11542b0b02dc9eb5a0269f4ec58f"
+          },
+          "2": {
+            "path": "00004b30.dat",
+            "section": 4,
+            "sha256": "d6654949f47f46ab742b8df3d9ad47a0f6cb11542b0b02dc9eb5a0269f4ec58f"
+          }
+        }
+      }
+    ]
+  }
+]

@@ -207,3 +207,13 @@ The March v1 path now reads the bounded headerless Indexed8 bank with all six sl
 TIM2 RGB24 images/palettes use 3-byte colours. Verified transfer-form TIM2 layouts also admit observed 16-pixel sizes and RGB16 palette storage; reconstructed writes must cover every requested pixel byte. The Zero AE86 candidate decodes all 42 source images. Existing C1/GIF-strip/v1 face profiles remain separate; primary image support does not reconstruct secondary shader stages, visibility/LOD selection or external banks.
 
 See [implementation and validation evidence](research/genki/checks/MATERIAL-INTEGRATION.md). These changes are in the development checkout and were made after the public 0.3.6 release.
+## Kaido and locator isolation — 2026-10-26
+
+The development decoder has a separate kaido-v2-plain-strip-v1 profile. It requires a complete 0IVX hierarchy and distinguishing Float32 UV or V4-16 normal attribute evidence in addition to packet controls. Shared C1 control/position/color syntax alone is insufficient; damaged C1 packets retain rejection rather than falling through to Kaido. Generic VIF fallback does not supersede recognized native mesh evidence.
+
+Locator transforms use inverse-transpose normalized stored normals for nonuniform scales. Singular scales regenerate normals from transformed faces; negative determinant reverses winding. Native mirrored/singular decode and hierarchy/variant regression tests pass. Real Kaido, concatenated TXR Zero/WM and March checks pass; this does not establish complete external textures, all placements or LOD selection.
+
+
+## WM PS2 raw-track coordinates — 2026-10-26
+
+Verified development Y reflection for bounded raw concatenated track carriers with placement trailer; WM 00000740.0iv preserves 2,488 vertices/1,826 triangles and X/Z, while correcting normals/winding. Standalone wheel and directory-wrapped cars excluded. See docs/research/wm-ps2/README.md for script evidence, tests and external texture-bank candidates; automatic material linkage remains pending.

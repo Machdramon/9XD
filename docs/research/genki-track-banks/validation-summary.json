@@ -1,0 +1,22 @@
+[
+  {
+    "variant": "oval-A",
+    "statistics": {
+      "resolved-index": 1592,
+      "global": 1083,
+      "clamp-size-differs": 1582,
+      "local": 509,
+      "exact-clamp-size": 10
+    }
+  },
+  {
+    "variant": "oval-B",
+    "statistics": {
+      "resolved-index": 1920,
+      "global": 1113,
+      "clamp-size-differs": 1910,
+      "local": 807,
+      "exact-clamp-size": 10
+    }
+  }
+]

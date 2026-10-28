@@ -1,5 +1,6 @@
 #include "theme.h"
 #include "hex_view.h"
+#include "scan_sweep.h"
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QLabel>
@@ -741,4 +742,16 @@ void HexView::focusOffsetHeader(){
     offsetEditor_->setGeometry(header->sectionViewportPosition(0),0,header->sectionSize(0),header->height());
     offsetEditor_->setFont(table_->font());offsetEditor_->setText(offsetText(qMax(qint64(0),selection_.cursor)));
     offsetEditor_->show();offsetEditor_->setFocus();offsetEditor_->selectAll();
+}
+
+// Cell colours are cached in the table items; refresh them when the theme (application palette) changes.
+void HexView::changeEvent(QEvent *event){QWidget::changeEvent(event);if(event->type()==QEvent::PaletteChange&&table_)updateSelection();}
+void HexView::setScanAnimation(bool active){
+    if(!table_)return;
+    if(!scanSweep_)scanSweep_=new ScanSweepOverlay(table_->viewport(),[this]{
+        // Only the populated byte and text columns, not the offset column or the empty space below the last row.
+        const int rows=table_->rowCount(),columns=table_->columnCount();if(!rows||columns<2)return QRect();auto *viewport=table_->viewport();
+        const int left=table_->columnViewportPosition(1),right=table_->columnViewportPosition(columns-1)+table_->columnWidth(columns-1),bottom=table_->rowViewportPosition(rows-1)+table_->rowHeight(rows-1);
+        return QRect(QPoint(qMax(0,left),0),QPoint(qMin(right,viewport->width())-1,qMin(bottom,viewport->height())-1));});
+    active?scanSweep_->start():scanSweep_->stop();
 }

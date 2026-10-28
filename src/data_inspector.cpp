@@ -5,6 +5,8 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QEvent>
 #include <QApplication>
 #include <QClipboard>
 #include <QShortcut>
@@ -23,10 +25,13 @@ DataInspector::DataInspector(QWidget *parent):QWidget(parent){
     values_->setSelectionMode(QAbstractItemView::SingleSelection);
     values_->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
     values_->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
-    layout->addWidget(values_,1);
-    endian_=new QComboBox;endian_->setObjectName("inspectorEndian");endian_->addItems({"Little Endian","Big Endian"});layout->addWidget(endian_);
-    hex_=new QCheckBox("Show integers in hexadecimal");hex_->setObjectName("inspectorHex");layout->addWidget(hex_);
-    auto *copy=new QPushButton("Copy Value");layout->addWidget(copy);
+    // Options sit between the anchor summary and the values so they stay visible when the table is long.
+    auto *options=new QHBoxLayout;options->setContentsMargins(0,0,0,0);
+    endian_=new QComboBox;endian_->setObjectName("inspectorEndian");endian_->addItems({"Little Endian","Big Endian"});endian_->setToolTip("Byte order used for the values below (synchronized with the Hex Viewer)");options->addWidget(endian_);
+    hex_=new QCheckBox("Hex integers");hex_->setObjectName("inspectorHex");hex_->setToolTip("Show integers in hexadecimal (bit patterns)");options->addWidget(hex_);options->addStretch();
+    auto *copy=new QPushButton("Copy Value");copy->setObjectName("inspectorCopy");copy->setProperty("compact",true);copy->setToolTip("Copy the selected value (Ctrl+C)");copy->setEnabled(false);options->addWidget(copy);
+    layout->addLayout(options);layout->addWidget(values_,1);
+    connect(values_,&QTableWidget::itemSelectionChanged,copy,[this,copy]{copy->setEnabled(values_->currentRow()>=0);});
     auto copyValue=[this]{int row=values_->currentRow();if(row>=0)QApplication::clipboard()->setText(values_->item(row,1)->text());};
     connect(copy,&QPushButton::clicked,this,copyValue);
     auto *shortcut=new QShortcut(QKeySequence::Copy,values_);shortcut->setContext(Qt::WidgetWithChildrenShortcut);connect(shortcut,&QShortcut::activated,this,copyValue);
@@ -43,9 +48,9 @@ void DataInspector::setData(const QByteArray &bytes,const ByteSelection &selecti
 }
 void DataInspector::refresh(){
     int row=0;bool big=endian_->currentIndex()==1;
-    auto add=[&](const QString &type,const QString &value){if(row>=values_->rowCount())values_->insertRow(row);for(int column=0;column<2;++column){auto *item=values_->item(row,column);if(!item){item=new QTableWidgetItem;values_->setItem(row,column,item);}item->setText(column?value:type);item->setToolTip(column?value:type);}++row;};
-    auto raw=[&](int width){quint64 n=0;for(int i=0;i<width;++i)n|=quint64(quint8(bytes_[i]))<<(8*(big?width-1-i:i));return n;};
     const QString missing="N/A · insufficient bytes";
+    auto add=[&](const QString &type,const QString &value){if(row>=values_->rowCount())values_->insertRow(row);for(int column=0;column<2;++column){auto *item=values_->item(row,column);if(!item){item=new QTableWidgetItem;values_->setItem(row,column,item);}item->setText(column?value:type);item->setToolTip(column?value:type);item->setForeground(column&&value==missing?palette().brush(QPalette::Disabled,QPalette::Text):QBrush());}++row;};
+    auto raw=[&](int width){quint64 n=0;for(int i=0;i<width;++i)n|=quint64(quint8(bytes_[i]))<<(8*(big?width-1-i:i));return n;};
     add("Binary (8 bits)",bytes_.isEmpty()?missing:QString::number(quint8(bytes_[0]),2).rightJustified(8,'0'));
     for(const auto &type:{"UInt8","Int8","UInt16","Int16","UInt32","Int32","UInt64","Int64","Float32","Float64"}){
         int width=numberWidth(type);QString value=missing;
@@ -66,3 +71,4 @@ void DataInspector::refresh(){
     }
     add("RGB",bytes_.size()<3?missing:QString("%1, %2, %3 · #%4").arg(quint8(bytes_[0])).arg(quint8(bytes_[1])).arg(quint8(bytes_[2])).arg(QString::fromLatin1(bytes_.first(3).toHex().toUpper())));
 }
+void DataInspector::changeEvent(QEvent *event){QWidget::changeEvent(event);if(event->type()==QEvent::PaletteChange&&values_)refresh();}

@@ -8,6 +8,8 @@
 #include "tga_decode.h"
 
 #include "image_containers.h"
+#include "xpr2_textures.h"
+#include "rw_txd.h"
 struct DecodedImage {QImage image;QString error;bool cancelled=false;};
 // All source I/O uses the same bounded reader as Hex Viewer, including RAM snapshots.
 inline DecodedImage decodeBinaryImage(ReadRequest source,const PatchList &patches,const ImageRecipe &recipe,const std::atomic_bool &cancel){
@@ -23,15 +25,23 @@ inline DecodedImage decodeBinaryImage(ReadRequest source,const PatchList &patche
         }return bytes;
     };
     if(recipe.format=="Encoded image"){
-        const auto remaining=source.expectedSize-recipe.offset;
+        auto remaining=source.expectedSize-recipe.offset;
+        if(recipe.container=="RenderWare TXD"){
+            if(remaining<12){out.error="Incomplete native TXD texture header.";return out;}auto header=read(recipe.offset,12);if(!out.error.isEmpty()||out.cancelled)return out;
+            auto declared=12+qint64(qFromLittleEndian<quint32>(header.constData()+4));if(declared>remaining){out.error="Native TXD texture exceeds the document.";return out;}remaining=declared;
+        }
         if(remaining<=0||remaining>32*1024*1024){out.error="Encoded image input must be between 1 byte and 32 MiB.";return out;}
         auto bytes=read(recipe.offset,remaining);if(!out.error.isEmpty()||out.cancelled)return out;
-        if(bytes.startsWith("GNF "))out.image=decodeGnf(bytes,recipe,out.error,cancel);
+        if(recipe.container=="RenderWare TXD"){
+            if(recipe.surface||recipe.mipLevel){out.error="Native TXD preview supports the primary surface/base mip only.";return out;}out.image=RwTxd::decodeNative(bytes,out.error,cancel);
+        }
+        else if(bytes.startsWith("GNF "))out.image=decodeGnf(bytes,recipe,out.error,cancel);
         else if(bytes.startsWith("TIM2"))out.image=decodeTim2(bytes,recipe,out.error,cancel);
         else if(recipe.container=="Genki image bank"){
             auto bank=GenkiTextureBank::headerless(bytes,0,bytes.size(),&cancel);auto adapted=GenkiTextureBank::pictureTim2(bytes,bank,recipe.surface,out.error);auto selected=recipe;selected.surface=0;if(!adapted.isEmpty())out.image=decodeTim2(adapted,selected,out.error,cancel);
         }
         else if(recipe.container=="GTF"||source.path.endsWith(".gtf",Qt::CaseInsensitive))out.image=decodeGtf(bytes,recipe,out.error,cancel);
+        else if(bytes.startsWith("XPR2"))out.image=Xpr2::decode(bytes,recipe,out.error,cancel);
         else if(bytes.startsWith("DDS "))out.image=decodeDds(bytes,recipe,out.error,cancel);
         else if(bytes.startsWith(QByteArray::fromHex("10000000")))out.image=decodeTim(bytes,recipe,out.error,cancel);
         else if(bytes.startsWith(QByteArray::fromHex("0020af30")))out.image=decodeTpl(bytes,recipe,out.error,cancel);

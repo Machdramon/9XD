@@ -315,3 +315,20 @@ The reference grid is finite, fixed at the scene origin, and extends from -10 to
 The grid has its own tiny vertex buffer and uses a world-to-preview transform that compensates for the viewer's model normalization. Framing, changing models and mesh scaling do not redefine the size of a grid cell. Lines use depth testing and do not write depth; opaque model surfaces occlude reference lines, including coplanar surfaces. Grid ticks are omitted when occluded. It is no longer a depth-free, adaptive screen background.
 
 Frame > Frame Grid moves only the camera to the reference grid, including in an empty viewport or when the model is far from the origin. The grid is not a scene mesh, is not selectable or transformed by mesh tools, does not enter model bounds or the picking index, and is not included in exported geometry. View Settings retains its grid visibility and color controls.
+
+### Opening large resource folders
+
+The development file picker uses a lightweight detail list for large game folders. Search by name or wildcard (for example `geometry *.bin`), use Ctrl+F to focus search, and Escape to clear it. Filtering runs after a short typing pause; folders remain visible. Use the file-type dropdown to narrow resources, images or scripts. Ctrl/Shift selection, recent folders and the last successful open location are retained. A loading indicator and entry count show listing progress; no thumbnails are generated for every binary file. Columns remain sortable/resizable. See file-picker.md for the measured TXR3 folder check and limitations.
+
+
+### Automatic track textures
+
+Supported track profiles load automatically during scanning. Keep companion resources beside the model; successful game-resource locations are remembered for later copies. Open → Scan → Render is the normal flow. Texture options… is for advanced overrides only. The Automatic button returns to detection. An unavailable or unsupported bank is reported without guessing another track/climate. Current verified maps: TXR3 Oval-A/B; additional games/variants remain pending.
+
+### 3D camera: FOV and clipping
+
+Open the 3D viewport's **View > Camera / Clipping…** inspector. Perspective FOV has a 10–120° slider and an exact number. Near and Far clip distances use the original model's units; their sliders are logarithmic to cover small parts and large tracks. Turn off Automatic clipping to edit them. Near must be positive and smaller than Far; invalid edits keep the last valid range. Lower Near when inspecting a close surface; increase Far if distant geometry disappears. Very wide manual ranges reduce depth precision, so prefer Automatic unless a specific range is needed. Automatic perspective clipping also refines Near from a center-view surface hit while moving close. Orthographic views use wheel zoom rather than FOV. Shift + wheel gives finer zoom. New and tiled viewports inherit the current camera settings; camera controls do not alter model geometry or exports.
+
+### PGR3/4 source material inspection
+
+Select a PGR3/4 mesh, then open **Mesh Collection > Material > Source maps…**. The table lists original material, channel/reference, resource and texture-slot IDs. Select a row and choose **Preview source map** to inspect it on the existing mesh; **Automatic** restores the normal import preview. The raw evidence pane includes reachable track material layers and source fields; field offsets refer to the decoded SCNE payload, not positions in the compressed PAK. Explicit map previews are unlit and retain the existing UVs. Original shader blending and atlas transforms are still pending; a source channel is not a GPU sampler register. Keep the original document open and unchanged and finish Render All before switching maps.

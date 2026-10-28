@@ -104,3 +104,39 @@ Por petición explícita del usuario, ChatGPT implementó este bloque además de
 - [x] Build actualizado; 14 comprobaciones Genki con fixtures correctas, lector 45 correctas e interfaz 96 correctas, sin fallos; 75 comprobaciones opcionales omitidas en la suite general.
 - [ ] Resolver referencias externas/alias, capas secundarias, tintes/shaders y selección de piezas/LOD.
 - [ ] Ampliar enlaces entre archivos y variantes de pistas basándose en nuevas pruebas, sin reutilizar IDs entre regiones.
+## Correcciones de aislamiento y transformaciones — 26 de octubre de 2026
+
+- [x] Kaido nativo exige jerarquía completa y atributos distintivos; C1 alterado sigue rechazado, sin suplencia genérica para formatos ya reconocidos.
+- [x] Normales con inversa transpuesta; regeneración con escala singular y corrección del orden de caras con escala reflejada.
+- [x] Jerarquía/aislamiento/March: 6 comprobaciones correctas; regresión Genki ampliada: 14 correctas. Suite general: lector 45 e interfaz 102 correctas, sin fallos (76 opcionales omitidas).
+- [x] Ejecutable de desarrollo actualizado. Sin commit, push ni nueva publicación; tareas pendientes de materiales externos/LOD mantienen su estado.
+
+
+## WM PS2 raw-track coordinates — 2026-10-26
+
+Verified development Y reflection for bounded raw concatenated track carriers with placement trailer; WM 00000740.0iv preserves 2,488 vertices/1,826 triangles and X/Z, while correcting normals/winding. Standalone wheel and directory-wrapped cars excluded. See docs/research/wm-ps2/README.md for script evidence, tests and external texture-bank candidates; automatic material linkage remains pending.
+
+
+## Track texture context investigation — 2026-10-26
+
+See docs/research/genki-track-banks/README.md: original scripts/messages and two TXR3 oval contexts validated for 3,512 index-level references. Global/local banks are scoped to track condition and segment; 18/54 common global payloads differ between variants. Native linking and sampler/UV validation remain pending; prototype JSON is not yet application support. WM requires its own context; no TXR3 ID reuse.
+
+
+## Native track-context support — 2026-10-26
+
+Verified TXR3 Oval-A/B context selection is now integrated in scan/render/texture collection/GLB/FBX via fingerprinted profiles/genki-txr3-oval-contexts.json. Real model tests load/export 21 and 31 external textured parts; full suite passes. See docs/research/genki-track-banks/README.md for usage. WM/other-game context maps, exact sampling and animation remain pending; do not reuse TXR3 IDs. No new release.
+
+
+## Automatic track context update — 2026-10-26
+
+Verified TXR3 global/local contexts now load automatically from embedded profiles and validated companion locations. Manual JSON loading is no longer normal setup. Scan controls default to automatic; Texture options… remains an advanced override. Remembered contexts allow matching study-case copies. Real automatic tests and GLB/FBX pass; source/texture fingerprints and no-duplicate-material refresh remain required. Other game maps remain pending. See docs/research/genki-track-banks/README.md.
+
+## TXR3 reported wheel / sampling follow-up — 2026-10-26
+
+00000af9.nfc contains three nested model-local TIM2 banks; six native parts previously missed the root-only bank reader. 00004a60.nfc uses both GS contiguous region-repeat and atlas region-clamp: e.g. part 0x55a0, V .375–.625 maps region 96–159 into a standalone 64px texture. Native scoped-bank and per-axis UV region correction implemented; six wheel parts decode with images, both track variants decode/export (21/31 parts), focused 5/0 and Genki regression 7/0 pass, full reader 45/0/window 104/0 (80 optional skipped), development executable updated; source power-of-two envelope reconstruction remains an inference needing desktop visual confirmation. Unknown/noncontiguous GS masks retain warnings, shader/animation completeness is not claimed. See coordination plan for current validation status.
+
+Remaining: desktop visual confirmation of reported surfaces, independent recovery of source atlas extent, exact subrectangle edge filtering, noncontiguous masks and secondary/animated shader stages. No global UV flip or texture resampling was introduced.
+
+### Next-session hand-off synchronized - 2026-10-26
+
+See docs/COORDINATION-PLAN.md, "Start here: next session with Claude", for the ordered continuation. First: desktop visual verification of 00004a60.nfc and all six textured wheel parts in 00000af9.nfc. Next: independently verify source atlas normalization and identify remaining failing mesh/bank/image pairs before extending mappings. Automated tests/build have passed; game-equivalent rendering, WM contexts, exact subrectangle filtering and secondary/animated shader behavior remain pending. Preserve automatic texture loading and independent nested model banks.

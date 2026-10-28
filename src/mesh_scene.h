@@ -28,6 +28,7 @@ public:
     void beginBatch();void endBatch();bool batchLoading()const{return batchDepth_>0;}
     const QVector<MeshEntry> &entries()const{return entries_;}
     const MeshEntry *entry(int id)const;
+    qint64 retainedTextureBytes()const{return textureBytes_;}
     int active()const{return active_;}
     MeshSelection selection()const{return selection_;}
     int add(std::shared_ptr<MeshData>,QString name={},QString source={},const std::shared_ptr<MeshSurface> &surface={});
@@ -51,6 +52,10 @@ signals:
 private:
     struct BoundsCache {std::weak_ptr<MeshData> data;std::array<double,3> position,rotation,scale;MeshBounds bounds;};
     mutable QHash<int,BoundsCache> boundsCache_;
+    struct TextureUse {qint64 bytes=0;int references=0;};
+    QHash<qint64,TextureUse> textureUses_;qint64 textureBytes_=0;
+    void retainTexture(const QImage &image);void releaseTexture(const QImage &image);
+    bool fitsTexture(const QImage &image,const QImage &replaced={})const;
     int batchDepth_=0;bool previousBlocked_=false;
     QSet<int> selectedMeshes_;QHash<int,bool> isolation_;
     QVector<MeshEntry> entries_;int active_=-1,nextId_=0;MeshSelection selection_;

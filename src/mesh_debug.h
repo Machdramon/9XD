@@ -17,7 +17,7 @@ public:
     QVector<QVector3D> positions;
     QVector<quint32> indices;
     bool visible(QVector3D eye,QVector3D anchor)const;
-    int hit(QVector3D origin,QVector3D direction,float maxDistance=1e30f)const;
+    int hit(QVector3D origin,QVector3D direction,float maxDistance=1e30f,float *distance=nullptr)const;
     QVector<MeshLabel> labels(const QMatrix4x4 &mvp,QVector3D eye,QSize viewport,MeshElement kind,int first,int count)const;
     int pick(const QMatrix4x4 &mvp,QVector3D eye,QSize viewport,QPointF pixel,MeshElement kind)const;
 private:

@@ -30,11 +30,11 @@ int MeshDebug::build(int begin,int end){
         int left=build(begin,middle),right=build(middle,end);nodes_[index].left=left;nodes_[index].right=right;
     }return index;
 }
-int MeshDebug::hit(QVector3D origin,QVector3D direction,float maxDistance)const{
-    if(nodes_.isEmpty())return -1;int result=-1;QVector<int> stack{0};while(!stack.isEmpty()){const auto &n=nodes_[stack.takeLast()];if(!box(origin,direction,n.low,n.high,maxDistance))continue;
+int MeshDebug::hit(QVector3D origin,QVector3D direction,float maxDistance,float *distance)const{
+    if(distance)*distance=-1;if(nodes_.isEmpty())return -1;int result=-1;QVector<int> stack{0};while(!stack.isEmpty()){const auto &n=nodes_[stack.takeLast()];if(!box(origin,direction,n.low,n.high,maxDistance))continue;
         if(n.left>=0){stack.append(n.left);stack.append(n.right);continue;}
         for(int i=n.begin;i<n.end;++i){int face=order_[i];float t=triangle(origin,direction,positions[indices[face*3]],positions[indices[face*3+1]],positions[indices[face*3+2]]);if(t>=0&&t<maxDistance){maxDistance=t;result=face;}}
-    }return result;
+    }if(distance&&result>=0)*distance=maxDistance;return result;
 }
 bool MeshDebug::visible(QVector3D eye,QVector3D anchor)const{auto ray=anchor-eye;float distance=ray.length();if(distance<1e-8f)return false;return hit(eye,ray/distance,qMax(0.f,distance-2e-5f))<0;}
 QVector<MeshLabel> MeshDebug::labels(const QMatrix4x4 &mvp,QVector3D eye,QSize viewport,MeshElement kind,int first,int count)const{

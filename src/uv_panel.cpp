@@ -28,7 +28,7 @@ void UvCanvas::fit(){
     center_=low*.5+high*.5;scale_=qMin(qMax(1,width()-60)/qMax(1e-6,high.x()-low.x()),qMax(1,height()-60)/qMax(1e-6,high.y()-low.y()));scale_=qBound(1e-38,scale_,1e8);update();
 }
 void UvCanvas::paintEvent(QPaintEvent *){
-    QPainter p(this);p.fillRect(rect(),renderer_->visualStyle().background);p.setRenderHint(QPainter::Antialiasing);p.setClipRect(rect());auto style=renderer_->visualStyle();auto selection=scene_->selection();
+    QPainter p(this);{QColor top,bottom;if(graphicsGradient(top,bottom)){QLinearGradient fade(0,0,0,height());fade.setColorAt(0,top);fade.setColorAt(1,bottom);p.fillRect(rect(),fade);}else p.fillRect(rect(),renderer_->visualStyle().background);}p.setRenderHint(QPainter::Antialiasing);p.setClipRect(rect());auto style=renderer_->visualStyle();auto selection=scene_->selection();
     // The 0..1 tile remains a reference; UVs outside it are not wrapped or discarded.
     for(int y=0;y<8;++y)for(int x=0;x<8;++x){QRectF cell(uvToScreen({x/8.,(y+1)/8.}),uvToScreen({(x+1)/8.,y/8.}));if(cell.intersects(rect()))p.fillRect(cell.intersected(QRectF(rect())),(x+y)%2?style.background.lighter(workbenchDark()?140:105):style.background.darker(workbenchDark()?100:108));}
     if(auto *active=scene_->entry(scene_->active());active&&!active->texture.isNull()&&active->data->hasUvs){auto target=QRectF(uvToScreen({0,1}),uvToScreen({1,0}));if(drawable(QPolygonF(target)))p.drawImage(target,active->texture);}

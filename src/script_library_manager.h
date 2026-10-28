@@ -16,6 +16,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QSplitter>
+#include "adaptive_layout.h"
 #include <QBoxLayout>
 #include <QMessageBox>
 #include <QFileDialog>
@@ -35,8 +36,10 @@ public:
         setObjectName("scriptLibraryManager");auto *layout=new QVBoxLayout(this);auto *hint=new QLabel("Default Modules come with the application or runtime. My Modules contains only the modules you add.");hint->setWordWrap(true);layout->addWidget(hint);
         auto *buttons=new QHBoxLayout;auto *create=new QPushButton("Add Module..."),*refresh=new QPushButton("Refresh");create->setObjectName("libraryAdd");buttons->addWidget(create);buttons->addStretch();buttons->addWidget(refresh);layout->addLayout(buttons);
         auto *split=new QSplitter;layout->addWidget(split,1);tree_=new QTreeWidget;tree_->setObjectName("scriptLibraries");tree_->setHeaderLabels({"Library","Type / Version","Status"});tree_->header()->setSectionResizeMode(QHeaderView::ResizeToContents);split->addWidget(tree_);auto *right=new QWidget;auto *form=new QVBoxLayout(right);split->addWidget(right);split->setSizes({560,360});
+        // Narrow (a side column): the module list sits above the editor instead of beside it.
+        split->setChildrenCollapsible(false);AdaptiveLayout::flip(this,split);
         language_=new QComboBox;language_->setObjectName("libraryLanguage");language_->addItems({"Python","C++"});name_=new QLineEdit("my_library");name_->setObjectName("libraryName");form->addWidget(language_);form->addWidget(name_);editor_=new QPlainTextEdit;editor_->setObjectName("libraryCode");tabs_=new QTabWidget;documentation_=new QTextBrowser;documentation_->setObjectName("libraryDocumentation");tabs_->addTab(documentation_,"Documentation");tabs_->addTab(editor_,"Code");form->addWidget(tabs_,1);
-        auto *actions=new QHBoxLayout;save_=new QPushButton("Save Changes");save_->setObjectName("librarySave");auto *copy=new QPushButton("Copy Code");toggle_=new QPushButton("Enable / Disable");toggle_->setObjectName("libraryToggle");for(auto *b:{save_,copy,toggle_})actions->addWidget(b);form->addLayout(actions);
+        auto *actions=new QHBoxLayout;save_=new QPushButton("Save Changes");save_->setObjectName("librarySave");auto *copy=new QPushButton("Copy Code");toggle_=new QPushButton("Enable / Disable");toggle_->setObjectName("libraryToggle");for(auto *b:{save_,copy,toggle_})actions->addWidget(b);form->addLayout(actions);AdaptiveLayout::flip(right,actions,-310);
         status_=new QLabel;status_->setObjectName("libraryStatus");status_->setWordWrap(true);layout->addWidget(status_);
         connect(editor_,&QPlainTextEdit::textChanged,this,[this]{if(!loading_)dirty_=true;});
         connect(create,&QPushButton::clicked,this,[this]{addModule();});connect(save_,&QPushButton::clicked,this,[this]{saveCurrent();});

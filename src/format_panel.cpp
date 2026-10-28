@@ -26,29 +26,37 @@
 #include <QRegularExpression>
 #include <QApplication>
 #include <QClipboard>
+#include <QFrame>
+#include "adaptive_layout.h"
+namespace {QString swatchStyle(const QColor &color){return "QToolButton { background-color: "+color.name()+"; border: 1px solid rgba(128,128,128,160); border-radius: 4px; }";}}
 
 FormatPanel::FormatPanel(HexView *view,QWidget *parent):QWidget(parent),view_(view){
+    // Structure: rules (what is marked), the rule editor (where) and the appearance (how). Side by side when the panel
+    // is wide, stacked and foldable when it is narrow.
     auto *layout=new QVBoxLayout(this);layout->setContentsMargins(8,8,8,8);layout->setSpacing(6);
     toolbar_=new QToolBar(this);toolbar_->setObjectName("byteFormatToolbar");toolbar_->hide();
-    auto *styleBox=new QGroupBox("Format");auto *grid=new QGridLayout(styleBox);grid->setContentsMargins(6,6,6,6);
-    auto check=[this,grid](QString label,QString name,int row,bool checked=false){
-        auto *box=new QCheckBox(label);box->setObjectName(name);box->setChecked(checked);grid->addWidget(box,row,0);
+    auto button=[this](QHBoxLayout *row,QString text,QString tooltip,std::function<void()> fn){auto *b=AdaptiveLayout::tool(row,text,tooltip);connect(b,&QToolButton::clicked,this,std::move(fn));return b;};
+    // Appearance: one row per effect (check, swatch, value), then text style and the jump target.
+    auto *styleBox=new QWidget;styleBox->setObjectName("structureAppearance");auto *grid=new QGridLayout(styleBox);grid->setContentsMargins(0,0,0,0);grid->setHorizontalSpacing(8);grid->setVerticalSpacing(4);grid->setColumnStretch(2,1);
+    auto check=[this,grid](QString label,QString name,int row,bool checked=false,int column=0,int span=1){
+        auto *box=new QCheckBox(label);box->setObjectName(name);box->setChecked(checked);grid->addWidget(box,row,column,1,span);
         connect(box,&QCheckBox::toggled,this,[this]{if(!loadingStyle_)applySelection();});return box;
     };
-    textEnabled_=check("Color:","formatText",0,true);fillEnabled_=check("Background:","formatBackground",1,true);
-    borderEnabled_=check("Outline:","formatBorder",2);underline_=check("Underline:","formatUnderline",3);
+    textEnabled_=check("Text","formatText",0,true);fillEnabled_=check("Background","formatBackground",1,true);
+    borderEnabled_=check("Outline","formatBorder",2);underline_=check("Underline","formatUnderline",3);
     QColor *colors[]={&foreground_,&background_,&border_,&underlineColor_};
     for(int i=0;i<4;++i){
-        auto *field=new QLineEdit(colors[i]->name().toUpper());colorFields_[i]=field;field->setObjectName(QString("formatColor%1").arg(i));field->setMaxLength(7);field->setMaximumWidth(100);field->setToolTip("Hexadecimal color #RRGGBB");grid->addWidget(field,i,1);
-        auto *swatch=new QToolButton;swatch->setObjectName(QString("formatSwatch%1").arg(i));swatch->setText("…");swatch->setToolTip("Choose Color");grid->addWidget(swatch,i,2);
-        connect(field,&QLineEdit::textEdited,this,[this,i,value=colors[i]](const QString &text){bool valid=QRegularExpression("^#[0-9A-Fa-f]{6}$").match(text).hasMatch();colorFields_[i]->setStyleSheet(valid?QString():"border: 1px solid #D05050;");if(!valid)return;*value=QColor(text);findChild<QToolButton *>(QString("formatSwatch%1").arg(i))->setStyleSheet("background-color: "+value->name()+";");if(!loadingStyle_)applySelection();});
+        auto *swatch=new QToolButton;swatch->setObjectName(QString("formatSwatch%1").arg(i));swatch->setFixedSize(22,22);swatch->setToolTip("Choose Color");swatch->setProperty("keepTooltip",true);grid->addWidget(swatch,i,1);
+        auto *field=new QLineEdit(colors[i]->name().toUpper());colorFields_[i]=field;field->setObjectName(QString("formatColor%1").arg(i));field->setMaxLength(7);field->setMaximumWidth(90);field->setToolTip("Hexadecimal color #RRGGBB");grid->addWidget(field,i,2,Qt::AlignLeft);
+        connect(field,&QLineEdit::textEdited,this,[this,i,value=colors[i]](const QString &text){bool valid=QRegularExpression("^#[0-9A-Fa-f]{6}$").match(text).hasMatch();colorFields_[i]->setStyleSheet(valid?QString():"border: 1px solid #D05050;");if(!valid)return;*value=QColor(text);findChild<QToolButton *>(QString("formatSwatch%1").arg(i))->setStyleSheet(swatchStyle(*value));if(!loadingStyle_)applySelection();});
         connect(field,&QLineEdit::editingFinished,this,[this]{updateColorFields();});
         connect(swatch,&QToolButton::clicked,this,[this,value=colors[i]]{auto color=QColorDialog::getColor(*value,this,"Choose Color");if(!color.isValid())return;*value=color;updateColorFields();applySelection();});
     }
-    bold_=check("Bold","formatBold",4);italic_=check("Italic","formatItalic",5);
-    jump_=new QLineEdit("0x0");jump_->setObjectName("formatJumpTo");jump_->setMaxLength(18);jump_->setToolTip("Hexadecimal destination for this rule. Press Enter to jump; its ranges are not changed.");grid->addWidget(new QLabel("Jump to:"),6,0);grid->addWidget(jump_,6,1,1,2);
-    layout->addWidget(styleBox);
-    list_=new QTreeWidget;list_->setObjectName("formatRules");list_->setHeaderLabels({"Rule","Region"});list_->setRootIsDecorated(false);list_->setMinimumHeight(80);layout->addWidget(list_,1);
+    bold_=check("Bold","formatBold",4);italic_=check("Italic","formatItalic",4,false,1,2);
+    jump_=new QLineEdit("0x0");jump_->setObjectName("formatJumpTo");jump_->setMaxLength(18);jump_->setMaximumWidth(120);jump_->setToolTip("Hexadecimal destination for this rule. Press Enter to jump; its ranges are not changed.");grid->addWidget(new QLabel("Jump to"),5,0);grid->addWidget(jump_,5,1,1,2,Qt::AlignLeft);
+    // Rules: the list with a compact tool row.
+    auto *rulesBox=new QWidget;auto *rulesLayout=new QVBoxLayout(rulesBox);rulesLayout->setContentsMargins(0,0,0,0);rulesLayout->setSpacing(4);
+    list_=new QTreeWidget;list_->setObjectName("formatRules");list_->setHeaderLabels({"Rule","Region"});list_->setRootIsDecorated(false);list_->setMinimumHeight(80);list_->setToolTip("Double-click a rule to edit it.");rulesLayout->addWidget(list_,1);
     connect(jump_,&QLineEdit::editingFinished,this,[this]{
         if(loadingStyle_||list_->selectedItems().isEmpty())return;int index=list_->indexOfTopLevelItem(list_->currentItem());if(index<0)return;
         QString text=jump_->text().trimmed();if(text.startsWith("0x",Qt::CaseInsensitive))text.remove(0,2);bool ok;auto offset=text.toLongLong(&ok,16);
@@ -58,46 +66,69 @@ FormatPanel::FormatPanel(HexView *view,QWidget *parent):QWidget(parent),view_(vi
     connect(jump_,&QLineEdit::returnPressed,this,[this]{jump_->editingFinished();if(jump_->styleSheet().isEmpty())navigateSelected();});
     connect(list_,&QTreeWidget::itemClicked,this,[this](auto *,int){navigateSelected();});
     connect(list_,&QTreeWidget::itemActivated,this,[this](auto *,int){navigateSelected();});
-    updateColorFields();
-    auto button=[this](QHBoxLayout *row,QString text,QString tooltip,std::function<void()> fn){auto *b=new QToolButton;b->setText(text);b->setToolTip(tooltip);b->setAccessibleName(tooltip);row->addWidget(b);connect(b,&QToolButton::clicked,this,std::move(fn));};
-    auto *controls=new QHBoxLayout;
-    button(controls,"+","Add Rule",[this]{beginRule(false);});button(controls,"−","Delete Rule",[this]{int i=list_->indexOfTopLevelItem(list_->currentItem());if(i>=0){auto r=view_->formatRules();r.removeAt(i);publish(r);editor_->hide();}});
-    button(controls,"Edit","Edit Rule",[this]{beginRule(true);});
+    auto *controls=new QHBoxLayout;controls->setSpacing(2);rulesLayout->addLayout(controls);
+    button(controls,"+","Add Rule",[this]{beginRule(false);});button(controls,QString(QChar(0x2212)),"Delete Rule",[this]{int i=list_->indexOfTopLevelItem(list_->currentItem());if(i>=0){auto r=view_->formatRules();r.removeAt(i);publish(r);editor_->hide();}});
+    button(controls,QString(QChar(0x270E)),"Edit Rule",[this]{beginRule(true);});
     for(int delta:{-1,1})button(controls,delta<0?"↑":"↓",delta<0?"Move Rule Up":"Move Rule Down",[this,delta]{int i=list_->indexOfTopLevelItem(list_->currentItem());auto r=view_->formatRules();if(i>=0&&i+delta>=0&&i+delta<r.size()){r.swapItemsAt(i,i+delta);publish(r);list_->setCurrentItem(list_->topLevelItem(i+delta));}});
-    controls->addStretch();layout->addLayout(controls);
-    editor_=new QWidget;auto *editorLayout=new QVBoxLayout(editor_);editorLayout->setContentsMargins(0,0,0,0);auto *form=new QFormLayout;
+    controls->addStretch();button(controls,"Import","Import Rules",[this]{importRules();});button(controls,"Export","Export Rules",[this]{exportRules();});
+    // Rule editor: shown by + and by double-clicking a rule; it opens Appearance so every effect is at hand.
+    editor_=new QFrame;editor_->setObjectName("inspectorCard");auto *editorLayout=new QVBoxLayout(editor_);editorLayout->setContentsMargins(8,6,8,8);editorLayout->setSpacing(4);
+    auto *editorTitle=new QLabel("New rule");editorTitle->setObjectName("ruleEditorTitle");editorTitle->setProperty("cardTitle",true);editorLayout->addWidget(editorTitle);
     name_=new QLineEdit("Sequence");name_->setMaxLength(200);start_=new QLineEdit("0x0");length_=new QLineEdit("4");step_=new QLineEdit("16");repetitions_=new QLineEdit("1");
     start_->setObjectName("ruleStart");length_->setObjectName("ruleLength");step_->setObjectName("ruleStep");repetitions_->setObjectName("ruleRepetitions");
     for(auto *f:{start_,length_,step_,repetitions_}){f->setMaxLength(20);f->setToolTip("Decimal or hexadecimal (0x…)");}
-    form->addRow("Name",name_);form->addRow("Start",start_);form->addRow("Length",length_);form->addRow("Step",step_);form->addRow("Repetitions",repetitions_);editorLayout->addLayout(form);
-    auto *editorButtons=new QHBoxLayout;
+    auto *fields=new QGridLayout;fields->setHorizontalSpacing(6);fields->setVerticalSpacing(4);
+    fields->addWidget(new QLabel("Name"),0,0);fields->addWidget(name_,0,1,1,3);
+    fields->addWidget(new QLabel("Start"),1,0);fields->addWidget(start_,1,1);fields->addWidget(new QLabel("Length"),1,2);fields->addWidget(length_,1,3);
+    fields->addWidget(new QLabel("Step"),2,0);fields->addWidget(step_,2,1);fields->addWidget(new QLabel("Repeat"),2,2);fields->addWidget(repetitions_,2,3);
+    editorLayout->addLayout(fields);
+    auto *editorButtons=new QHBoxLayout;editorButtons->setSpacing(4);
     button(editorButtons,"Selection","Use selection as region",[this]{auto s=view_->selection();if(s.anchor<0)return;start_->setText(QString::number(qMin(s.anchor,s.cursor)));length_->setText(QString::number(qAbs(s.cursor-s.anchor)+1));step_->setText(length_->text());repetitions_->setText("1");});
-    button(editorButtons,"Apply","Save Rule",[this]{addRule(list_->currentItem()!=nullptr);});button(editorButtons,"Cancel","Cancel rule editing",[this]{editor_->hide();});editorLayout->addLayout(editorButtons);layout->addWidget(editor_);editor_->hide();
+    editorButtons->addStretch();button(editorButtons,"Apply","Save Rule",[this]{addRule(list_->currentItem()!=nullptr);})->setProperty("primaryTool",true);button(editorButtons,"Cancel","Cancel rule editing",[this]{editor_->hide();});editorLayout->addLayout(editorButtons);editor_->hide();
     connect(list_,&QTreeWidget::itemSelectionChanged,this,[this]{loadSelected();});
     connect(list_,&QTreeWidget::itemDoubleClicked,this,[this]{beginRule(true);});
     connect(list_,&QTreeWidget::itemChanged,this,[this](QTreeWidgetItem *item,int column){if(column)return;auto r=view_->formatRules();int i=list_->indexOfTopLevelItem(item);if(i>=0){r[i].enabled=item->checkState(0)==Qt::Checked;publish(r);}});
     connect(view_,&HexView::formatRulesChanged,this,[this]{refresh();});
-    auto *searchBox=new QGroupBox("Find Patterns");searchBox->setObjectName("patternSearchPanel");auto *searchLayout=new QVBoxLayout(searchBox);auto *searchForm=new QFormLayout;
+    auto *body=new QHBoxLayout;body->setSpacing(10);layout->addLayout(body,1);
+    body->addWidget(AdaptiveLayout::section("Rules",rulesBox,"structureRulesSection"),3);
+    auto *side=new QWidget;auto *sideLayout=new QVBoxLayout(side);sideLayout->setContentsMargins(0,0,0,0);sideLayout->setSpacing(6);
+    sideLayout->addWidget(editor_);sideLayout->addWidget(AdaptiveLayout::section("Appearance",styleBox,"structureAppearanceSection"));sideLayout->addStretch();
+    body->addWidget(side,2);AdaptiveLayout::flip(this,body);
+    updateColorFields();// The swatches are found through this panel, so only once the sections are in it.
+    // Find: pattern and Find on top, options folded, results with a compact navigation row. Results sit beside the
+    // query when the panel is wide.
+    auto *searchBox=new QWidget;searchBox->setObjectName("patternSearchPanel");auto *searchOuter=new QHBoxLayout(searchBox);searchOuter->setContentsMargins(8,8,8,8);searchOuter->setSpacing(10);
+    auto *query=new QWidget;auto *searchLayout=new QVBoxLayout(query);searchLayout->setContentsMargins(0,0,0,0);searchLayout->setSpacing(6);
     searchMode_=new QComboBox;searchMode_->setObjectName("patternMode");searchMode_->addItems({"Hex + wildcards","Byte regex","Literal text","Text regex"});
     pattern_=new QLineEdit;pattern_->setObjectName("patternExpression");pattern_->setMaxLength(4096);pattern_->setPlaceholderText("48 8B ?? A?");
+    pattern_->setToolTip("Hex: ?? = byte, A? = wildcard digit. Byte regex: \\x48. Text uses the viewer encoding. Text/regex: region ≤ 1 MiB; ^ and $ are the region boundaries.");
+    auto *queryRow=new QHBoxLayout;queryRow->setSpacing(4);queryRow->addWidget(searchMode_);queryRow->addWidget(pattern_,1);searchLayout->addLayout(queryRow);
+    auto *searchButtons=new QHBoxLayout;searchButtons->setSpacing(4);
+    button(searchButtons,"Find","Find Pattern",[this]{startSearch();})->setProperty("primaryTool",true);button(searchButtons,"Stop","Cancel search",[this]{view_->cancelPatternSearch();});
+    searchButtons->addStretch();button(searchButtons,"Selection","Search selection",[this]{auto s=view_->selection();if(s.anchor>=0){searchScope_->setCurrentIndex(1);searchStart_->setText(QString::number(qMin(s.anchor,s.cursor)));searchLength_->setText(QString::number(qAbs(s.cursor-s.anchor)+1));}});
+    searchLayout->addLayout(searchButtons);
+    auto *options=new QWidget;auto *searchForm=new QFormLayout(options);searchForm->setContentsMargins(0,0,0,0);searchForm->setVerticalSpacing(4);
     searchScope_=new QComboBox;searchScope_->setObjectName("patternScope");searchScope_->addItems({"Entire document","Specified region","Contiguous selection","Cursor to end"});
     searchStart_=new QLineEdit("0");searchLength_=new QLineEdit("4096");searchStart_->setObjectName("patternStart");searchLength_->setObjectName("patternLength");
-    searchForm->addRow("Type",searchMode_);searchForm->addRow("Pattern",pattern_);searchForm->addRow("Scope",searchScope_);searchForm->addRow("Start",searchStart_);searchForm->addRow("Bytes",searchLength_);searchLayout->addLayout(searchForm);
-    caseSensitive_=new QCheckBox("Case sensitive");caseSensitive_->setChecked(true);caseSensitive_->setEnabled(false);caseSensitive_->setObjectName("patternCaseSensitive");searchForm->addRow(caseSensitive_);
-    overlap_=new QCheckBox("Include overlapping matches");overlap_->setChecked(false);overlap_->setObjectName("patternOverlap");searchForm->addRow(overlap_);
-    alignment_=new QSpinBox;alignment_->setRange(1,1048576);alignment_->setObjectName("patternAlignment");searchForm->addRow("Absolute byte alignment",alignment_);
-    resultLimit_=new QSpinBox;resultLimit_->setRange(1,10000);resultLimit_->setValue(10000);resultLimit_->setObjectName("patternResultLimit");searchForm->addRow("Maximum results",resultLimit_);
-    auto *hint=new QLabel("Hex: ?? = byte, A? = wildcard digit. Byte regex: \\x48. Text uses the viewer encoding. Text/regex: region ≤ 1 MiB; ^ and $ are the region boundaries.");hint->setWordWrap(true);searchLayout->addWidget(hint);
-    auto *searchButtons=new QHBoxLayout;
-    button(searchButtons,"Selection","Search selection",[this]{auto s=view_->selection();if(s.anchor>=0){searchScope_->setCurrentIndex(1);searchStart_->setText(QString::number(qMin(s.anchor,s.cursor)));searchLength_->setText(QString::number(qAbs(s.cursor-s.anchor)+1));}});
-    button(searchButtons,"Find","Find Pattern",[this]{startSearch();});button(searchButtons,"Stop","Cancel search",[this]{view_->cancelPatternSearch();});searchLayout->addLayout(searchButtons);
-    searchStatus_=new QLabel("No search");searchStatus_->setWordWrap(true);searchLayout->addWidget(searchStatus_);
-    searchResults_=new QTreeWidget;searchResults_->setObjectName("patternResults");searchResults_->setHeaderLabels({"Offset","Bytes"});searchResults_->setRootIsDecorated(false);searchLayout->addWidget(searchResults_);
+    auto *region=new QHBoxLayout;region->setSpacing(4);region->addWidget(searchStart_);region->addWidget(new QLabel("Bytes"));region->addWidget(searchLength_);
+    searchForm->addRow("Scope",searchScope_);searchForm->addRow("Start",region);
+    caseSensitive_=new QCheckBox("Case sensitive");caseSensitive_->setChecked(true);caseSensitive_->setEnabled(false);caseSensitive_->setObjectName("patternCaseSensitive");
+    overlap_=new QCheckBox("Overlapping matches");overlap_->setChecked(false);overlap_->setObjectName("patternOverlap");
+    auto *flags=new QHBoxLayout;flags->addWidget(caseSensitive_);flags->addWidget(overlap_);flags->addStretch();searchForm->addRow(flags);
+    alignment_=new QSpinBox;alignment_->setRange(1,1048576);alignment_->setObjectName("patternAlignment");alignment_->setToolTip("Absolute byte alignment");
+    resultLimit_=new QSpinBox;resultLimit_->setRange(1,10000);resultLimit_->setValue(10000);resultLimit_->setObjectName("patternResultLimit");resultLimit_->setToolTip("Maximum results");
+    auto *limits=new QHBoxLayout;limits->setSpacing(4);limits->addWidget(alignment_);limits->addWidget(new QLabel("Max"));limits->addWidget(resultLimit_);searchForm->addRow("Align",limits);
+    searchLayout->addWidget(AdaptiveLayout::section("Options",options,"patternOptionsSection",false));searchLayout->addStretch();
+    auto *found=new QWidget;auto *foundLayout=new QVBoxLayout(found);foundLayout->setContentsMargins(0,0,0,0);foundLayout->setSpacing(4);
+    searchStatus_=new QLabel("No search");searchStatus_->setObjectName("inspectorHint");searchStatus_->setWordWrap(true);foundLayout->addWidget(searchStatus_);
+    searchResults_=new QTreeWidget;searchResults_->setObjectName("patternResults");searchResults_->setHeaderLabels({"Offset","Bytes"});searchResults_->setRootIsDecorated(false);foundLayout->addWidget(searchResults_,1);
     connect(searchResults_,&QTreeWidget::currentItemChanged,this,[this](QTreeWidgetItem *item){if(item)matchIndex_->setValue(searchResults_->indexOfTopLevelItem(item)+1);});
-    auto *copySearch=new QPushButton("Copy results");searchLayout->addWidget(copySearch);connect(copySearch,&QPushButton::clicked,this,[this]{QString text="Offset\tBytes\n";for(auto m:matches_)text+=QString("0x%1\t%2\n").arg(m.first,0,16).arg(m.second);QApplication::clipboard()->setText(text);});
-    auto *matchesRow=new QHBoxLayout;matchIndex_=new QSpinBox;matchIndex_->setObjectName("matchIndex");matchIndex_->setRange(0,0);matchesRow->addWidget(matchIndex_);
-    button(matchesRow,"←","Previous match",[this]{matchIndex_->stepDown();});button(matchesRow,"→","Next match",[this]{matchIndex_->stepUp();});
-    button(matchesRow,"Mark","Create rule from matches",[this]{markMatches();});searchLayout->addLayout(matchesRow);layout->addWidget(searchBox);
+    auto *matchesRow=new QHBoxLayout;matchesRow->setSpacing(2);
+    button(matchesRow,"←","Previous match",[this]{matchIndex_->stepDown();});matchIndex_=new QSpinBox;matchIndex_->setObjectName("matchIndex");matchIndex_->setRange(0,0);matchesRow->addWidget(matchIndex_);button(matchesRow,"→","Next match",[this]{matchIndex_->stepUp();});
+    matchesRow->addStretch();button(matchesRow,"Mark","Create rule from matches",[this]{markMatches();});
+    button(matchesRow,"Copy","Copy results",[this]{QString text="Offset\tBytes\n";for(auto m:matches_)text+=QString("0x%1\t%2\n").arg(m.first,0,16).arg(m.second);QApplication::clipboard()->setText(text);});
+    foundLayout->addLayout(matchesRow);
+    searchOuter->addWidget(query,2);searchOuter->addWidget(found,3);AdaptiveLayout::flipColumns(searchBox,searchOuter);layout->addWidget(searchBox);
     connect(matchIndex_,&QSpinBox::valueChanged,this,[this](int value){if(value>0&&value<=matches_.size()){QSignalBlocker block(searchResults_);searchResults_->setCurrentItem(searchResults_->topLevelItem(value-1));view_->selectMatch(matches_[value-1].first,matches_[value-1].second);}});
     connect(searchMode_,&QComboBox::currentIndexChanged,this,[this](int mode){caseSensitive_->setEnabled(mode!=0);pattern_->setPlaceholderText(mode==0?"48 8B ?? A?":mode==1?"\\x48.{2}\\x41":mode==2?"Text to find":"Name[0-9]+");});
     auto invalidate=[this]{searchStale_=true;view_->cancelPatternSearch();matches_.clear();searchResults_->clear();matchIndex_->setRange(0,0);searchStatus_->setText("Options changed; search again.");};
@@ -115,13 +146,13 @@ FormatPanel::FormatPanel(HexView *view,QWidget *parent):QWidget(parent),view_(vi
         if(!matches_.isEmpty()){matchIndex_->setValue(1);view_->selectMatch(matches_[0].first,matches_[0].second);}
     });
     auto *timer=new QTimer(this);timer->setInterval(200);connect(timer,&QTimer::timeout,this,[this]{if(view_->searchBusy()&&!searchStale_)searchStatus_->setText(QString("Searching… %1 MiB processed").arg(double(view_->searchProgress())/(1024*1024),0,'f',2));});timer->start();
-    auto *io=new QHBoxLayout;button(io,"Import","Import Rules",[this]{importRules();});button(io,"Export","Export Rules",[this]{exportRules();});io->addStretch();layout->addLayout(io);
     refresh();
 }
 void FormatPanel::beginRule(bool replace){
     if(replace){if(!list_->currentItem())return;loadSelected();}
     else {list_->setCurrentItem(nullptr);name_->setText("Sequence");for(auto *f:{start_,length_,step_,repetitions_})f->setEnabled(true);}
-    editor_->show();
+    if(auto *title=findChild<QLabel *>("ruleEditorTitle"))title->setText(replace?"Edit rule":"New rule");
+    AdaptiveLayout::open(findChild<QWidget *>("structureAppearanceSection"));editor_->show();name_->setFocus();name_->selectAll();
 }
 void FormatPanel::startSearch(){
     if(view_->searchBusy()){searchStatus_->setText("A search is running. Stop it before starting another.");return;}
@@ -235,7 +266,7 @@ bool FormatPanel::markExternalMatches(const QString &name,const QVector<ByteRang
 
 void FormatPanel::updateColorFields(){
     const QColor colors[]={foreground_,background_,border_,underlineColor_};
-    for(int i=0;i<4;++i){colorFields_[i]->setText(colors[i].name().toUpper());colorFields_[i]->setStyleSheet({});findChild<QToolButton *>(QString("formatSwatch%1").arg(i))->setStyleSheet("background-color: "+colors[i].name()+";");}
+    for(int i=0;i<4;++i){colorFields_[i]->setText(colors[i].name().toUpper());colorFields_[i]->setStyleSheet({});findChild<QToolButton *>(QString("formatSwatch%1").arg(i))->setStyleSheet(swatchStyle(colors[i]));}
 }
 void FormatPanel::navigateSelected(){
     if(list_->selectedItems().isEmpty())return;int index=list_->indexOfTopLevelItem(list_->currentItem());if(index<0)return;

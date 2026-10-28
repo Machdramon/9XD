@@ -3,3 +3,5 @@
 `logo-sticker.png` is the maximum-resolution transparent project logo. `app.ico` contains Windows icon sizes and `app.rc` embeds it in the executable.
 
 Window and release name: **9XD**. Existing settings identifiers, source targets and document formats remain compatible.
+
+Windows uses windows-runtime-cat.ico for running window/taskbar icons. The executable resource and public project logo retain app.ico / logo-sticker.png. The About splash remains private.

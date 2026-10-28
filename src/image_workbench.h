@@ -1,5 +1,7 @@
 #pragma once
+#include <QHash>
 #include "empty_state.h"
+#include "theme.h"
 #include "file_dialogs.h"
 #include "hex_view.h"
 #include "image_decode.h"
@@ -30,9 +32,23 @@
 
 class ImagePreview final:public QGraphicsView {
 public:
-    explicit ImagePreview(QWidget *parent=nullptr):QGraphicsView(parent){setObjectName("imagePreview");setScene(new QGraphicsScene(this));addEmptyState(this,"image","No image to preview","Select an image in the collection, or calculate one with the settings on the right.");setDragMode(ScrollHandDrag);setTransformationAnchor(AnchorUnderMouse);setBackgroundBrush(palette().brush(QPalette::Dark));}
+    explicit ImagePreview(QWidget *parent=nullptr):QGraphicsView(parent){setObjectName("imagePreview");setScene(new QGraphicsScene(this));addEmptyState(this,"image","No image to preview","Select an image in the collection, or calculate one with the settings on the right.");setDragMode(ScrollHandDrag);setTransformationAnchor(AnchorUnderMouse);}
     void showImage(const QImage &image){scene()->clear();if(!image.isNull())scene()->addPixmap(QPixmap::fromImage(image));scene()->setSceneRect(QRectF(QPointF(0,0),image.size()));resetTransform();if(!image.isNull())fitInView(scene()->sceneRect(),Qt::KeepAspectRatio);}
 protected:
+    // Background follows the theme's 3D / UV background (graphics.background), read on every paint so a theme change
+    // applies at once. A soft checkerboard sits under the image so transparent pixels stay visible.
+    void drawBackground(QPainter *painter,const QRectF &rect)override{
+        const QColor background=graphicsBackground();QColor top,bottom;
+        if(graphicsGradient(top,bottom)){painter->save();painter->resetTransform();QLinearGradient fade(0,0,0,viewport()->height());fade.setColorAt(0,top);fade.setColorAt(1,bottom);painter->fillRect(viewport()->rect(),fade);painter->restore();}
+        else painter->fillRect(rect,background);
+        if(scene()->items().isEmpty()||sceneRect().isEmpty())return;
+        const QRect image=mapFromScene(sceneRect()).boundingRect().intersected(viewport()->rect());if(image.isEmpty())return;
+        const QColor light=background.lighter(workbenchDark()?125:104),dark=background.darker(workbenchDark()?108:106);
+        painter->save();painter->resetTransform();painter->setClipRect(image);constexpr int cell=8;
+        for(int y=image.top()-image.top()%cell;y<=image.bottom();y+=cell)for(int x=image.left()-image.left()%cell;x<=image.right();x+=cell)painter->fillRect(x,y,cell,cell,((x/cell+y/cell)%2)?light:dark);
+        painter->restore();
+    }
+    void changeEvent(QEvent *event)override{QGraphicsView::changeEvent(event);if(event->type()==QEvent::PaletteChange||event->type()==QEvent::StyleChange)viewport()->update();}
     void wheelEvent(QWheelEvent *event)override{const double factor=std::exp(event->angleDelta().y()*.001);const auto next=transform().m11()*factor;if(next>=.01&&next<=128)scale(factor,factor);event->accept();}
 };
 
@@ -103,8 +119,11 @@ public:
     std::function<bool(const QImage &,const QString &)> assignTexture;
     std::function<void(bool,const QString &)> calculationFinished;
     bool addDecodedTexture(const QImage &image,const QString &name,const QString &source,bool select=false){
-        if(image.isNull()||!imageValidSize(image.width(),image.height()))return false;for(int i=0;i<entries_.size();++i){const auto &e=entries_[i];if(e.name==name&&e.source.path==source&&e.image==image){if(select)list_->setCurrentRow(i);return true;}}
-        if(entries_.size()>=qBound(qint64(512),AssetMemory::textureBytes()/4096,qint64(10000))||retained_+image.sizeInBytes()>AssetMemory::textureBytes())return false;Entry e;e.name=name;e.source.path=source;e.source.expectedSize=-1;e.recipe.format="Encoded image";e.image=image;append(e);if(select)list_->setCurrentRow(entries_.size()-1);return true;
+        if(image.isNull()||!imageValidSize(image.width(),image.height()))return false;// Indexed duplicate check: a full scan per call made batch loads of large scenes quadratic. The index is rebuilt
+        // whenever the library changed through another path (detected by its size); hits are re-verified.
+        const QString key=name+QChar(0)+source;if(indexedCount_!=entries_.size()){textureIndex_.clear();for(int i=0;i<entries_.size();++i)textureIndex_.insert(entries_[i].name+QChar(0)+entries_[i].source.path,i);indexedCount_=entries_.size();}
+        for(auto it=textureIndex_.constFind(key);it!=textureIndex_.cend()&&it.key()==key;++it){const int i=it.value();if(i<0||i>=entries_.size())continue;const auto &e=entries_[i];if(e.name==name&&e.source.path==source&&e.image==image){if(select)list_->setCurrentRow(i);return true;}}
+        if(entries_.size()>=qBound(qint64(512),AssetMemory::textureBytes()/4096,qint64(10000))||retained_+image.sizeInBytes()>AssetMemory::textureBytes())return false;Entry e;e.name=name;e.source.path=source;e.source.expectedSize=-1;e.recipe.format="Encoded image";e.image=image;append(e);textureIndex_.insert(key,entries_.size()-1);indexedCount_=entries_.size();if(select)list_->setCurrentRow(entries_.size()-1);return true;
     }
     int imageCount()const{return entries_.size();}
     const Entry &entry(int index)const{return entries_[index];}
@@ -171,6 +190,6 @@ private:
     void next(){if(queue_.isEmpty()){setRunning(false);status_->setText(QString("Generated %1 image(s). Existing images are snapshots.").arg(completed_));if(calculationFinished)calculationFinished(true,status_->text());return;}active_=queue_.takeFirst();state_->recipe=active_.recipe;state_->patches=active_.patches;state_->cancel.store(false);status_->setText(QString("Calculating image %1 / %2...").arg(completed_+1).arg(total_));reader_.request(active_.source);}
     void finish(){if(state_->cancel.load()||state_->decoded.cancelled||!state_->decoded.error.isEmpty()){queue_.clear();setRunning(false);status_->setText(state_->cancel.load()||state_->decoded.cancelled?"Calculation canceled. Completed images remain in the library.":state_->decoded.error);if(calculationFinished)calculationFinished(false,status_->text());return;}active_.image=state_->decoded.image;append(active_);list_->setCurrentRow(entries_.size()-1);++completed_;progress_->setValue(completed_);next();}
     std::function<void()> refresh_;
-    HexView *view_;std::shared_ptr<Job> state_;BinaryReader reader_;QList<Entry> entries_,queue_;Entry active_;qint64 retained_=0;bool running_=false,documentJob_=false;int completed_=0,total_=0;
+    HexView *view_;std::shared_ptr<Job> state_;BinaryReader reader_;QList<Entry> entries_,queue_;QMultiHash<QString,int> textureIndex_;qsizetype indexedCount_=-1;Entry active_;qint64 retained_=0;bool running_=false,documentJob_=false;int completed_=0,total_=0;
     QListWidget *list_;QLineEdit *filter_,*offset_,*stride_,*palette_,*step_;QSpinBox *width_,*height_,*count_,*mip_,*surface_,*paletteBank_,*paletteEntries_;QComboBox *source_,*format_,*endian_,*memoryLayout_,*paletteFormat_,*byteSwap_,*container_;QCheckBox *flipX_,*flipY_,*lowNibble_,*clut_,*alpha_;QPushButton *calculate_,*cancel_;QLabel *status_,*footprint_;QProgressBar *progress_;
 };

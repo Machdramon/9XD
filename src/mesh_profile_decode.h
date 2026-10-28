@@ -15,23 +15,51 @@
 #include "pgr1_car.h"
 #include "pgr34_geometry.h"
 #include "pgr34_track.h"
+#include "ps2_vif_geometry.h"
+#include "wm_ps3_xmd.h"
+#include "gmo_model.h"
+#include "nfs_mw_solid.h"
+#include "itc_model.h"
+#include "blur_model.h"
+#include "rw_model.h"
+#include "idss_model.h"
 #include <QMatrix4x4>
 #include <QVector3D>
 namespace MeshProfiles {
 inline QJsonObject inspect(ReadRequest source,const PatchList &patches,const QJsonObject &profile,const std::atomic_bool &cancel){
     QByteArray bytes;auto limit=qMin(source.expectedSize,AssetMemory::bytes()/4);for(qint64 p=0;p<limit;){if(cancel.load())return {{"error","Profile test canceled."}};auto r=source;r.offset=p;r.length=qMin(qint64(1048576),limit-p);auto page=readPage(r);if(!page.error.isEmpty()||page.bytes.size()!=r.length)return {{"error",page.error.isEmpty()?"Incomplete profile read.":page.error}};applyPatches(page.bytes,p,patches);bytes+=page.bytes;p+=page.bytes.size();}auto result=scan(bytes,{profile},cancel);if(cancel.load())return {{"error","Profile test canceled."}};auto check=source;check.offset=0;check.length=0;auto final=readPage(check);if(!final.error.isEmpty())return {{"error",final.error}};return result;
 }
-inline MeshResult decode(ReadRequest source,const PatchList &patches,const QJsonObject &candidate,const std::atomic_bool &cancel,QMap<QByteArray,std::shared_ptr<MeshData>> *cache=nullptr,Fm1Track::Session *trackSession=nullptr,Pgr1Track::Session *pgrSession=nullptr,MsrAlpha::Session *msrSession=nullptr,Pgr2Geometry::Session *pgr2Session=nullptr,Pgr2Track::Session *pgr2TrackSession=nullptr,Pgr34Geometry::Session *pgr34Session=nullptr,Pgr34Track::Session *pgr34TrackSession=nullptr,FafGeometry::Session *fafSession=nullptr,LinkedSurfaces::Session *linkedSession=nullptr){
+// Bizarre Creations titles (MSR, PGR1-4) store Direct3D left-handed coordinates; the viewer and exports are
+// right-handed. Convert once here: negate Z for positions and normals and reverse triangle order so front faces
+// stay front faces. Copies the mesh so cached/shared decoder data is never mirrored twice.
+inline MeshResult mirrorLeftHanded(MeshResult r){
+    if(!r.mesh)return r;auto m=std::make_shared<MeshData>(*r.mesh);
+    for(auto &v:m->vertices){v.position[2]=-v.position[2];v.normal[2]=-v.normal[2];}
+    for(qsizetype i=0;i+2<m->triangles.size();i+=3)std::swap(m->triangles[i+1],m->triangles[i+2]);
+    for(auto &f:m->faceSources){std::swap(f.offsets[1],f.offsets[2]);std::swap(f.indexSlots[1],f.indexSlots[2]);}
+    r.positionDelta[2]=-r.positionDelta[2];r.mesh=m;
+    if(r.surface)r.surface->material.sourceBindings["handednessConverted"]="Direct3D left-handed -> right-handed (Z negated)";
+    return r;
+}
+inline MeshResult decode(ReadRequest source,const PatchList &patches,const QJsonObject &candidate,const std::atomic_bool &cancel,QMap<QByteArray,std::shared_ptr<MeshData>> *cache=nullptr,Fm1Track::Session *trackSession=nullptr,Pgr1Track::Session *pgrSession=nullptr,MsrAlpha::Session *msrSession=nullptr,Pgr2Geometry::Session *pgr2Session=nullptr,Pgr2Track::Session *pgr2TrackSession=nullptr,Pgr34Geometry::Session *pgr34Session=nullptr,Pgr34Track::Session *pgr34TrackSession=nullptr,FafGeometry::Session *fafSession=nullptr,LinkedSurfaces::Session *linkedSession=nullptr,RenderWare::Session *rwSession=nullptr){
     if(candidate["profileId"]=="native-linked-surface"){QMap<QByteArray,std::shared_ptr<MeshData>> solids;return LinkedSurfaces::decode(source,patches,candidate,cancel,linkedSession,[&](QJsonObject c){return decode(source,patches,c,cancel,&solids);});}
+    if(candidate["profileId"]==PspGmo::ProfileId)return PspGmo::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==NfsMw::ProfileId)return NfsMw::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==Blur::ProfileId)return Blur::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==Itc::ProfileId)return Itc::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==InitialDSS::ProfileId)return InitialDSS::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==RenderWare::ProfileId)return RenderWare::decode(source,patches,candidate,cancel,rwSession);
+    if(candidate["profileId"]==WmPs3::ProfileId)return WmPs3::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==Ps2Vif::ProfileId)return Ps2Vif::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]=="native-faf-arcx")return FafGeometry::decode(source,patches,candidate,cancel,fafSession);
     if(candidate["profileId"]=="native-genki-part")return readGenkiGeometry(source,patches,cancel,true,candidate);
-    if(candidate["profileId"]=="native-pgr34-track")return Pgr34Track::decode(source,patches,candidate,cancel,pgr34TrackSession);
-    if(candidate["profileId"]=="native-pgr34-car")return Pgr34Geometry::decode(source,patches,candidate,cancel,pgr34Session);
-    if(candidate["profileId"]=="native-pgr1-car")return Pgr1Car::decode(source,patches,candidate,cancel,pgrSession);
-    if(candidate["profileId"]=="native-pgr1-track")return Pgr1Track::decode(source,patches,candidate,cancel,pgrSession);
-    if((candidate["profileId"]=="native-pgr2-track"||candidate["profileId"]=="native-pgr2-track-instances"))return Pgr2Track::decode(source,patches,candidate,cancel,pgr2TrackSession);
-    if(candidate["profileId"]=="native-pgr2-car")return Pgr2Geometry::decode(source,patches,candidate,cancel,pgr2Session);
-    if(candidate["profileId"]=="native-msr-alpha-car"||candidate["profileId"]=="native-msr-alpha-track"||candidate["profileId"]=="native-msr-retail-track")return MsrAlpha::decode(source,patches,candidate,cancel,msrSession);
+    if(candidate["profileId"]=="native-pgr34-track")return mirrorLeftHanded(Pgr34Track::decode(source,patches,candidate,cancel,pgr34TrackSession));
+    if(candidate["profileId"]=="native-pgr34-car")return mirrorLeftHanded(Pgr34Geometry::decode(source,patches,candidate,cancel,pgr34Session));
+    if(candidate["profileId"]=="native-pgr1-car")return mirrorLeftHanded(Pgr1Car::decode(source,patches,candidate,cancel,pgrSession));
+    if(candidate["profileId"]=="native-pgr1-track")return mirrorLeftHanded(Pgr1Track::decode(source,patches,candidate,cancel,pgrSession));
+    if((candidate["profileId"]=="native-pgr2-track"||candidate["profileId"]=="native-pgr2-track-instances"))return mirrorLeftHanded(Pgr2Track::decode(source,patches,candidate,cancel,pgr2TrackSession));
+    if(candidate["profileId"]=="native-pgr2-car")return mirrorLeftHanded(Pgr2Geometry::decode(source,patches,candidate,cancel,pgr2Session));
+    if(candidate["profileId"]=="native-msr-alpha-car"||candidate["profileId"]=="native-msr-alpha-track"||candidate["profileId"]=="native-msr-retail-track")return mirrorLeftHanded(MsrAlpha::decode(source,patches,candidate,cancel,msrSession));
     if(candidate["profileId"]=="native-fm1-track")return Fm1Track::decode(source,patches,candidate,cancel,trackSession);
     if(candidate["profileId"]=="native-fm1-carbin")return Fm1Geometry::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]=="native-rtuned-visual-scene")return RTunedVisualScene::decode(source,patches,candidate,cancel);

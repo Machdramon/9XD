@@ -1,4 +1,5 @@
 #pragma once
+#include "ps2_gs_address.h"
 #include <QStringList>
 #include <QtGlobal>
 struct ImageRecipe {
@@ -7,7 +8,7 @@ struct ImageRecipe {
     QString format="RGBA8",layout="Linear",paletteFormat="RGBA8",byteSwap="None",container="Auto";
     bool bigEndian=false,flipX=false,flipY=false,lowNibbleFirst=false,ps2Clut=false,ps2Alpha=false;
 };
-inline QStringList imageContainers(){return {"Auto","GTF","Genki image bank"};}
+inline QStringList imageContainers(){return {"Auto","GTF","Genki image bank","RenderWare TXD"};}
 inline QStringList imageFormats(){return {"RG8","R16 UNORM","RG16 UNORM","RGBA16 UNORM","R16 FLOAT","RG16 FLOAT","RGBA16 FLOAT","R32 FLOAT","RGBA32 FLOAT","RGBA8","BGRA8","ARGB8","ABGR8","RGB8","BGR8","Gray8","Gray4","IA8","IA4","RGB565","RGB555","RGBA5551","ARGB1555","RGBA4444","PS1 BGR555","PS2 RGBA8","PS2 RGBA16","PS2 Indexed8H","PS2 Indexed4HL","PS2 Indexed4HH","RGBX8","Indexed8","Indexed4","BC1","BC2","BC3","BC4","BC4 SNORM","BC5","BC5 SNORM","BC6H","BC6H signed","BC7","NES CHR2","SNES 2bpp","SNES 4bpp","SNES 8bpp","SNES Mode7","GC I4","GC I8","GC IA4","GC IA8","GC RGB565","GC RGB5A3","GC RGBA8","GC CI4","GC CI8","GC CI14X2","GC CMPR","Encoded image"};}
 inline QStringList imagePaletteFormats(){return {"RGBA8","BGRA8","RGB8","BGR8","RGB565","RGB555","PS1 BGR555","PS2 RGBA8","PS2 RGBA16","RGBX8","GC RGB5A3","GC IA8"};}
 inline bool imageBlockCompressed(const QString &f){return f.startsWith("BC");}
@@ -37,20 +38,8 @@ inline qint64 imageXenosAddress(int x,int y,int pitch,int bytes){
     return ((y&1)<<4)|(pipe<<6)|(((y>>4)&1)<<11)|(group&15)|((group&16)<<1)|((group&224)<<3)|((group>>8)<<12);
 }
 // GS local-memory page/block/column address, expressed in bits. Storage pitch is rounded to pages.
-inline qint64 imageGsBitAddress(int x,int y,int width,int bits,bool alternate16=false){
-    int pw=bits<=8?128:64,ph=bits==4?128:bits==8||bits==16?64:32;
-    int bw=bits==4?32:bits==8||bits==16?16:8,bh=bits<=8?16:8;
-    int bx=(x%pw)/bw,by=(y%ph)/bh;int block;
-    if(alternate16)block=(by&1)|((bx&1)<<1)|((by&2)<<2)|((bx&2)<<3)|(by&4);
-    else if(bits==4||bits==16)block=(by&1)|((bx&1)<<1)|((by&2)<<1)|((bx&2)<<2)|((by&4)<<2);
-    else block=(bx&1)|((by&1)<<1)|((bx&2)<<1)|((by&2)<<2)|((bx&4)<<2);
-    int xx=x%bw,yy=y%bh,column;
-    if(bits==32)column=(xx&1)|((yy&1)<<1)|((xx&6)<<1)|((yy&6)<<3);
-    else if(bits==16)column=((xx&8)>>3)|((xx&1)<<1)|((yy&1)<<2)|((xx&6)<<2)|((yy&6)<<4);
-    else if(bits==8)column=((yy&2)>>1)|((xx&8)>>2)|((xx&1)<<2)|((yy&1)<<3)|((xx&2)<<3)|((((xx>>2)^(yy>>1)^(yy>>2))&1)<<5)|((yy&12)<<4);
-    else column=((yy&2)>>1)|((xx&8)>>2)|((xx&16)>>2)|((xx&1)<<3)|((yy&1)<<4)|((xx&2)<<4)|((((xx>>2)^(yy>>1)^(yy>>2))&1)<<6)|((yy&12)<<5);
-    return (qint64(y/ph)*((width+pw-1)/pw)+x/pw)*8192*8+block*256*8+column*bits;
-}
+inline qint64 imageGsBitAddress(int x,int y,int width,int bits,bool alternate16=false){return Ps2Gs::bitAddress(x,y,width,bits,alternate16);}
+
 inline qint64 imageSpan(const ImageRecipe &r,QString &error){
     if(!imageFormats().contains(r.format)){error="Unsupported pixel format.";return 0;}
     if(r.offset<0||r.paletteOffset<0||r.rowStride<0||r.mipLevel<0||r.surface<0||r.paletteBank<0){error="Offsets and indexes must be nonnegative.";return 0;}

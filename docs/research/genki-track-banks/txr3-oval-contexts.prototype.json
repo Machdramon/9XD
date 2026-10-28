@@ -1,0 +1,150 @@
+[
+  {
+    "schema": 1,
+    "game": "txr3",
+    "variant": "oval-A",
+    "condition": "unlabelled",
+    "global": {
+      "0": {
+        "path": "00004a5e.dat",
+        "section": 0
+      },
+      "4": {
+        "path": "00004a5e.dat",
+        "section": 1
+      }
+    },
+    "segments": [
+      {
+        "startId": "0x4a5f",
+        "endId": "0x4a7c",
+        "local": {
+          "1": {
+            "path": "00004a5f.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004a5f.dat",
+            "section": 4
+          }
+        }
+      },
+      {
+        "startId": "0x4a7c",
+        "endId": "0x4a9a",
+        "local": {
+          "1": {
+            "path": "00004a7c.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004a7c.dat",
+            "section": 4
+          }
+        }
+      },
+      {
+        "startId": "0x4a9a",
+        "endId": "0x4ab7",
+        "local": {
+          "1": {
+            "path": "00004a9a.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004a9a.dat",
+            "section": 4
+          }
+        }
+      },
+      {
+        "startId": "0x4ab7",
+        "endId": "0x4ad5",
+        "local": {
+          "1": {
+            "path": "00004ab7.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004ab7.dat",
+            "section": 4
+          }
+        }
+      }
+    ]
+  },
+  {
+    "schema": 1,
+    "game": "txr3",
+    "variant": "oval-B",
+    "condition": "unlabelled",
+    "global": {
+      "0": {
+        "path": "00004ad7.dat",
+        "section": 0
+      },
+      "4": {
+        "path": "00004ad7.dat",
+        "section": 1
+      }
+    },
+    "segments": [
+      {
+        "startId": "0x4ad8",
+        "endId": "0x4af5",
+        "local": {
+          "1": {
+            "path": "00004ad8.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004ad8.dat",
+            "section": 4
+          }
+        }
+      },
+      {
+        "startId": "0x4af5",
+        "endId": "0x4b13",
+        "local": {
+          "1": {
+            "path": "00004af5.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004af5.dat",
+            "section": 4
+          }
+        }
+      },
+      {
+        "startId": "0x4b13",
+        "endId": "0x4b30",
+        "local": {
+          "1": {
+            "path": "00004b13.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004b13.dat",
+            "section": 4
+          }
+        }
+      },
+      {
+        "startId": "0x4b30",
+        "endId": "0x4b4e",
+        "local": {
+          "1": {
+            "path": "00004b30.dat",
+            "section": 3
+          },
+          "2": {
+            "path": "00004b30.dat",
+            "section": 4
+          }
+        }
+      }
+    ]
+  }
+]

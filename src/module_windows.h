@@ -10,7 +10,7 @@
 
 class ModuleWindow final : public QMainWindow {
 public:
-    ModuleWindow():QMainWindow(nullptr,Qt::Window){}
+    ModuleWindow():QMainWindow(nullptr,Qt::Window){setMinimumSize(560,380);}
     std::function<void()> returnRequested;
 protected:
     void closeEvent(QCloseEvent *event)override{

@@ -136,3 +136,13 @@ The July 7, 2006 prototype has a native static-geometry decoder. Open `03IS300_L
 Open the March reference `txrd2/car/000002a0.sdb`, run **Scan for 3D Data**, then **Render All**. The validated source contains 54 parts / 8,328 triangles; 19 parts now carry their primary local image. **Preview Texture** reads the same bounded bank as **Scan for Textures / Images**; slots 0, 3 and 4 contain pixels, while the three empty references remain explicit. Raw/RAM documents use the same readers.
 
 The native material recipe preserves wide-UV stride and primary UV selection, source slot identities and clamp sampling in the viewport and GLB/FBX. Shared TIM2 decoding also corrects RGB24 colours and extends validated Zero transfer-form/RGB16 palette storage. Full game shaders, reflection stages and arbitrary external texture banks are still separate work. See [the implementation report](research/genki/checks/MATERIAL-INTEGRATION.md) for validation and sample-specific scope.
+
+## Explicit Genki track texture contexts (development, 2026-10-26)
+
+TXR3 Oval-A/B profiles can link global and per-segment local TIM2 banks across extracted files. In File Scan or 3D Data Scan choose **Track Texture Context…**, load `profiles/genki-txr3-oval-contexts.json`, select the matching variant and choose its original extracted model/bank folder. Then scan and render. Start with `00004a60.nfc` (A) or `00004ad9.nfc` (B). Bank hashes and model identity must match; the `uclless` extraction is not interchangeable with `Nueva carpeta working one`.
+
+Texture collection and GLB/FBX exports receive decoded primary images. Context refresh replaces materials on already loaded untransformed Genki parts; it does not add duplicate geometry. Exact game sampling and animation remain partial: unsupported regions use a marked Repeat preview; animated banks are static images. Profiles for WM and other games still need their own mapping. See `research/genki-track-banks/README.md` for the schema and validation.
+
+### Automatic track companion detection (2026-10-26)
+
+For verified TXR3 Oval contexts, simply open the model, scan and render. Profiles are embedded and valid global/local companions are discovered beside the source or in remembered verified locations. After scanning an original game-folder model, copied study fixtures can reuse that location automatically. No context JSON needs loading. Texture options… is an advanced override only; Automatic restores detection. Missing banks and unsupported game/track maps remain explicit warnings. This supersedes the manual setup instructions above.

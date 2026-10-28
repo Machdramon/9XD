@@ -9,6 +9,7 @@
 /assets/*
 !/assets/logo-sticker.png
 !/assets/app.ico
+!/assets/windows-runtime-cat.ico
 !/assets/app.rc
 !/assets/README.md
 

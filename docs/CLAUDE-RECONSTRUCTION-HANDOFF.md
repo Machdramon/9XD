@@ -12,7 +12,7 @@ Actual repository: C:/Users/Jarky/Documents/GitHub/binary-workbench. Current cha
 
 - src/reconstruction_inspectors.h: Reconstruction::VideoInspector and Reconstruction::SplineInspector (QWidget subclasses, no Q_OBJECT).
 - src/main.cpp: creates document-session docks and checks active jobs/unsaved projects before document replacement or close.
-- src/module_menus.h: both docks belong to the 3D module and appear in its menu.
+- src/module_menus.h: both docks belong to the Reconstruction module (moved out of 3D on 2026-10-26) and appear in its menu.
 - tests/window_tests.cpp: reconstructionInspectorContracts and reconstructionFrameJob.
 
 ## UI work, in order
@@ -24,7 +24,7 @@ Actual repository: C:/Users/Jarky/Documents/GitHub/binary-workbench. Current cha
 
 ## Functional contracts to preserve
 
-- videoReconstructionDock / videoReconstructionInspector, splineModelingDock / splineModelingInspector. Session ownership, 3D-only docking, detachable module behavior and saved layout use the existing infrastructure.
+- videoReconstructionDock / videoReconstructionInspector, splineModelingDock / splineModelingInspector. Session ownership, Reconstruction-module docking (3D until 2026-10-26), detachable module behavior and saved layout use the existing infrastructure.
 - Video uses asynchronous QProcess directly with FFmpeg, unique UUID job folders, bounded frame count/resolution/logs and atomic job.json. Cancel retains partial output; document close/replacement is blocked while extraction is active. Never overwrite existing job output.
 - Current sampling ranges: 0.05–10 fps, 2–10000 frames, maximum image dimension 256–4096; defaults 1 fps, 300 frames, 1600 pixels.
 - Spline JSON: schema 1, type 9xd-spline-project, image path and ordered points with curve/x/y. Reject invalid/nonfinite values and malformed loads before replacing existing state. Preserve unsaved-change confirmation.
@@ -41,3 +41,13 @@ Still pending, not claimed complete: COLMAP sparse job execution, camera/point i
 Application builds with windows-local. Focused tests: 4 passed/0 failed/0 skipped; full window suite: 98 passed/0 failed/75 optional skipped. Use the VS2022 vcvars64 environment for existing C++ scripting tests and Qt 6.11.2 runtime PATH. Logs are in build/windows-local/reconstruction-inspectors-tests.txt and reconstruction-window-full.txt; build log is build/reconstruction-inspectors-build.log.
 
 Re-run focused tests after changes, relevant menu/docking regression, and visually inspect the refined panels. Record actual results, changed files, remaining tasks and ownership in docs/COORDINATION-PLAN.md and docs/reconstruction-tools.md in the same session before reporting completion. Mark this hand-off picked up when work begins; do not mark it accepted merely because it exists.
+
+
+## Separate scanner UI follow-up — 2026-10-26
+
+Genki track context controls were added to File/3D Data Scan: scanTrackContext / scanClearTrackContext, public setTrackTextureContext. Functional behavior and schema: docs/research/genki-track-banks/README.md. Claude may refine appearance later while preserving explicit per-document context, fingerprints and material refresh without duplicates; not a reconstruction-inspector feature.
+
+
+## Automatic track context update — 2026-10-26
+
+Verified TXR3 global/local contexts now load automatically from embedded profiles and validated companion locations. Manual JSON loading is no longer normal setup. Scan controls default to automatic; Texture options… remains an advanced override. Remembered contexts allow matching study-case copies. Real automatic tests and GLB/FBX pass; source/texture fingerprints and no-duplicate-material refresh remain required. Other game maps remain pending. See docs/research/genki-track-banks/README.md.

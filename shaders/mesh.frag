@@ -21,6 +21,6 @@ void main(){
     vec3 color=settings.light.w>=2?mappedColor:settings.color.rgb;vec4 sampled=vec4(color,settings.color.a);
 if(material>0u && settings.environment.w>.5 && !any(isnan(tex)) && !any(isinf(tex))){uint w=textureData.pixels[material],h=textureData.pixels[material+1u],offset=textureData.pixels[material+2u];
 uint wrap=textureData.pixels[material+3u];vec2 coords=vec2(address(tex.x,wrap&3u),address(tex.y,(wrap>>2u)&3u));uint x=min(w-1u,uint(coords.x*float(w))),y=min(h-1u,uint((1.0-coords.y)*float(h)));
-uint pixel=textureData.pixels[offset+y*w+x];sampled=unpackUnorm4x8(pixel);if(settings.environment.z>.5)sampled.rgb*=color;if(sampled.a<0.01)discard;}
+uint pixel=textureData.pixels[offset+y*w+x];sampled=unpackUnorm4x8(pixel);if(settings.environment.z>.5)sampled.rgb*=color;if(settings.environment.w>1.5)sampled.a=1.;else if(sampled.a<0.01)discard;}
 outputColor=vec4(sampled.rgb*shade+vec3(specular),sampled.a);}
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "adaptive_layout.h"
 #include "hex_view.h"
 #include <QApplication>
 #include <QClipboard>
@@ -21,7 +22,8 @@ class ChecksumPanel final : public QWidget {
 public:
     explicit ChecksumPanel(HexView *view,QWidget *parent=nullptr):QWidget(parent),view_(view){
         setObjectName("checksumPanel");auto *layout=new QVBoxLayout(this);layout->setContentsMargins(8,8,8,8);layout->setSpacing(6);
-        auto *splitter=new QSplitter(Qt::Horizontal);splitter->setObjectName("checksumSplitter");layout->addWidget(splitter);auto *results=new QWidget;auto *resultsLayout=new QVBoxLayout(results);resultsLayout->setContentsMargins(0,0,0,0);auto *controls=new QWidget;auto *controlsLayout=new QVBoxLayout(controls);controlsLayout->setContentsMargins(0,0,0,0);splitter->addWidget(results);splitter->addWidget(controls);splitter->setChildrenCollapsible(false);splitter->setStretchFactor(0,1);splitter->setStretchFactor(1,0);controls->setMinimumWidth(280);splitter->setSizes({650,340});auto *box=new QGroupBox("Calculate / Verify Checksum");auto *form=new QFormLayout(box);controlsLayout->addWidget(box);
+        auto *splitter=new QSplitter(Qt::Horizontal);splitter->setObjectName("checksumSplitter");layout->addWidget(splitter);auto *results=new QWidget;auto *resultsLayout=new QVBoxLayout(results);resultsLayout->setContentsMargins(0,0,0,0);auto *controls=new QWidget;auto *controlsLayout=new QVBoxLayout(controls);controlsLayout->setContentsMargins(0,0,0,0);// Settings first (left when wide, on top when narrow), results after.
+        splitter->addWidget(controls);splitter->addWidget(results);splitter->setChildrenCollapsible(false);splitter->setStretchFactor(0,0);splitter->setStretchFactor(1,1);controls->setMinimumWidth(240);splitter->setSizes({320,650});AdaptiveLayout::flip(this,splitter);auto *box=new QWidget;auto *form=new QFormLayout(box);controlsLayout->addWidget(box);
         algorithm_=new QComboBox;algorithm_->setObjectName("checksumAlgorithm");for(const auto &name:checksumAlgorithms())algorithm_->addItem(name,name);
         algorithm_->addItem("All algorithms","all");algorithm_->setCurrentIndex(algorithm_->findData("SHA-256"));form->addRow("Algorithm",algorithm_);
         scope_=new QComboBox;scope_->setObjectName("checksumScope");scope_->addItems({"Entire document","Contiguous selection","Specified range"});form->addRow("Scope",scope_);
@@ -29,14 +31,13 @@ public:
         length_=new QLineEdit("4096");length_->setObjectName("checksumLength");length_->setMaxLength(20);
         start_->setToolTip("Decimal or hexadecimal (0x...) offset.");length_->setToolTip("Number of bytes, in decimal or hexadecimal (0x...).");
         form->addRow("Start",start_);form->addRow("Bytes",length_);
-        expected_=new QLineEdit;expected_->setObjectName("checksumExpected");expected_->setMaxLength(512);form->addRow("Expected result",expected_);
-        expectedHelp_=new QLabel;expectedHelp_->setWordWrap(true);form->addRow(expectedHelp_);
-        auto *hint=new QLabel("Uses the current bytes, including unsaved changes. An expected result is optional; verification does not modify the document.");hint->setWordWrap(true);controlsLayout->addWidget(hint);
-        auto *buttons=new QHBoxLayout;calculate_=new QPushButton("Calculate");calculate_->setObjectName("checksumCalculate");cancel_=new QPushButton("Cancel");cancel_->setObjectName("checksumCancel");buttons->addWidget(calculate_);buttons->addWidget(cancel_);controlsLayout->addLayout(buttons);
-        progress_=new QProgressBar;progress_->setObjectName("checksumProgress");progress_->setRange(0,1000);progress_->setValue(0);controlsLayout->addWidget(progress_);controlsLayout->addStretch();
+        expected_=new QLineEdit;expected_->setObjectName("checksumExpected");expected_->setMaxLength(512);expected_->setPlaceholderText("Optional hex to verify");form->addRow("Expected",expected_);
+        expectedHelp_=new QLabel;expectedHelp_->setObjectName("inspectorHint");expectedHelp_->setWordWrap(true);form->addRow(expectedHelp_);
+        auto *buttons=new QHBoxLayout;calculate_=new QPushButton("Calculate");calculate_->setObjectName("checksumCalculate");cancel_=new QPushButton("Cancel");cancel_->setObjectName("checksumCancel");calculate_->setProperty("primary",true);cancel_->setProperty("compact",true);calculate_->setToolTip("Uses the current bytes, including unsaved changes. Verification does not modify the document.");buttons->addWidget(calculate_,1);buttons->addWidget(cancel_);controlsLayout->addLayout(buttons);
+        progress_=new QProgressBar;progress_->setObjectName("checksumProgress");progress_->setRange(0,1000);progress_->setValue(0);progress_->setTextVisible(false);progress_->setMaximumHeight(8);controlsLayout->addWidget(progress_);controlsLayout->addStretch();
         table_=new QTableWidget(0,3);table_->setObjectName("checksumResults");table_->setHorizontalHeaderLabels({"Algorithm","Checksum / Hash","Verification"});table_->setEditTriggers(QAbstractItemView::NoEditTriggers);table_->setSelectionBehavior(QAbstractItemView::SelectRows);table_->setSelectionMode(QAbstractItemView::SingleSelection);table_->setAlternatingRowColors(true);table_->verticalHeader()->hide();
         table_->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);table_->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);table_->horizontalHeader()->setSectionResizeMode(2,QHeaderView::ResizeToContents);table_->setWordWrap(false);resultsLayout->addWidget(table_,1);
-        auto *copyButtons=new QHBoxLayout;copy_=new QPushButton("Copy Result");copy_->setObjectName("checksumCopy");copyAll_=new QPushButton("Copy All");copyAll_->setObjectName("checksumCopyAll");copyButtons->addWidget(copy_);copyButtons->addWidget(copyAll_);resultsLayout->addLayout(copyButtons);
+        auto *copyButtons=new QHBoxLayout;copy_=new QPushButton("Copy");copy_->setObjectName("checksumCopy");copy_->setToolTip("Copy the selected result");copyAll_=new QPushButton("Copy all");copyAll_->setObjectName("checksumCopyAll");for(auto *b:{copy_,copyAll_})b->setProperty("compact",true);copyButtons->addStretch();copyButtons->addWidget(copy_);copyButtons->addWidget(copyAll_);resultsLayout->addLayout(copyButtons);
         status_=new QLabel("Choose an algorithm and click Calculate.");status_->setObjectName("checksumStatus");status_->setWordWrap(true);resultsLayout->addWidget(status_);
         connect(calculate_,&QPushButton::clicked,this,[this]{startCalculation();});connect(cancel_,&QPushButton::clicked,view_,&HexView::cancelChecksum);
         connect(copy_,&QPushButton::clicked,this,[this]{int row=table_->currentRow();if(valid_&&row>=0)QApplication::clipboard()->setText(table_->item(row,1)->text());});
@@ -70,11 +71,13 @@ private:
     void clearResults(){valid_=false;table_->setRowCount(0);progress_->setValue(0);copy_->setEnabled(false);copyAll_->setEnabled(false);}
     void updateControls(){
         const bool busy=view_->checksumBusy();algorithm_->setEnabled(!busy);scope_->setEnabled(!busy);start_->setEnabled(!busy&&scope_->currentIndex()==2);length_->setEnabled(!busy&&scope_->currentIndex()==2);
+        // Start and Bytes only matter for a specified range, so the rows are shown only then.
+        if(auto *form=qobject_cast<QFormLayout *>(start_->parentWidget()->layout())){const bool range=scope_->currentIndex()==2;form->setRowVisible(start_,range);form->setRowVisible(length_,range);}
         calculate_->setEnabled(!busy&&view_->hasFile()&&!view_->saving()&&!view_->directEditing());cancel_->setEnabled(busy);copy_->setEnabled(valid_);copyAll_->setEnabled(valid_);
     }
     void updateVerification(){
         bool valid;const auto expected=expectedValue(valid);
-        expectedHelp_->setText(!valid?"Expected result must contain hexadecimal digits (spaces and a 0x prefix are allowed).":expected.isEmpty()?"Optional hexadecimal value to compare with the calculated result.":"Comparison uses the selected algorithm; it does not identify the file format.");
+        expectedHelp_->setText(!valid?"Use hexadecimal digits (spaces and 0x are allowed).":expected.isEmpty()?QString():"Compared with the selected algorithm; it does not identify the format.");expectedHelp_->setVisible(!expectedHelp_->text().isEmpty());
         for(int row=0;row<table_->rowCount();++row){const auto actual=table_->item(row,1)->text();table_->item(row,2)->setText(!valid?"Invalid expected result":expected.isEmpty()?"Not compared":expected.size()!=actual.size()?"Different length":expected==actual?"Match":"Mismatch");}
     }
     void startCalculation(){

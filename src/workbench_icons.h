@@ -20,7 +20,8 @@ public:
         const auto palette=qApp->palette();
         QColor color=mode==QIcon::Disabled?palette.color(QPalette::Disabled,QPalette::ButtonText):palette.color(QPalette::ButtonText);
         if(mode==QIcon::Selected)color=palette.color(QPalette::HighlightedText);
-        if(fixed_.isValid()&&mode!=QIcon::Disabled)color=fixed_;
+        // Primary buttons ask for white; follow the theme's readable colour on the accent instead (dark on olive).
+        if(fixed_.isValid()&&mode!=QIcon::Disabled){color=fixed_;if(fixed_==QColor(Qt::white)){QColor on(qApp->property("workbenchOnPrimary").toString());if(on.isValid())color=on;}}
         painter->save();painter->setRenderHint(QPainter::Antialiasing);
         const qreal scale=qMin(rect.width(),rect.height())/24.0;
         painter->translate(rect.x()+(rect.width()-24*scale)/2,rect.y()+(rect.height()-24*scale)/2);painter->scale(scale,scale);
@@ -60,6 +61,7 @@ private:
         else if(n=="move"){lines({{12,3,12,21},{3,12,21,12}});poly({{9,6},{12,3},{15,6}});poly({{9,18},{12,21},{15,18}});poly({{6,9},{3,12},{6,15}});poly({{18,9},{21,12},{18,15}});}
         else if(n=="rotate"){p->drawArc(QRectF(4,4,16,16),60*16,300*16);poly({{19,3.5},{19,8.5},{14,8.5}});}
         else if(n=="scale"){p->drawRect(QRectF(4,13,7,7));poly({{14,4},{20,4},{20,10}});lines({{20,4,12,12}});}
+        else if(n=="lens"){p->drawPolygon(QPolygonF({{3,12},{20,5},{20,19}}));p->drawArc(QRectF(-4,4,16,16),-35*16,70*16);}
         else if(n=="eye"){QPainterPath path;path.moveTo(2,12);path.quadTo(12,2,22,12);path.quadTo(12,22,2,12);p->drawPath(path);p->drawEllipse(QPointF(12,12),3,3);}
         else if(n=="layers"){p->drawPolygon(QPolygonF({{12,4},{21,9},{12,14},{3,9}}));poly({{3,13},{12,18},{21,13}});}
         else if(n=="gear"){p->drawEllipse(QPointF(12,12),3,3);for(int k=0;k<8;++k){const qreal a=qDegreesToRadians(45.0*k);p->drawLine(QPointF(12+5.5*qCos(a),12+5.5*qSin(a)),QPointF(12+8.5*qCos(a),12+8.5*qSin(a)));}p->drawEllipse(QPointF(12,12),5.5,5.5);}
@@ -92,7 +94,7 @@ public:
         {"renderMesh","play"},{"scriptRun","play"},{"scriptStop","stop"},{"scriptOpen","folder"},{"scriptSave","save"},{"scriptClear","trash"},
         {"aiSend","send"},{"applyMeshDelta","check"},{"removeMesh","trash"},{"magicScan","search"},{"entropyAnalyze","chart"},
         {"viewportSelect","cursor"},{"viewportMove","move"},{"viewportRotate","rotate"},{"viewportScale","scale"},
-        {"viewportViewMenu","eye"},{"viewportDisplayMenu","layers"},{"viewportLightingMenu","sun"},{"viewportFrameMenu","frame"},{"viewportSelectMenu","select"}
+        {"viewportViewMenu","eye"},{"viewportCameraButton","lens"},{"viewportDisplayMenu","layers"},{"viewportLightingMenu","sun"},{"viewportFrameMenu","frame"},{"viewportSelectMenu","select"}
     };return map;}
 protected:
     bool eventFilter(QObject *object,QEvent *event)override{

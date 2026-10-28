@@ -3,6 +3,7 @@
 #include "magic_panel.h"
 #include "hex_view.h"
 #include "format_panel.h"
+#include "adaptive_layout.h"
 #include <QTreeWidget>
 #include <QTableWidget>
 #include <QHeaderView>
@@ -23,31 +24,35 @@
 #include <algorithm>
 
 MagicPanel::MagicPanel(HexView *view,FormatPanel *format,QWidget *parent):QWidget(parent),view_(view),format_(format){
-    setObjectName("magicPanel");auto *layout=new QVBoxLayout(this);
-    auto *intro=new QLabel("Supported signatures: a match is a clue; it does not validate the format or determine where it ends. Choose colors in Formatting Rules.");intro->setWordWrap(true);layout->addWidget(intro);
-    auto *body=new QHBoxLayout;layout->addLayout(body);
-    auto *left=new QVBoxLayout;body->addLayout(left,1);
-    libraryList_=new QTreeWidget;libraryList_->setObjectName("magicLibrary");libraryList_->setHeaderLabels({"Active signature","Bytes","Offset"});libraryList_->setRootIsDecorated(false);left->addWidget(libraryList_);
-    auto *buttons=new QHBoxLayout;left->addLayout(buttons);
-    auto button=[&](QString label,auto callback){auto *b=new QPushButton(label);buttons->addWidget(b);connect(b,&QPushButton::clicked,this,callback);return b;};
-    button("+",[this]{edit(true);});button("−",[this]{int row=libraryList_->indexOfTopLevelItem(libraryList_->currentItem());if(row<0)return;invalidate();library_.removeAt(row);dirty_=true;rebuild();});button("Edit",[this]{edit(false);});
-    button("Import",[this]{
+    // Library (what to look for) and Matches (what was found). Side by side when wide; stacked and foldable when narrow.
+    setObjectName("magicPanel");auto *layout=new QVBoxLayout(this);layout->setContentsMargins(8,8,8,8);layout->setSpacing(6);
+    auto *body=new QHBoxLayout;body->setSpacing(10);layout->addLayout(body,1);
+    auto *libraryBox=new QWidget;auto *left=new QVBoxLayout(libraryBox);left->setContentsMargins(0,0,0,0);left->setSpacing(4);
+    libraryList_=new QTreeWidget;libraryList_->setObjectName("magicLibrary");libraryList_->setHeaderLabels({"Signature","Bytes","Offset"});libraryList_->setRootIsDecorated(false);
+    libraryList_->setToolTip("A match is a clue: it does not validate the format or where it ends. Outline colors come from Structure. Double-click a signature to edit it.");left->addWidget(libraryList_,1);
+    auto *buttons=new QHBoxLayout;buttons->setSpacing(2);left->addLayout(buttons);
+    auto button=[&](QString label,QString tooltip,auto callback){auto *b=AdaptiveLayout::tool(buttons,label,tooltip);connect(b,&QToolButton::clicked,this,callback);return b;};
+    button("+","Add signature",[this]{edit(true);});button(QString(QChar(0x2212)),"Remove signature",[this]{int row=libraryList_->indexOfTopLevelItem(libraryList_->currentItem());if(row<0)return;invalidate();library_.removeAt(row);dirty_=true;rebuild();});button(QString(QChar(0x270E)),"Edit signature",[this]{edit(false);});
+    buttons->addStretch();
+    button("Import","Import signature library",[this]{
         if(!confirmClose())return;auto path=WorkbenchFiles::getOpenFileName(this,"Import Signature Library",{},"JSON library (*.json)");if(path.isEmpty())return;
         QFile file(path);QString error;QList<MagicSignature> loaded;
         if(!file.open(QIODevice::ReadOnly)||!decodeMagicLibrary(file.read(1024*1024+1),loaded,error)){QMessageBox::warning(this,"Import",error.isEmpty()?file.errorString():error);return;}
         invalidate();library_=std::move(loaded);dirty_=false;rebuild();
-    });button("Export",[this]{exportLibrary();});
+    });button("Export","Export signature library",[this]{exportLibrary();});
     connect(libraryList_,&QTreeWidget::itemDoubleClicked,this,[this](auto *,int){edit(false);});
     connect(libraryList_,&QTreeWidget::itemChanged,this,[this](auto *item,int column){if(column!=0)return;int row=libraryList_->indexOfTopLevelItem(item);if(row<0)return;invalidate();library_[row].enabled=item->checkState(0)==Qt::Checked;dirty_=true;});
-    auto *right=new QVBoxLayout;body->addLayout(right,2);
-    auto *controls=new QHBoxLayout;right->addLayout(controls);scope_=new QComboBox;scope_->addItems({"Entire file","Start of file","Start of selection","Starts of marked regions"});controls->addWidget(scope_);
-    start_=new QPushButton("Analyze");start_->setObjectName("magicScan");controls->addWidget(start_);connect(start_,&QPushButton::clicked,this,[this]{scan();});
-    auto *cancel=new QPushButton("Cancel");controls->addWidget(cancel);connect(cancel,&QPushButton::clicked,view_,&HexView::cancelMagicScan);
-    results_=new QTableWidget(0,4);results_->setObjectName("magicResults");addEmptyState(results_,"search","No matches to show","Analyze searches the scope for the active signatures.");results_->setHorizontalHeaderLabels({"Matching signature","Offset ↗","Candidate start","Bytes"});results_->setEditTriggers(QAbstractItemView::NoEditTriggers);results_->setSelectionBehavior(QAbstractItemView::SelectRows);results_->setSelectionMode(QAbstractItemView::ExtendedSelection);results_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);results_->horizontalHeader()->setStretchLastSection(true);right->addWidget(results_);
+    body->addWidget(AdaptiveLayout::section("Signatures",libraryBox,"magicLibrarySection"),2);
+    auto *matchesBox=new QWidget;auto *right=new QVBoxLayout(matchesBox);right->setContentsMargins(0,0,0,0);right->setSpacing(4);
+    auto *controls=new QHBoxLayout;controls->setSpacing(4);right->addLayout(controls);scope_=new QComboBox;scope_->addItems({"Entire file","Start of file","Start of selection","Starts of marked regions"});scope_->setToolTip("Where to look for the active signatures");controls->addWidget(scope_,1);
+    start_=new QPushButton("Analyze");start_->setObjectName("magicScan");start_->setProperty("compact",true);controls->addWidget(start_);connect(start_,&QPushButton::clicked,this,[this]{scan();});
+    auto *cancel=new QPushButton("Cancel");cancel->setProperty("compact",true);controls->addWidget(cancel);connect(cancel,&QPushButton::clicked,view_,&HexView::cancelMagicScan);
+    results_=new QTableWidget(0,4);results_->setObjectName("magicResults");addEmptyState(results_,"search","No matches yet","Analyze looks for the active signatures.");results_->setHorizontalHeaderLabels({"Signature","Offset ↗","Start","Bytes"});results_->setEditTriggers(QAbstractItemView::NoEditTriggers);results_->setSelectionBehavior(QAbstractItemView::SelectRows);results_->setSelectionMode(QAbstractItemView::ExtendedSelection);results_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);results_->horizontalHeader()->setStretchLastSection(true);results_->verticalHeader()->hide();right->addWidget(results_,1);
     auto navigate=[this](QTableWidgetItem *item){if(!item||item->row()>=matches_.size())return;auto r=matches_[item->row()];view_->selectMatch(r.offset,r.length);};
     connect(results_,&QTableWidget::itemClicked,this,navigate);connect(results_,&QTableWidget::itemActivated,this,navigate);
-    auto *markButton=new QPushButton("Outline selected rows with the current style");right->addWidget(markButton);connect(markButton,&QPushButton::clicked,this,[this]{mark();});
-    status_=new QLabel("Editable library · PNG, DDS and gzip are included as a starting point.");status_->setWordWrap(true);layout->addWidget(status_);
+    auto *markButton=new QPushButton("Outline selected rows");markButton->setProperty("compact",true);markButton->setToolTip("Outline the selected rows with the current Structure style");markButton->setProperty("keepTooltip",true);right->addWidget(markButton);connect(markButton,&QPushButton::clicked,this,[this]{mark();});
+    body->addWidget(AdaptiveLayout::section("Matches",matchesBox,"magicMatchesSection"),3);AdaptiveLayout::flip(this,body);
+    status_=new QLabel("PNG, DDS and gzip are included as a starting point.");status_->setObjectName("inspectorHint");status_->setWordWrap(true);layout->addWidget(status_);
     connect(view_,&HexView::documentChanged,this,[this]{invalidate();});
     connect(view_,&HexView::formatRulesChanged,this,[this]{if(view_->magicBusy()&&anchored_)invalidate();});
     connect(view_,&HexView::magicScanFinished,this,[this](const ReadResult &r){
@@ -57,7 +62,7 @@ MagicPanel::MagicPanel(HexView *view,FormatPanel *format,QWidget *parent):QWidge
             QStringList cells{s.name,"0x"+QString::number(range.offset,16).toUpper(),"0x"+QString::number(range.offset-s.relativeOffset,16).toUpper(),QString::number(range.length)};
             for(int c=0;c<4;++c){auto *item=new QTableWidgetItem(cells[c]);item->setToolTip(s.notes);if(c==1){auto font=item->font();font.setUnderline(true);item->setFont(font);item->setForeground(QColor(45,125,220));}results_->setItem(i,c,item);}
         }
-        results_->setUpdatesEnabled(true);status_->setText(QString("%1 matches%2. Click a row to go to its bytes; select multiple rows to outline them.").arg(matches_.size()).arg(r.truncated?" (10,000 limit reached; partial analysis)":""));
+        results_->setUpdatesEnabled(true);status_->setText(QString("%1 matches%2. Click a row to go to its bytes.").arg(matches_.size()).arg(r.truncated?" (10,000 limit reached; partial analysis)":""));
     });
     auto *timer=new QTimer(this);timer->setInterval(200);connect(timer,&QTimer::timeout,this,[this]{start_->setEnabled(view_->hasFile()&&!view_->saving()&&!view_->magicBusy());if(view_->magicBusy()&&!stale_)status_->setText(anchored_?QString("Analyzing %1 / %2 regions…").arg(view_->magicProgress()).arg(total_):QString("Analyzing %1 / %2 MiB…").arg(double(view_->magicProgress())/1048576,0,'f',1).arg(double(total_)/1048576,0,'f',1));});timer->start();rebuild();
 }

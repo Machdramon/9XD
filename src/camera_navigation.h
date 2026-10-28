@@ -21,7 +21,7 @@ inline bool handles(int key){for(auto &value:keys)if(value.load()==key)return tr
 inline void step(QVector3D &target,float &yaw,float pitch,float distance,const QSet<int> &held,double seconds,bool fast,bool orthographic=false){
     seconds=qBound(0.,seconds,.1);auto down=[&](int i){return held.contains(keys[i].load())?1.f:0.f;};float angle=qDegreesToRadians(yaw),elevation=qDegreesToRadians(pitch);QVector3D outward(std::cos(elevation)*std::sin(angle),std::sin(elevation),std::cos(elevation)*std::cos(angle));auto eye=target+outward*distance;
     float turn=orthographic?0:down(4)-down(5);yaw+=turn*float(seconds)*75.f;angle=qDegreesToRadians(yaw);QVector3D forward(-std::cos(elevation)*std::sin(angle),-std::sin(elevation),-std::cos(elevation)*std::cos(angle));if(turn)target=eye+forward*distance;
-    QVector3D right(std::cos(angle),0,-std::sin(angle));if(orthographic)forward=QVector3D::crossProduct(right,forward).normalized();auto movement=forward*(down(0)-down(1))+right*(down(3)-down(2))+QVector3D(0,down(6)-down(7),0);if(movement.lengthSquared()>0)target+=movement.normalized()*float(seconds*speed.load()*(fast?4:1))*qMax(.05f,distance*.5f);
+    QVector3D right(std::cos(angle),0,-std::sin(angle));if(orthographic)forward=QVector3D::crossProduct(right,forward).normalized();auto movement=forward*(down(0)-down(1))+right*(down(3)-down(2))+QVector3D(0,down(6)-down(7),0);if(movement.lengthSquared()>0)target+=movement.normalized()*float(seconds*speed.load()*(fast?4:1))*qMax(1e-7f,distance*.5f);
 }
 class Page:public QWidget {
 public:
