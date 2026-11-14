@@ -1,19 +1,19 @@
 # 9XD coordination plan
 
-Updated: 2026-11-14 (Codex: owner authorized push/stable0.4.1; release packaging and checks in progress).
+Updated: 2026-11-14 (Codex: stable0.4.1 published and verified on GitHub).
 
 
 
 
 
 
-## Release 0.4.1 - 2026-11-14 (preparing)
+## Release 0.4.1 - 2026-11-14 (published)
 
 - [x] Owner authorized pushing the update and publishing a stable release. Next patch version0.4.1 selected after current stable0.4.0; includes existing uncommitted video/YouTube reconstruction changes and RayCity work, preserving other contributions.
 - [x] Version/resources, README and docs/releases/v0.4.1.md updated. Notes distinguish texture availability from visual correctness, pending RayCity car importer/shaders and optional external reconstruction tools. No raw game/video/capture assets or separate splash art to publish.
 - [x] Windows Release configure/package passed; file/product version0.4.1. Reader45/0/no skips; latest window141/0/87 optional skips with actual RayCity client banks, including U-preserved/V-inverted UV assertions and unsupported v3 row (build/windows-local/release041-reader-tests.txt and raycity-materials-full.txt). ZIP CRC/GUI subsystem/source-EXE equality/runtime/docs/assets checks passed; bundled Python/deployment checks passed. Optional Qt translations warning is nonfatal; app UI is English.
 - [x] Verified ZIP dist/20261114-213530-710481/9XD-0.4.1-windows-x64.zip:74,701,956 bytes, SHA256 cb57d7d2d38d0f265f9f5c8aee66bf7824ede3666fb9bd1afccb00a4241a12c6. No standalone splash/research/game binaries included. Separate clean-machine and final UV appearance checks remain pending.
-- [ ] Commit/push/tag and stable publication pending. Next owner: Codex. Git HTTPS certificate issue resolved per command with Windows certificate backend (schannel); verification remains enabled.
+- [x] Commit90c0c97f087b78b68ba7e5a8c9499d8abda81f7a and annotated v0.4.1 tag pushed to origin. Stable latest published (draft=false, prerelease=false): https://github.com/Machdramon/9XD/releases/tag/v0.4.1. GitHub confirms3 assets (ZIP, SHA256, public logo), matching archive size/digest above. Publication receipt synchronized in this follow-up documentation commit. Git TLS uses per-command schannel with verification enabled. Next owner: user tests distributed ZIP/UV orientation; Codex/Claude continue RayCity car/shader work.
 
 ## RayCity vertical UV orientation / unsupported vehicle status - 2026-11-14
 
