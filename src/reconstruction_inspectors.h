@@ -1,6 +1,14 @@
 #pragma once
 #include "workbench_icons.h"
 #include "empty_state.h"
+#include "youtube_video_source.h"
+#include "reconstruction_job.h"
+#include <QThread>
+#include <QtConcurrent>
+#include <QCheckBox>
+#include <QTemporaryDir>
+#include <QSettings>
+#include <memory>
 #include <QWidget>
 #include <QFrame>
 #include <QFormLayout>
@@ -62,6 +70,11 @@
 namespace Reconstruction {
 inline QString toolPath(const QString &name){
     QDir root(QCoreApplication::applicationDirPath()+"/../reconstruction-tools");
+    if(name=="yt-dlp.exe"||name=="deno.exe"){
+        QFile receipt(root.filePath("youtube/receipt.json"));if(receipt.open(QIODevice::ReadOnly))for(auto value:QJsonDocument::fromJson(receipt.readAll()).object()["tools"].toArray()){
+            auto path=value.toObject()["executable"].toString();if(QFileInfo(path).fileName()==name&&QFileInfo(path).isExecutable())return path;
+        }
+    }
     QDirIterator it(root.absolutePath(),{name},QDir::Files,QDirIterator::Subdirectories);
     return it.hasNext()?it.next():QString();
 }
@@ -114,16 +127,27 @@ public:
         // Pipeline: only frame extraction exists today. Later stages are shown, never enabled.
         auto *pipeline=new QWidget;pipeline->setObjectName("reconstructionPipeline");pipeline->setAttribute(Qt::WA_StyledBackground);
         auto *steps=new QHBoxLayout(pipeline);steps->setContentsMargins(6,5,6,5);steps->setSpacing(2);
-        const QStringList names{"1  Frames","2  Sparse points","3  Import to 3D"};
+        const QStringList names{"1  Frames","2  Sparse points","3  3D surface"};
         for(int i=0;i<3;++i){if(i){auto *arrow=new QLabel(QString::fromUtf8("›"));arrow->setObjectName("pipelineArrow");steps->addWidget(arrow);}
-            auto *step=new QLabel(names[i]);step->setObjectName("pipelineStep");step->setProperty("state",i==0?"current":"unavailable");
-            step->setToolTip(i==0?"Extract still frames from the video.":i==1?"Sparse reconstruction with COLMAP: not available yet.":"Import points and cameras into the 3D view: not available yet.");steps_<<step;steps->addWidget(step);}
+            auto *step=new QLabel(names[i]);step->setObjectName("pipelineStep");step->setProperty("state",i==0?"current":"pending");
+            step->setToolTip(i==0?"Extract still frames from the video.":i==1?"Recover cameras and sparse points with COLMAP.":"Reconstruct a coarse or dense surface and import it into 3D.");steps_<<step;steps->addWidget(step);}
         steps->addStretch();layout->addWidget(pipeline);
-        layout->addWidget(hint("This tool extracts frames for reconstruction. Sparse reconstruction and import into 3D are not available yet, so no 3D model is produced."));
+        layout->addWidget(hint("Extract frames, solve cameras and points, then reconstruct a surface. Static scenes, overlapping frames and camera translation work best; moving objects, cuts and pure rotation can prevent reconstruction."));
 
         QFrame *source,*sampling,*output;
         auto *sourceBody=card(layout,"Source",&source);auto *sourceForm=formIn(sourceBody);
+        sourceKind_=new QComboBox;sourceKind_->setObjectName("reconstructionSourceKind");sourceKind_->addItems({"Local file","YouTube URL"});sourceForm->addRow("Source",sourceKind_);
         video_=pathField(sourceForm,"Video","reconstructionVideo",false,"Video files (*.mp4 *.mov *.mkv *.avi *.webm *.m4v *.mts *.wmv);;All files (*)");
+        online_=new QWidget;auto *onlineLayout=new QVBoxLayout(online_);onlineLayout->setContentsMargins(0,0,0,0);auto *onlineForm=formIn(onlineLayout);
+        auto *urlRow=new QWidget;auto *urlLayout=new QHBoxLayout(urlRow);urlLayout->setContentsMargins(0,0,0,0);
+        url_=new QLineEdit;url_->setObjectName("reconstructionYoutubeUrl");url_->setPlaceholderText("https://www.youtube.com/watch?v=…");url_->setAccessibleName("YouTube video link");
+        inspect_=new QPushButton("Inspect Link");inspect_->setObjectName("reconstructionInspectLink");urlLayout->addWidget(url_,1);urlLayout->addWidget(inspect_);onlineForm->addRow("Link",urlRow);
+        resolution_=new QComboBox;resolution_->setObjectName("reconstructionDownloadResolution");for(int h:{480,720,1080,1440,2160})resolution_->addItem(QString("Up to %1p").arg(h),h);resolution_->setCurrentIndex(2);onlineForm->addRow("Resolution",resolution_);
+        budget_=new QSpinBox;budget_->setObjectName("reconstructionDownloadMiB");budget_->setRange(16,16384);budget_->setValue(1024);budget_->setSuffix(" MiB");onlineForm->addRow("Download limit",budget_);
+        keep_=new QCheckBox("Keep the downloaded video with this job");keep_->setObjectName("reconstructionKeepVideo");onlineLayout->addWidget(keep_);
+        onlineLayout->addWidget(hint("Temporary video data is removed after extraction or cancellation. Downloads a single video stream before trimming; audio is not needed. The limit is checked while downloading, so a small overshoot is possible."));
+        sourceBody->addWidget(online_);online_->hide();
+        connect(sourceKind_,&QComboBox::currentIndexChanged,this,[this,sourceForm](int index){sourceForm->setRowVisible(video_->parentWidget(),index==0);online_->setVisible(index==1);duration_=-1;metadata_={};info_->setText(index?"Inspect the link to read its title and duration.":"Choose a video to see its length and resolution.");updateEstimate();probeDelay_->start();start_->setText(index?"Import and Extract Frames":"Extract Frames");});
         info_=hint("Choose a video to see its length and resolution.","reconstructionVideoInfo");sourceBody->addWidget(info_);
 
         auto *samplingBody=card(layout,"Sampling",&sampling);auto *grid=new QGridLayout;grid->setHorizontalSpacing(10);grid->setVerticalSpacing(6);samplingBody->addLayout(grid);
@@ -132,6 +156,9 @@ public:
         size_=new QSpinBox;size_->setObjectName("reconstructionMaxSize");size_->setRange(256,4096);size_->setSingleStep(64);size_->setValue(1600);size_->setSuffix(" px");size_->setAccessibleName("Longest side");
         grid->addWidget(new QLabel("Rate"),0,0);grid->addWidget(fps_,0,1);grid->addWidget(new QLabel("Frame limit"),0,2);grid->addWidget(count_,0,3);
         grid->addWidget(new QLabel("Longest side"),1,0);grid->addWidget(size_,1,1);grid->setColumnStretch(1,1);grid->setColumnStretch(3,1);
+        auto *range=formIn(samplingBody);clipStart_=new QDoubleSpinBox;clipStart_->setObjectName("reconstructionClipStart");clipStart_->setRange(0,604800);clipStart_->setDecimals(2);clipStart_->setSuffix(" s");
+        clipEnd_=new QDoubleSpinBox;clipEnd_->setObjectName("reconstructionClipEnd");clipEnd_->setRange(0,604800);clipEnd_->setDecimals(2);clipEnd_->setSpecialValueText("End of video");clipEnd_->setSuffix(" s");range->addRow("Start",clipStart_);range->addRow("End",clipEnd_);
+        connect(clipStart_,&QDoubleSpinBox::valueChanged,this,[this]{updateEstimate();});connect(clipEnd_,&QDoubleSpinBox::valueChanged,this,[this]{updateEstimate();});
         estimate_=hint("","reconstructionEstimate");samplingBody->addWidget(estimate_);
 
         auto *outputBody=card(layout,"Output",&output);auto *outputForm=formIn(outputBody);
@@ -141,9 +168,27 @@ public:
         // Tools: FFmpeg location until shared Settings paths exist.
         auto *toolsBody=new QWidget;auto *toolsLayout=new QVBoxLayout(toolsBody);toolsLayout->setContentsMargins(0,0,0,0);auto *toolsForm=formIn(toolsLayout);
         ffmpeg_=pathField(toolsForm,"FFmpeg","reconstructionFfmpeg",false,"FFmpeg (ffmpeg ffmpeg.exe);;All files (*)");
+        downloader_=pathField(toolsForm,"yt-dlp","reconstructionYtdlp",false,"yt-dlp (yt-dlp yt-dlp.exe);;All files (*)");
+        deno_=pathField(toolsForm,"Deno (YouTube)","reconstructionDeno",false,"Deno (deno deno.exe);;All files (*)");
+        toolsLayout->addWidget(hint("YouTube uses an external yt-dlp executable and Deno. Update these tools separately when YouTube changes. No browser cookies or account credentials are imported."));
+        colmap_=pathField(toolsForm,"COLMAP 4.2+","reconstructionColmap",false,"COLMAP (colmap colmap.exe);;All files (*)");
         auto *toolsRow=new QHBoxLayout;toolsToggle_=disclosure("Tools",toolsBody);toolState_=hint("","reconstructionToolState");toolState_->setWordWrap(false);
         toolsRow->addWidget(toolsToggle_);toolsRow->addWidget(toolState_,1);layout->addLayout(toolsRow);layout->addWidget(toolsBody);
-        inputs_={source,sampling,output,toolsBody};
+        QFrame *reconstruction;auto *reconBody=card(layout,"Reconstruction",&reconstruction);auto *reconForm=formIn(reconBody);
+        matchMode_=new QComboBox;matchMode_->setObjectName("reconstructionMatching");matchMode_->addItems({"Sequential (video)","Exhaustive (short orbit)"});reconForm->addRow("Matching",matchMode_);
+        sharedCamera_=new QCheckBox("Same lens / shared intrinsics");sharedCamera_->setObjectName("reconstructionSharedCamera");sharedCamera_->setChecked(true);reconForm->addRow(sharedCamera_);
+        threads_=new QSpinBox;threads_->setObjectName("reconstructionThreads");threads_->setRange(1,64);threads_->setValue(qBound(1,QThread::idealThreadCount()/2,8));reconForm->addRow("CPU threads",threads_);
+        surfaceMode_=new QComboBox;surfaceMode_->setObjectName("reconstructionSurfaceMode");surfaceMode_->addItems({"Dense surface (CUDA)","Coarse surface (sparse / CPU)"});reconForm->addRow("Surface",surfaceMode_);
+        denseSize_=new QSpinBox;denseSize_->setObjectName("reconstructionDenseSize");denseSize_->setRange(256,2048);denseSize_->setSingleStep(128);denseSize_->setValue(1024);denseSize_->setSuffix(" px");reconForm->addRow("Dense image size",denseSize_);
+        cache_=new QDoubleSpinBox;cache_->setObjectName("reconstructionCacheGiB");cache_->setRange(.25,16);cache_->setSingleStep(.25);cache_->setValue(2);cache_->setSuffix(" GiB");reconForm->addRow("Stereo cache",cache_);
+        depth_=new QSpinBox;depth_->setObjectName("reconstructionMeshingDepth");depth_->setRange(6,11);depth_->setValue(8);reconForm->addRow("Meshing depth",depth_);
+        trim_=new QDoubleSpinBox;trim_->setObjectName("reconstructionSurfaceTrim");trim_->setRange(0,10);trim_->setValue(4);trim_->setSingleStep(.5);reconForm->addRow("Surface trim",trim_);
+        importLimit_=new QSpinBox;importLimit_->setObjectName("reconstructionImportLimit");importLimit_->setRange(1000,4000000);importLimit_->setSingleStep(100000);importLimit_->setValue(2000000);reconForm->addRow("Max imported vertices",importLimit_);
+        reconBody->addWidget(hint("Sparse solving uses CPU. Dense depth needs CUDA-enabled COLMAP and an NVIDIA driver; coarse meshing uses sparse points and may have holes. Cache is a tool setting, not a hard process-memory limit. Scale is arbitrary until calibrated. Surface trim removes weakly-supported faces; too high can leave an empty mesh. Surface preview has no texture atlas."));
+        auto *reconActions=new QHBoxLayout;sparseButton_=new QPushButton("Build Sparse Points");sparseButton_->setObjectName("reconstructionBuildSparse");surfaceButton_=new QPushButton("Build 3D Surface");surfaceButton_->setObjectName("reconstructionBuildSurface");loadJob_=new QPushButton("Load Job…");loadJob_->setObjectName("reconstructionLoadJob");reconActions->addWidget(loadJob_);reconActions->addWidget(sparseButton_);reconActions->addWidget(surfaceButton_);reconBody->addLayout(reconActions);
+        auto *importActions=new QHBoxLayout;importPoints_=new QPushButton("Show Points in 3D");importPoints_->setObjectName("reconstructionImportPoints");importCameras_=new QPushButton("Show Cameras in 3D");importCameras_->setObjectName("reconstructionImportCameras");importSurface_=new QPushButton("Show Surface in 3D");importSurface_->setObjectName("reconstructionImportSurface");for(auto *b:{importPoints_,importCameras_,importSurface_})importActions->addWidget(b);reconBody->addLayout(importActions);
+        reconstructionInfo_=hint("Extract at least 3 frames, or load an existing job.","reconstructionSummary");reconBody->addWidget(reconstructionInfo_);
+        inputs_={source,sampling,output,toolsBody,reconstruction};
 
         auto *actions=new QHBoxLayout;actions->setSpacing(6);
         start_=new QPushButton("Extract Frames");start_->setObjectName("reconstructionExtract");start_->setProperty("primary",true);start_->setIcon(workbenchIcon("play",Qt::white));
@@ -162,7 +207,28 @@ public:
         addEmptyState(log_,"code","No output yet","FFmpeg messages appear here during extraction.");
         logToggle_=disclosure("Log",log_);layout->addWidget(logToggle_,0,Qt::AlignLeft);layout->addWidget(log_);layout->addStretch();
 
-        process_=new QProcess(this);process_->setProcessChannelMode(QProcess::MergedChannels);probe_=new QProcess(this);
+        process_=new QProcess(this);process_->setProcessChannelMode(QProcess::MergedChannels);probe_=new QProcess(this);youtube_=new YoutubeSource(this);
+        youtube_->log=[this](const QString &s){log_->appendPlainText(s);};
+        youtube_->progress=[this](qint64 done,qint64 total){if(total>0){progress_->setRange(0,100);progress_->setValue(int(qBound(0.,100.*double(done)/total,100.)));progress_->setFormat("Downloading %p%");}else{progress_->setRange(0,0);progress_->setFormat("Downloading…");}};
+        youtube_->metadataReady=[this](const QJsonObject &m){metadata_=m;duration_=m["duration"].toDouble();info_->setText(QString("%1 · %2 · %3 × %4").arg(m["title"].toString()).arg(formatDuration(duration_)).arg(m["width"].toInt()).arg(m["height"].toInt()));updateEstimate();
+            if(pendingImport_){if(!validClip()){endSourceJob("Invalid clip range. Start must be before the video end; End must be after Start and within the video.");return;}beginDownload();}
+            else{setBusy(false);setState(status_,"ready","Link ready. Choose the fragment and import when ready.");progress_->hide();}};
+        youtube_->inspectionFailed=[this](const QString &error){if(pendingImport_)endSourceJob(error);else{setBusy(false);progress_->hide();setState(status_,canceled_?"canceled":"failed",error);}};
+        youtube_->downloaded=[this](const QString &file,const QString &error){if(file.isEmpty()){endSourceJob(error);return;}activeVideo_=file;manifest_["downloadBytes"]=QString::number(QFileInfo(file).size());manifest_["downloadedVideo"]=keep_->isChecked()?file:QString();manifest_["state"]="extracting";extract();};
+        recon_=new ReconstructionJob(this);importWatcher_=new QFutureWatcher<PlyResult>(this);
+        recon_->log=[this](const QString &line){log_->appendPlainText(line);};recon_->progress=[this](const QString &stage,int done,int total){progress_->setRange(0,total);progress_->setValue(done);progress_->setFormat("%v / %m stages");setState(status_,"running",stage+"…");};
+        recon_->finished=[this](const ReconstructionOutput &result){
+            if(result.error.isEmpty()&&!result.canceled){if(result.surface.isEmpty()){sparseResult_=result;surfaceResult_={};sparseMesh_=result.geometry;surfaceMesh_.reset();setStep(1,"done");setStep(2,"pending");}else{surfaceResult_=result;surfaceMesh_=result.geometry;setStep(2,"done");}
+                manifest_["reconstruction"]=resultJson();if(!writeJson(job_+"/job.json",manifest_))setState(status_,"failed","Reconstruction ready, but could not update job.json; results remain in the run folder.");else setState(status_,"done",result.surface.isEmpty()?"Sparse points and camera poses ready. Review them or build the surface.":"Surface ready. Use Show Surface in 3D to inspect and export it.");
+            }else{setState(status_,result.canceled?"canceled":"failed",result.error);logToggle_->setChecked(true);}
+            setBusy(false);progress_->hide();refreshReconstruction();};
+        connect(sparseButton_,&QPushButton::clicked,this,[this]{buildSparse();});connect(surfaceButton_,&QPushButton::clicked,this,[this]{buildSurface();});
+        connect(loadJob_,&QPushButton::clicked,this,[this]{auto path=QFileDialog::getOpenFileName(this,"Load video reconstruction job",output_->text(),"Reconstruction job (job.json)");if(!path.isEmpty())loadJob(path);});
+        connect(importPoints_,&QPushButton::clicked,this,[this]{importGeometry(false);});connect(importSurface_,&QPushButton::clicked,this,[this]{importGeometry(true);});
+        connect(importCameras_,&QPushButton::clicked,this,[this]{if(!importToScene)return;auto mesh=std::make_shared<MeshData>();mesh->hasUvs=false;for(auto v:sparseResult_.summary.cameras){auto c=v.toObject()["center"].toArray();if(c.size()!=3)continue;MeshVertex p{};for(int i=0;i<3;++i)p.position[i]=float(c[i].toDouble());mesh->vertices.append(p);}mesh->vertexOffsets.fill(-1,mesh->vertices.size());QString error;if(!importToScene(mesh,"SfM camera centers",sparseResult_.model+"/images.bin",error))attention(error);});
+        connect(importWatcher_,&QFutureWatcher<PlyResult>::finished,this,[this]{auto r=importWatcher_->result();importing_=false;setBusy(false);if(!r.error.isEmpty()){setState(status_,"failed",r.error);return;}if(importingSurface_)surfaceMesh_=r.mesh;else sparseMesh_=r.mesh;deliver(r.mesh,importingSurface_);});
+        connect(inspect_,&QPushButton::clicked,this,[this]{inspectLink(false);});
+        connect(url_,&QLineEdit::textChanged,this,[this]{metadata_={};duration_=-1;info_->setText("Inspect the link to read its title and duration.");updateEstimate();});
         poll_=new QTimer(this);poll_->setInterval(400);probeDelay_=new QTimer(this);probeDelay_->setSingleShot(true);probeDelay_->setInterval(300);
         connect(start_,&QPushButton::clicked,this,[this]{start();});connect(cancel_,&QPushButton::clicked,this,[this]{cancel();});
         connect(openFolder_,&QPushButton::clicked,this,[this]{if(!job_.isEmpty())QDesktopServices::openUrl(QUrl::fromLocalFile(job_));});
@@ -170,19 +236,30 @@ public:
         connect(process_,&QProcess::errorOccurred,this,[this](QProcess::ProcessError error){if(error==QProcess::FailedToStart)finish(false,process_->errorString());});
         connect(process_,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this](int code,QProcess::ExitStatus exit){finish(!canceled_&&code==0&&exit==QProcess::NormalExit,process_->errorString());});
         connect(poll_,&QTimer::timeout,this,[this]{progress_->setValue(qMin(progress_->maximum(),frameCount()));});
-        connect(video_,&QLineEdit::textChanged,probeDelay_,qOverload<>(&QTimer::start));connect(probeDelay_,&QTimer::timeout,this,[this]{probe();});
+        connect(video_,&QLineEdit::textChanged,this,[this]{duration_=-1;updateEstimate();probeDelay_->start();});connect(probeDelay_,&QTimer::timeout,this,[this]{probe();});
         connect(probe_,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this](int code,QProcess::ExitStatus exit){probed(code==0&&exit==QProcess::NormalExit);});
         connect(ffmpeg_,&QLineEdit::textChanged,this,[this]{updateTools();probeDelay_->start();});
         for(auto *spin:{static_cast<QAbstractSpinBox *>(fps_),static_cast<QAbstractSpinBox *>(count_),static_cast<QAbstractSpinBox *>(size_)})connect(spin,&QAbstractSpinBox::editingFinished,this,[this]{updateEstimate();});
         connect(fps_,&QDoubleSpinBox::valueChanged,this,[this]{updateEstimate();});connect(count_,&QSpinBox::valueChanged,this,[this]{updateEstimate();});connect(size_,&QSpinBox::valueChanged,this,[this]{updateEstimate();});
-        ffmpeg_->setText(QDir::toNativeSeparators(toolPath("ffmpeg.exe")));updateTools();updateEstimate();
+        QSettings settings;ffmpeg_->setText(settings.value("reconstruction/ffmpeg",QDir::toNativeSeparators(toolPath("ffmpeg.exe"))).toString());
+        downloader_->setText(settings.value("reconstruction/ytdlp",QDir::toNativeSeparators(toolPath("yt-dlp.exe"))).toString());deno_->setText(settings.value("reconstruction/deno",QDir::toNativeSeparators(toolPath("deno.exe"))).toString());colmap_->setText(settings.value("reconstruction/colmap",QDir::toNativeSeparators(preferredColmapPath())).toString());
+        for(auto pair:{qMakePair(ffmpeg_,QString("ffmpeg")),qMakePair(downloader_,QString("ytdlp")),qMakePair(deno_,QString("deno")),qMakePair(colmap_,QString("colmap"))})connect(pair.first,&QLineEdit::textChanged,this,[this,pair]{if(isVisible())QSettings().setValue("reconstruction/"+pair.second,pair.first->text());});
+        updateTools();updateEstimate();refreshReconstruction();
         setState(status_,"ready","Ready to extract frames.");
     }
-    ~VideoInspector()override{for(auto *p:{process_,probe_})if(p->state()!=QProcess::NotRunning){p->kill();p->waitForFinished(1000);}}
-    bool busy()const{return process_->state()!=QProcess::NotRunning;}
+    ~VideoInspector()override{importCanceled_=true;delete recon_;recon_=nullptr;importWatcher_->waitForFinished();for(auto *p:{process_,probe_})if(p->state()!=QProcess::NotRunning){p->kill();p->waitForFinished(1000);}}
+    bool busy()const{return process_->state()!=QProcess::NotRunning||youtube_->busy()||pendingImport_||(recon_&&recon_->busy())||importing_;}
     QString jobDirectory()const{return job_;}
-    bool confirmClose(){if(!busy())return true;QMessageBox::information(this,"Video reconstruction","Cancel the active extraction before closing this document.");return false;}
-    void cancel(){if(!busy())return;canceled_=true;setState(status_,"running","Canceling…");process_->kill();}
+    std::function<bool(std::shared_ptr<MeshData>,const QString &,const QString &,QString &)> importToScene;
+    bool loadJob(const QString &path){
+        if(busy())return false;QFile f(path);if(!f.open(QIODevice::ReadOnly)||f.size()>16*1024*1024){attention("Not a readable reconstruction job.");return false;}auto m=QJsonDocument::fromJson(f.readAll()).object();auto root=QFileInfo(path).absolutePath();if(m["schema"]!=1||QDir(root+"/images").entryList({"frame-*.png"},QDir::Files).size()<3){attention("Job needs at least 3 extracted frames.");return false;}
+        job_=root;manifest_=m;sparseResult_={};surfaceResult_={};sparseMesh_.reset();surfaceMesh_.reset();auto saved=m["reconstruction"].toObject();auto resolve=[&](const QString &s){auto p=QFileInfo(QDir(root).filePath(s)).canonicalFilePath();auto prefix=QFileInfo(root).canonicalFilePath()+"/";return !s.isEmpty()&&p.startsWith(prefix,Qt::CaseInsensitive)?p:QString();};
+        sparseResult_.run=resolve(saved["sparseRun"].toString());sparseResult_.model=resolve(saved["model"].toString());sparseResult_.cloud=resolve(saved["cloud"].toString());auto summary=saved["summary"].toObject();sparseResult_.summary.images=summary["registeredImages"].toInt();sparseResult_.summary.points=summary["points"].toInt();sparseResult_.summary.components=summary["components"].toInt();sparseResult_.summary.meanError=summary["meanReprojectionError"].toDouble();sparseResult_.summary.cameras=summary["cameras"].toArray();if(sparseResult_.summary.cameras.size()>10000)sparseResult_.summary.cameras={};
+        surfaceResult_=sparseResult_;surfaceResult_.run=resolve(saved["surfaceRun"].toString());surfaceResult_.surface=resolve(saved["surface"].toString());surfaceResult_.mode=saved["surfaceMode"].toString();if(sparseResult_.run.isEmpty()||sparseResult_.cloud.isEmpty()||sparseResult_.model.isEmpty())sparseResult_={};if(surfaceResult_.surface.isEmpty())surfaceResult_={};
+        results_->show();resultText_->setText(QString("%1 saved frames in %2").arg(frameCount()).arg(QDir::toNativeSeparators(job_)));++thumbRun_;thumbs_->clear();loadThumbnails();setStep(0,"done");setStep(1,sparseResult_.cloud.isEmpty()?"pending":"done");setStep(2,surfaceResult_.surface.isEmpty()?"pending":"done");refreshReconstruction();setState(status_,"ready","Saved job loaded. Continue reconstruction without downloading the source again.");return true;
+    }
+    bool confirmClose(){if(!busy())return true;QMessageBox::information(this,"Video reconstruction","Cancel the active video job before closing this document.");return false;}
+    void cancel(){if(!busy())return;canceled_=true;setState(status_,"running","Canceling…");if(youtube_->busy())youtube_->cancel();else if(recon_&&recon_->busy())recon_->cancel();else if(importing_)importCanceled_=true;else process_->kill();}
 private:
     int frameCount()const{return job_.isEmpty()?0:int(QDir(job_+"/images").entryList({"frame-*.png"},QDir::Files).size());}
     QString ffprobePath()const{auto dir=QFileInfo(ffmpeg_->text()).dir();for(auto name:{"ffprobe.exe","ffprobe"})if(QFileInfo(dir.filePath(name)).isExecutable())return dir.filePath(name);return {};}
@@ -190,24 +267,28 @@ private:
         const bool found=QFileInfo(ffmpeg_->text()).isExecutable();toolState_->setText(found?"FFmpeg ready":"FFmpeg not found. Set its path under Tools.");
         toolState_->setProperty("state",found?"done":"attention");repolish(toolState_);if(!found&&!toolsToggle_->isChecked())toolsToggle_->setChecked(true);
     }
-    int expectedFrames()const{if(duration_<=0)return count_->value();return qBound(0,int(std::floor(duration_*fps_->value()))+1,count_->value());}
+    double clipDuration()const{auto end=clipEnd_->value()>0?clipEnd_->value():duration_;return end>0?qMax(0.,end-clipStart_->value()):-1;}
+    bool validClip()const{return (clipEnd_->value()==0||clipEnd_->value()>clipStart_->value())&&(duration_<=0||(clipStart_->value()<duration_&&(clipEnd_->value()==0||clipEnd_->value()<=duration_+.05)));}
+    int expectedFrames()const{auto d=clipDuration();if(d<0)return count_->value();return int(qBound(0.,std::floor(d*fps_->value())+1,double(count_->value())));}
     void updateEstimate(){
         const auto side=QString("longest side ≤ %1 px").arg(size_->value());
-        if(duration_<=0){estimate_->setText(QString("Up to %1 frames · %2.").arg(count_->value()).arg(side));return;}
+        if(clipDuration()<0){estimate_->setText(QString("Up to %1 frames · %2.").arg(count_->value()).arg(side));return;}
         const int frames=expectedFrames();
-        estimate_->setText(frames<2?QString("Only %1 frame at %2 fps from %3. Raise the rate: extraction needs at least 2 frames.").arg(frames).arg(fps_->value()).arg(formatDuration(duration_))
-            :QString("About %1 frames from %2 at %3 fps%4 · %5.").arg(frames).arg(formatDuration(duration_)).arg(fps_->value()).arg(frames>=count_->value()?QString(", capped by the frame limit"):QString()).arg(side));
+        estimate_->setText(frames<2?QString("Only %1 frame at %2 fps from %3. Raise the rate: extraction needs at least 2 frames.").arg(frames).arg(fps_->value()).arg(formatDuration(qMax(0.,clipDuration())))
+            :QString("About %1 frames from %2 at %3 fps%4 · %5.").arg(frames).arg(formatDuration(qMax(0.,clipDuration()))).arg(fps_->value()).arg(frames>=count_->value()?QString(", capped by the frame limit"):QString()).arg(side));
     }
     void probe(){
+        if(sourceKind_->currentIndex()!=0||busy())return;
         if(probe_->state()!=QProcess::NotRunning){probe_->kill();probe_->waitForFinished(500);}
         duration_=-1;updateEstimate();const QFileInfo video(video_->text());
         if(video_->text().trimmed().isEmpty()){info_->setText("Choose a video to see its length and resolution.");return;}
         if(!video.isFile()){info_->setText("File not found.");return;}
         const auto ffprobe=ffprobePath();if(ffprobe.isEmpty()){info_->setText("Video details unavailable: ffprobe was not found next to FFmpeg.");return;}
         info_->setText("Reading video details…");
-        probe_->start(ffprobe,{"-v","error","-select_streams","v:0","-show_entries","stream=width,height,avg_frame_rate:format=duration","-of","json",video.absoluteFilePath()});
+        probedVideo_=video.absoluteFilePath();probe_->start(ffprobe,{"-v","error","-select_streams","v:0","-show_entries","stream=width,height,avg_frame_rate:format=duration","-of","json",video.absoluteFilePath()});
     }
     void probed(bool ok){
+        if(sourceKind_->currentIndex()!=0||busy()||QFileInfo(video_->text()).absoluteFilePath()!=probedVideo_)return;
         const auto json=QJsonDocument::fromJson(probe_->readAllStandardOutput().left(65536)).object();const auto streams=json["streams"].toArray();const auto stream=streams.isEmpty()?QJsonObject():streams.at(0).toObject();
         if(!ok||stream.isEmpty()){info_->setText("No readable video stream in this file.");return;}
         duration_=json["format"].toObject()["duration"].toString().toDouble();const auto rate=stream["avg_frame_rate"].toString().split('/');
@@ -216,34 +297,79 @@ private:
         info_->setText(parts.join(" · "));updateEstimate();
     }
     void attention(const QString &text){setState(status_,"attention",text);}
+    void setBusy(bool value){for(auto *w:inputs_)w->setEnabled(!value);start_->setEnabled(!value);cancel_->setEnabled(value);if(!value)refreshReconstruction();}
+    bool sourceTools(){if(!QFileInfo(downloader_->text()).isExecutable()||!QFileInfo(deno_->text()).isExecutable()){toolsToggle_->setChecked(true);attention("Set the yt-dlp and Deno executables under Tools.");return false;}return true;}
+    void inspectLink(bool importing){
+        if(youtubeUrl(url_->text()).isEmpty()){attention("Enter a valid HTTPS YouTube video link.");return;}
+        if(!sourceTools())return;
+        pendingImport_=importing;canceled_=false;setBusy(true);progress_->setRange(0,0);progress_->show();log_->clear();setState(status_,"running","Inspecting YouTube link…");
+        youtube_->inspect(downloader_->text(),deno_->text(),url_->text());
+    }
+    bool newJob(){QDir parent(output_->text());job_=parent.filePath("9xd-video-"+QUuid::createUuid().toString(QUuid::WithoutBraces));
+        if(!QDir().mkpath(job_+"/images")){setState(status_,"failed","Cannot create the output folder.");return false;}
+        sparseResult_={};surfaceResult_={};sparseMesh_.reset();surfaceMesh_.reset();setStep(1,"pending");setStep(2,"pending");activeJob_=true;manifest_={{"schema",1},{"state","preparing"},{"sourceType",sourceKind_->currentIndex()?"youtube":"local"},{"source",sourceKind_->currentIndex()?youtubeUrl(url_->text()):QFileInfo(video_->text()).absoluteFilePath()},
+          {"fps",fps_->value()},{"maxFrames",count_->value()},{"maxSize",size_->value()},{"clipStart",clipStart_->value()},{"clipEnd",clipEnd_->value()}};
+        results_->hide();thumbs_->clear();++thumbRun_;return true;
+    }
+    void beginDownload(){
+        if(!newJob()){pendingImport_=false;setBusy(false);progress_->hide();return;}
+        manifest_["sourceMetadata"]=metadata_;manifest_["keepVideo"]=keep_->isChecked();manifest_["downloadLimitMiB"]=budget_->value();manifest_["downloadHeight"]=resolution_->currentData().toInt();manifest_["downloader"]=downloader_->text();manifest_["javascriptRuntime"]=deno_->text();
+        if(keep_->isChecked()){downloadDirectory_=job_+"/source";if(!QDir().mkpath(downloadDirectory_)){endSourceJob("Cannot create the video folder.");return;}}
+        else{temporary_=std::make_unique<QTemporaryDir>(job_+"/.video-XXXXXX");if(!temporary_->isValid()){endSourceJob("Cannot create the temporary video cache.");return;}downloadDirectory_=temporary_->path();}
+        manifest_["state"]="downloading";if(!writeJson(job_+"/job.json",manifest_)){endSourceJob("Cannot write the download job.");return;}
+        setState(status_,"running","Downloading video…");progress_->setRange(0,0);progress_->setFormat("Downloading…");
+        youtube_->download(downloader_->text(),deno_->text(),url_->text(),downloadDirectory_,resolution_->currentData().toInt(),qint64(budget_->value())*1024*1024);
+    }
+    void cleanupDownload(){
+        if(temporary_){auto path=temporary_->path();temporary_.reset();manifest_["temporaryVideoRemoved"]=!QDir(path).exists();}
+        else if(!downloadDirectory_.isEmpty()){QDir dir(downloadDirectory_);for(auto file:dir.entryInfoList(QDir::Files))if(file.fileName().contains(".part")||file.fileName().endsWith(".ytdl")||file.size()>qint64(budget_->value())*1024*1024)QFile::remove(file.absoluteFilePath());}
+        downloadDirectory_.clear();activeVideo_.clear();
+    }
+    void endSourceJob(const QString &error){
+        pendingImport_=false;cleanupDownload();if(activeJob_&&!job_.isEmpty()){manifest_["state"]=canceled_?"canceled":"failed";manifest_["error"]=error;writeJson(job_+"/job.json",manifest_);}
+        activeJob_=false;setBusy(false);progress_->hide();setState(status_,canceled_?"canceled":"failed",error);logToggle_->setChecked(true);
+    }
     void start(){
         if(busy())return;
-        if(!QFileInfo(video_->text()).isFile()){attention("Choose a source video.");return;}
         if(output_->text().trimmed().isEmpty()||!QDir(output_->text()).exists()){attention("Choose an existing output folder.");return;}
         if(!QFileInfo(ffmpeg_->text()).isExecutable()){toolsToggle_->setChecked(true);attention("Set the FFmpeg executable under Tools.");return;}
-        QDir parent(output_->text());job_=parent.filePath("9xd-video-"+QUuid::createUuid().toString(QUuid::WithoutBraces));
-        if(!QDir().mkpath(job_+"/images")){setState(status_,"failed","Cannot create the output folder.");return;}
-        manifest_={{"schema",1},{"state","extracting"},{"source",QFileInfo(video_->text()).absoluteFilePath()},{"fps",fps_->value()},{"maxFrames",count_->value()},{"maxSize",size_->value()}};
+        if(!validClip()){attention("End must be after Start, and the fragment must be within the video.");return;}
+        if(sourceKind_->currentIndex()==1){inspectLink(true);return;}
+        if(!QFileInfo(video_->text()).isFile()){attention("Choose a source video.");return;}
+        if(!newJob())return;activeVideo_=QFileInfo(video_->text()).absoluteFilePath();canceled_=false;log_->clear();extract();
+    }
+    void extract(){
+        manifest_["state"]="extracting";
         QString filter=QString("fps=%1,scale=%2:%2:force_original_aspect_ratio=decrease:force_divisible_by=2").arg(fps_->value(),0,'f',4).arg(size_->value());
-        QStringList args{"-nostdin","-v","error","-n","-i",QFileInfo(video_->text()).absoluteFilePath(),"-map","0:v:0","-vf",filter,"-frames:v",QString::number(count_->value()),job_+"/images/frame-%06d.png"};
+        QStringList args{"-nostdin","-v","error","-n","-ss",QString::number(clipStart_->value(),'f',3),"-i",activeVideo_};
+        if(clipEnd_->value()>0)args<<"-t"<<QString::number(clipEnd_->value()-clipStart_->value(),'f',3);
+        args<<"-map"<<"0:v:0"<<"-vf"<<filter<<"-frames:v"<<QString::number(count_->value())<<job_+"/images/frame-%06d.png";
         manifest_["arguments"]=QJsonArray::fromStringList(args);manifest_["executable"]=ffmpeg_->text();
-        if(!writeJson(job_+"/job.json",manifest_)){setState(status_,"failed","Cannot write the job manifest.");return;}
-        canceled_=false;log_->clear();for(auto *w:inputs_)w->setEnabled(false);start_->setEnabled(false);cancel_->setEnabled(true);
-        results_->hide();thumbs_->clear();++thumbRun_;progress_->setRange(0,qMax(1,expectedFrames()));progress_->setValue(0);progress_->show();poll_->start();
+        if(!writeJson(job_+"/job.json",manifest_)){endSourceJob("Cannot write the job manifest.");return;}
+        setBusy(true);progress_->setFormat("%v / %m frames");progress_->setRange(0,qMax(1,expectedFrames()));progress_->setValue(0);progress_->show();poll_->start();
         setStep(0,"current");setState(status_,"running","Extracting frames…");process_->start(ffmpeg_->text(),args);
     }
     void finish(bool ok,const QString &error){
-        poll_->stop();const auto frames=frameCount();ok=ok&&frames>=2;
+        poll_->stop();pendingImport_=false;cleanupDownload();const auto frames=frameCount();ok=ok&&frames>=2;
         manifest_["state"]=canceled_?"canceled":ok?"frames_ready":"failed";manifest_["frameCount"]=frames;if(!ok)manifest_["error"]=canceled_?"Canceled by user":error;
-        bool saved=writeJson(job_+"/job.json",manifest_);for(auto *w:inputs_)w->setEnabled(true);start_->setEnabled(true);cancel_->setEnabled(false);
+        bool saved=writeJson(job_+"/job.json",manifest_);activeJob_=false;for(auto *w:inputs_)w->setEnabled(true);start_->setEnabled(true);cancel_->setEnabled(false);
         progress_->setMaximum(qMax(progress_->maximum(),frames));progress_->setValue(frames);progress_->setVisible(!ok);
         if(!saved)setState(status_,"failed","Could not save the job result.");
         else if(canceled_)setState(status_,"canceled",QString("Canceled. %1 partial frames kept.").arg(frames));
-        else if(ok)setState(status_,"done",QString("%1 frames ready. Sparse reconstruction is the next stage and is not available yet.").arg(frames));
+        else if(ok)setState(status_,"done",QString("%1 frames ready. Build Sparse Points to recover camera poses and geometry.").arg(frames));
         else{setState(status_,"failed",frames<2&&error.isEmpty()?"Extraction produced fewer than 2 frames. Check the rate and the log.":"Extraction failed. Check the log and job.json.");logToggle_->setChecked(true);}
-        setStep(0,ok?"done":"current");
+        setStep(0,ok?"done":"current");refreshReconstruction();
         if(frames>0){results_->show();resultText_->setText(QString("%1 frames in %2").arg(frames).arg(QDir::toNativeSeparators(job_)));loadThumbnails();}
     }
+    ReconstructionOptions reconstructionOptions()const{ReconstructionOptions o;o.threads=threads_->value();o.imageSize=size_->value();o.denseSize=denseSize_->value();o.cacheGiB=cache_->value();o.poissonDepth=depth_->value();o.poissonTrim=trim_->value();o.maxVertices=importLimit_->value();o.maxFaces=importLimit_->value()*2;o.exhaustive=matchMode_->currentIndex()==1;o.singleCamera=sharedCamera_->isChecked();return o;}
+    QJsonObject resultJson()const{auto relative=[this](const QString &p){return p.isEmpty()?QString():QDir(job_).relativeFilePath(p);};return {{"sparseRun",relative(sparseResult_.run)},{"model",relative(sparseResult_.model)},{"cloud",relative(sparseResult_.cloud)},{"summary",sparseResult_.summary.json()},{"surfaceRun",relative(surfaceResult_.run)},{"surface",relative(surfaceResult_.surface)},{"surfaceMode",surfaceResult_.mode}};}
+    void refreshReconstruction(){if(!sparseButton_)return;bool idle=!busy();sparseButton_->setEnabled(idle&&frameCount()>=3);surfaceButton_->setEnabled(idle&&!sparseResult_.model.isEmpty());loadJob_->setEnabled(idle);importPoints_->setEnabled(idle&&!sparseResult_.cloud.isEmpty());importCameras_->setEnabled(idle&&!sparseResult_.summary.cameras.isEmpty());importSurface_->setEnabled(idle&&!surfaceResult_.surface.isEmpty());
+        if(!sparseResult_.cloud.isEmpty())reconstructionInfo_->setText(QString("%1 / %2 frames registered · %3 points · mean reprojection error %4 px · %5 components (largest used).%6").arg(sparseResult_.summary.images).arg(frameCount()).arg(sparseResult_.summary.points).arg(sparseResult_.summary.meanError,0,'f',2).arg(sparseResult_.summary.components).arg(surfaceResult_.surface.isEmpty()?QString():" Surface ready: "+surfaceResult_.mode)+(sparseResult_.summary.images<frameCount()/2?" Low frame coverage; try a shorter continuous shot.":QString())+(sparseResult_.summary.meanError>2?" High reprojection error; inspect alignment carefully.":QString()));else reconstructionInfo_->setText(frameCount()>=3?QString("%1 frames ready for sparse reconstruction.").arg(frameCount()):"Extract at least 3 frames, or load an existing job.");}
+    bool colmapReady(){if(!QFileInfo(colmap_->text()).isExecutable()){toolsToggle_->setChecked(true);attention("Select the COLMAP 4.2+ executable under Tools.");return false;}return true;}
+    void buildSparse(){if(busy()||!colmapReady())return;if(frameCount()<3){attention("Extract at least 3 overlapping frames first.");return;}log_->clear();if(!recon_->sparse(colmap_->text(),job_,reconstructionOptions())){attention("Could not start sparse reconstruction.");return;}setBusy(true);progress_->show();setStep(1,"current");}
+    void buildSurface(){if(busy()||!colmapReady()||sparseResult_.model.isEmpty())return;log_->clear();if(!recon_->surface(colmap_->text(),sparseResult_,reconstructionOptions(),surfaceMode_->currentIndex()==0)){attention("Could not start surface reconstruction.");return;}setBusy(true);progress_->show();setStep(2,"current");}
+    void deliver(const std::shared_ptr<MeshData> &mesh,bool surface){if(!importToScene){attention("3D scene is unavailable in this standalone inspector.");return;}QString error;auto path=surface?surfaceResult_.surface:sparseResult_.cloud;if(importToScene(mesh,surface?"Reconstructed surface / "+surfaceResult_.mode:"Sparse reconstruction points",path,error))setState(status_,"done","Result opened in the 3D workspace. Geometry scale is uncalibrated.");else attention(error);}
+    void importGeometry(bool surface){if(busy())return;auto cached=surface?surfaceMesh_:sparseMesh_;if(cached){deliver(cached,surface);return;}auto path=surface?surfaceResult_.surface:sparseResult_.cloud;if(path.isEmpty())return;auto o=reconstructionOptions();importCanceled_=false;importing_=true;importingSurface_=surface;setBusy(true);setState(status_,"running","Reading saved reconstruction…");importWatcher_->setFuture(QtConcurrent::run([this,path,o]{return readReconstructionPly(path,o.maxVertices,o.maxFaces,importCanceled_);}));}
     void setStep(int index,const QString &state){steps_[index]->setProperty("state",state);repolish(steps_[index]);}
     // First frames as thumbnails, one per event-loop turn so large frames don't stall the UI.
     void loadThumbnails(){
@@ -255,6 +381,10 @@ private:
     }
     QList<QWidget *> inputs_;QList<QLabel *> steps_;QLineEdit *video_,*output_,*ffmpeg_;QDoubleSpinBox *fps_;QSpinBox *count_,*size_;QPushButton *start_,*cancel_,*openFolder_;
     QLabel *status_,*info_,*estimate_,*toolState_,*resultText_;QToolButton *toolsToggle_,*logToggle_;QPlainTextEdit *log_;QProgressBar *progress_;QFrame *results_;QListWidget *thumbs_;
+    QLineEdit *colmap_;QComboBox *matchMode_,*surfaceMode_;QCheckBox *sharedCamera_;QSpinBox *threads_,*denseSize_,*depth_,*importLimit_;QDoubleSpinBox *cache_,*trim_;QPushButton *sparseButton_=nullptr,*surfaceButton_,*loadJob_,*importPoints_,*importCameras_,*importSurface_;QLabel *reconstructionInfo_;
+    ReconstructionJob *recon_=nullptr;ReconstructionOutput sparseResult_,surfaceResult_;std::shared_ptr<MeshData> sparseMesh_,surfaceMesh_;QFutureWatcher<PlyResult> *importWatcher_;std::atomic_bool importCanceled_=false;bool importing_=false,importingSurface_=false;
+    QComboBox *sourceKind_,*resolution_;QWidget *online_;QLineEdit *url_,*downloader_,*deno_;QPushButton *inspect_;QSpinBox *budget_;QCheckBox *keep_;QDoubleSpinBox *clipStart_,*clipEnd_;
+    YoutubeSource *youtube_;QJsonObject metadata_;bool pendingImport_=false,activeJob_=false;QString activeVideo_,downloadDirectory_,probedVideo_;std::unique_ptr<QTemporaryDir> temporary_;
     QProcess *process_,*probe_;QTimer *poll_,*probeDelay_;bool canceled_=false;double duration_=-1;int thumbRun_=0;QString job_;QJsonObject manifest_;
 };
 

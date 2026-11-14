@@ -8,7 +8,7 @@ The project is under active development. Some tools and format variants are stil
 
 ## Download and run
 
-Download **[9XD 0.4.0 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.4.0/9XD-0.4.0-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.4.0) for the SHA-256 checksum and [release notes](docs/releases/v0.4.0.md).
+Download **[9XD 0.4.1 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.4.1/9XD-0.4.1-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.4.1) for the SHA-256 checksum and [release notes](docs/releases/v0.4.1.md).
 
 1. Extract the **entire ZIP** to a writable folder.
 2. Open `9XD.exe` inside the extracted folder.
@@ -68,14 +68,13 @@ The [Scripting Library Manager](docs/scripting-libraries.md) lists the active ru
 
 Python scripting uses the bundled interpreter and standard library in the Windows package. Additional third-party Python packages are not included. C++ scripting requires a compatible local compiler. Run scripts only when you trust their contents: scripts execute local code.
 
-## New in 0.4.0
+## New in 0.4.1
 
-- Expanded native readers and material/texture support for Genki, Wangan Midnight, PSP GMO, NFS MW, ITC, Initial D Special Stage and RenderWare/Super Trucks; initial limited Blur prop previews.
-- Improved PGR3/4 material inspection and 3D batch loading, explicit default/all-variant rendering, camera/FOV/clipping/grid controls and an ignore-texture-alpha diagnostic switch.
-- Independent interface styles, panel layouts and themes, adaptive inspectors, new theme effects and a dedicated Windows runtime icon.
-- Large-folder file-picker improvements and clearer scan/batch progress.
+- Local/YouTube video ingestion with asynchronous frame extraction, limits, progress and cancellation.
+- COLMAP sparse reconstruction, optional CUDA dense reconstruction and surface import into the 3D viewer; saved jobs and clearer footage diagnostics.
+- Initial RayCity v1 map geometry, named local/shared textures, textured export and vertical UV correction. Vehicle import remains pending.
 
-See [0.4.0 release notes](docs/releases/v0.4.0.md) for scope and known limitations. Video-to-3D reconstruction, calibrated spline fitting and segmentation remain pending.
+See [0.4.1 release notes](docs/releases/v0.4.1.md) and [reconstruction setup](docs/reconstruction-tools.md) for required external tools and limitations. Reconstruction has no calibrated scale or texture atlas; original RayCity shaders and v3 car import remain pending. Calibrated spline fitting and segmentation are also pending.
 
 ## Programmer calculator
 

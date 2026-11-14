@@ -30,6 +30,7 @@
 #include "nfs_mw_solid.h"
 #include "itc_model.h"
 #include "blur_model.h"
+#include "raycity_cell.h"
 #include "rw_model.h"
 #include "idss_model.h"
 #include <QJsonArray>
@@ -84,6 +85,7 @@ inline QJsonObject discoverAssets(ReadRequest source,const PatchList &patches,co
     auto nfsMw=NfsMw::scan(bytes,cancel);for(auto value:nfsMw["candidates"].toArray())meshes.append(value);for(auto value:nfsMw["notes"].toArray())notes.append(value);
     auto idss=InitialDSS::scan(bytes,cancel);for(auto value:idss["candidates"].toArray())meshes.append(value);for(auto value:idss["notes"].toArray())notes.append(value);
     auto rw=RenderWare::scan(bytes,cancel);for(auto value:rw["candidates"].toArray())meshes.append(value);for(auto value:rw["images"].toArray())images.append(value);for(auto value:rw["notes"].toArray())notes.append(value);
+    auto raycity=RayCity::scan(bytes,cancel,QFileInfo(source.path).completeBaseName());for(auto value:raycity["candidates"].toArray())meshes.append(value);for(auto value:raycity["notes"].toArray())notes.append(value);for(auto value:raycity["evidence"].toArray())meshEvidence.append(value);
     auto blur=Blur::scan(bytes,cancel);for(auto value:blur["images"].toArray())if(images.size()<128)images.append(value);for(auto value:blur["candidates"].toArray())meshes.append(value);for(auto value:blur["notes"].toArray())notes.append(value);
     auto itc=Itc::scan(bytes,cancel);for(auto value:itc["candidates"].toArray())meshes.append(value);for(auto value:itc["images"].toArray())if(images.size()<128)images.append(value);for(auto value:itc["notes"].toArray())notes.append(value);
     if(itc.isEmpty()){const auto packages=Xpr2::find(bytes);if(!packages.isEmpty()){for(auto value:Xpr2::images(bytes,packages,128))if(images.size()<128)images.append(value);notes.append(QString("Xbox 360 XPR2 texture package(s) at %1.").arg([&]{QStringList l;for(auto at:packages)l<<QString("0x%1").arg(at,0,16);return l.join(", ");}()));}}
@@ -128,9 +130,9 @@ inline QJsonObject discoverAssets(ReadRequest source,const PatchList &patches,co
     auto linkedNfs=LinkedSurfaces::nfsScan(bytes,meshes,cancel,source);if(linkedNfs.contains("candidates")){meshes=linkedNfs["candidates"].toArray();for(auto image:linkedNfs["images"].toArray())images.append(image);}
     auto linkedRt=LinkedSurfaces::rtunedScan(source,patches,resources,cancel);if(linkedRt.contains("candidates")){QJsonArray retained;for(auto value:meshes)if(value.toObject()["profileId"]!="native-rtuned-visual-scene")retained.append(value);for(auto value:linkedRt["candidates"].toArray())retained.append(value);meshes=retained;for(auto value:linkedRt["images"].toArray())images.append(value);}if(linkedRt.contains("error"))notes.append(linkedRt["error"]);
     // Generic PS2 VIF analysis is a fallback for unknown formats: it runs only when no native decoder produced a model.
-    if(meshes.isEmpty()&&meshEvidence.isEmpty()){auto vif=Ps2Vif::scan(bytes,cancel);if(cancel.load())return {{"error","Discovery canceled."}};
+    if(!RayCity::recognized(bytes)&&meshes.isEmpty()&&meshEvidence.isEmpty()){auto vif=Ps2Vif::scan(bytes,cancel);if(cancel.load())return {{"error","Discovery canceled."}};
         for(auto value:vif["candidates"].toArray())meshes.append(value);for(auto value:vif["notes"].toArray())notes.append(value);}
-    QJsonObject geometrySearch;bool nativeMesh=faf["recognized"].toBool();for(auto evidence:meshEvidence)nativeMesh|=evidence.toObject()["renderSupported"].toBool()||evidence.toObject()["family"].toString().startsWith("Genki");if(findGeometry&&!fm1Header&&!a3da["metadataOnly"].toBool()&&meshes.isEmpty()&&!nativeMesh&&resources["entries"].toArray().isEmpty()&&!resources.contains("error")){geometrySearch=GeometryCandidates::scan(bytes,cancel);for(auto candidate:geometrySearch["candidates"].toArray())meshes.append(candidate);}
+    QJsonObject geometrySearch;bool nativeMesh=faf["recognized"].toBool();for(auto evidence:meshEvidence)nativeMesh|=evidence.toObject()["renderSupported"].toBool()||evidence.toObject()["family"].toString().startsWith("Genki");if(findGeometry&&!RayCity::recognized(bytes)&&!fm1Header&&!a3da["metadataOnly"].toBool()&&meshes.isEmpty()&&!nativeMesh&&resources["entries"].toArray().isEmpty()&&!resources.contains("error")){geometrySearch=GeometryCandidates::scan(bytes,cancel);for(auto candidate:geometrySearch["candidates"].toArray())meshes.append(candidate);}
     auto check=source;check.offset=0;check.length=0;auto final=readPage(check);if(!final.error.isEmpty())return {{"error",final.error}};
     return GenkiTrack::decorate(QJsonObject{{"geometrySearch",geometrySearch},{"resources",resources},{"scannedBytes",QString::number(length)},{"scanTruncated",length<source.expectedSize},{"imageCandidates",images},{"imageEvidence",imageEvidence},{"meshCandidates",meshes},{"meshEvidence",meshEvidence},{"profileMatches",profileResults["matches"]},{"structureRegions",regions},{"notes",notes},{"status","Metadata only. Copy exact settings; run the decoder to confirm. Empty candidates do not prove absence of assets."}},bytes,source,trackContext,cancel);
 }

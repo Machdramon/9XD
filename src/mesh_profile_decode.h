@@ -21,6 +21,7 @@
 #include "nfs_mw_solid.h"
 #include "itc_model.h"
 #include "blur_model.h"
+#include "raycity_cell.h"
 #include "rw_model.h"
 #include "idss_model.h"
 #include <QMatrix4x4>
@@ -45,6 +46,7 @@ inline MeshResult decode(ReadRequest source,const PatchList &patches,const QJson
     if(candidate["profileId"]=="native-linked-surface"){QMap<QByteArray,std::shared_ptr<MeshData>> solids;return LinkedSurfaces::decode(source,patches,candidate,cancel,linkedSession,[&](QJsonObject c){return decode(source,patches,c,cancel,&solids);});}
     if(candidate["profileId"]==PspGmo::ProfileId)return PspGmo::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==NfsMw::ProfileId)return NfsMw::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==RayCity::ProfileId)return RayCity::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==Blur::ProfileId)return Blur::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==Itc::ProfileId)return Itc::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==InitialDSS::ProfileId)return InitialDSS::decode(source,patches,candidate,cancel);
