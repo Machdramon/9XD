@@ -4,6 +4,8 @@
 #include "genki_materials.h"
 #include "genki_track_context.h"
 #include "faf_geometry.h"
+#include "fnf_ps2.h"
+#include "auto_modellista.h"
 #include "arcp_evidence.h"
 #include "mesh_profiles.h"
 #include "native_resources.h"
@@ -30,7 +32,9 @@
 #include "nfs_mw_solid.h"
 #include "itc_model.h"
 #include "blur_model.h"
+#include "blur_scene.h"
 #include "raycity_cell.h"
+#include "raycity_vehicle.h"
 #include "rw_model.h"
 #include "idss_model.h"
 #include <QJsonArray>
@@ -44,6 +48,11 @@ inline QJsonObject discoverAssets(ReadRequest source,const PatchList &patches,co
     const qint64 limit=AssetMemory::bytes()/4;QByteArray bytes;auto length=qMin(source.expectedSize,limit);
     if(length<=0)return {{"error","Open a nonempty document first."}};
     for(qint64 offset=0;offset<length;){if(cancel.load())return {{"error","Discovery canceled."}};auto request=source;request.offset=offset;request.length=qMin(qint64(1048576),length-offset);auto read=readPage(request);if(!read.error.isEmpty())return {{"error",read.error}};applyPatches(read.bytes,offset,patches);if(read.bytes.size()!=request.length)return {{"error","Incomplete discovery read."}};bytes+=read.bytes;offset+=read.bytes.size();}
+    // Paired Blur scenes already have a native directory; avoid unrelated whole-file heuristics.
+    auto pairedBlur=BlurScene::scan(source,bytes,cancel);if(!pairedBlur.isEmpty()){
+        if(cancel.load())return {{"error","Discovery canceled."}};auto check=source;check.offset=0;check.length=0;auto final=readPage(check);if(!final.error.isEmpty())return {{"error",final.error}};QJsonArray imageRows,regions;for(auto row:pairedBlur["images"].toArray())if(imageRows.size()<128)imageRows.append(row);for(auto row:pairedBlur["regions"].toArray())if(regions.size()<32)regions.append(row);
+        return {{"blurScene",pairedBlur["summary"]},{"scannedBytes",QString::number(length)},{"scanTruncated",length<source.expectedSize},{"imageCandidates",imageRows},{"meshCandidates",pairedBlur["candidates"]},{"structureRegions",regions},{"notes",pairedBlur["notes"]},{"status","Blur scene: native serialized geometry and primary image references."}};
+    }
     auto u16=[&](qint64 at){return qFromLittleEndian<quint16>(bytes.constData()+at);};auto u32=[&](qint64 at){return qFromLittleEndian<quint32>(bytes.constData()+at);};QJsonArray images,meshes,notes,regions,imageEvidence;
     auto region=[&](QString name,qint64 offset,qint64 length,QString evidence,qint64 step=0,qint64 count=1){if(length>0&&regions.size()<32)regions.append(QJsonObject{{"name",name},{"offset",QString::number(offset)},{"length",QString::number(length)},{"step",QString::number(step?step:length)},{"repetitions",count},{"evidence",evidence}});};
     qsizetype at=0;for(int hit=0;hit<16&&images.size()<128;++hit){at=bytes.indexOf("TIM2",at);if(at<0)break;auto start=at++;if(start>bytes.size()-16)continue;auto align=quint8(bytes[start+5]);auto count=u16(start+6);if(align>1||count<1||count>128)continue;qint64 p=start+(align?128:16);
@@ -85,10 +94,13 @@ inline QJsonObject discoverAssets(ReadRequest source,const PatchList &patches,co
     auto nfsMw=NfsMw::scan(bytes,cancel);for(auto value:nfsMw["candidates"].toArray())meshes.append(value);for(auto value:nfsMw["notes"].toArray())notes.append(value);
     auto idss=InitialDSS::scan(bytes,cancel);for(auto value:idss["candidates"].toArray())meshes.append(value);for(auto value:idss["notes"].toArray())notes.append(value);
     auto rw=RenderWare::scan(bytes,cancel);for(auto value:rw["candidates"].toArray())meshes.append(value);for(auto value:rw["images"].toArray())images.append(value);for(auto value:rw["notes"].toArray())notes.append(value);
-    auto raycity=RayCity::scan(bytes,cancel,QFileInfo(source.path).completeBaseName());for(auto value:raycity["candidates"].toArray())meshes.append(value);for(auto value:raycity["notes"].toArray())notes.append(value);for(auto value:raycity["evidence"].toArray())meshEvidence.append(value);
-    auto blur=Blur::scan(bytes,cancel);for(auto value:blur["images"].toArray())if(images.size()<128)images.append(value);for(auto value:blur["candidates"].toArray())meshes.append(value);for(auto value:blur["notes"].toArray())notes.append(value);
+    auto vehicle=RayCityVehicle::scan(bytes,cancel,QFileInfo(source.path).completeBaseName());for(auto v:vehicle["candidates"].toArray())meshes.append(v);for(auto v:vehicle["notes"].toArray())notes.append(v);
+    auto raycity=vehicle["recognized"].toBool()?QJsonObject():RayCity::scan(bytes,cancel,QFileInfo(source.path).completeBaseName());for(auto value:raycity["candidates"].toArray())meshes.append(value);for(auto value:raycity["notes"].toArray())notes.append(value);for(auto value:raycity["evidence"].toArray())meshEvidence.append(value);
+    auto blurScene=BlurScene::scan(source,bytes,cancel);auto blur=blurScene["images"].toArray().isEmpty()?Blur::scan(bytes,cancel):QJsonObject{};if(!blurScene.isEmpty()){for(auto value:blurScene["notes"].toArray())notes.append(value);for(auto value:blurScene["regions"].toArray())if(regions.size()<32)regions.append(value);}auto blurImages=blurScene["images"].toArray();if(blurImages.isEmpty())blurImages=blur["images"].toArray();for(auto value:blurImages)if(images.size()<128)images.append(value);for(auto value:blur["candidates"].toArray())meshes.append(value);for(auto value:blurScene["candidates"].toArray())meshes.append(value);for(auto value:blur["notes"].toArray())notes.append(value);
     auto itc=Itc::scan(bytes,cancel);for(auto value:itc["candidates"].toArray())meshes.append(value);for(auto value:itc["images"].toArray())if(images.size()<128)images.append(value);for(auto value:itc["notes"].toArray())notes.append(value);
     if(itc.isEmpty()){const auto packages=Xpr2::find(bytes);if(!packages.isEmpty()){for(auto value:Xpr2::images(bytes,packages,128))if(images.size()<128)images.append(value);notes.append(QString("Xbox 360 XPR2 texture package(s) at %1.").arg([&]{QStringList l;for(auto at:packages)l<<QString("0x%1").arg(at,0,16);return l.join(", ");}()));}}
+    auto automod=AutoModellista::scan(bytes,cancel,source.path);for(auto v:automod["candidates"].toArray())meshes.append(v);for(auto v:automod["notes"].toArray())notes.append(v);
+    auto ps2fnf=FnfPs2::scan(bytes,cancel);for(auto v:ps2fnf["candidates"].toArray())meshes.append(v);for(auto v:ps2fnf["notes"].toArray())notes.append(v);
     auto faf=FafGeometry::scan(bytes,cancel);for(auto value:faf["candidates"].toArray())meshes.append(value);for(auto value:faf["images"].toArray())images.append(value);for(auto value:faf["notes"].toArray())notes.append(value);for(auto value:faf["regions"].toArray())if(regions.size()<32)regions.append(value);
     auto rtuned=RTunedGeometry::scan(bytes,cancel);
     for(auto value:rtuned["candidates"].toArray())meshes.append(value);
@@ -130,9 +142,9 @@ inline QJsonObject discoverAssets(ReadRequest source,const PatchList &patches,co
     auto linkedNfs=LinkedSurfaces::nfsScan(bytes,meshes,cancel,source);if(linkedNfs.contains("candidates")){meshes=linkedNfs["candidates"].toArray();for(auto image:linkedNfs["images"].toArray())images.append(image);}
     auto linkedRt=LinkedSurfaces::rtunedScan(source,patches,resources,cancel);if(linkedRt.contains("candidates")){QJsonArray retained;for(auto value:meshes)if(value.toObject()["profileId"]!="native-rtuned-visual-scene")retained.append(value);for(auto value:linkedRt["candidates"].toArray())retained.append(value);meshes=retained;for(auto value:linkedRt["images"].toArray())images.append(value);}if(linkedRt.contains("error"))notes.append(linkedRt["error"]);
     // Generic PS2 VIF analysis is a fallback for unknown formats: it runs only when no native decoder produced a model.
-    if(!RayCity::recognized(bytes)&&meshes.isEmpty()&&meshEvidence.isEmpty()){auto vif=Ps2Vif::scan(bytes,cancel);if(cancel.load())return {{"error","Discovery canceled."}};
+    if(blurScene.isEmpty()&&!RayCity::recognized(bytes)&&meshes.isEmpty()&&meshEvidence.isEmpty()){auto vif=Ps2Vif::scan(bytes,cancel);if(cancel.load())return {{"error","Discovery canceled."}};
         for(auto value:vif["candidates"].toArray())meshes.append(value);for(auto value:vif["notes"].toArray())notes.append(value);}
-    QJsonObject geometrySearch;bool nativeMesh=faf["recognized"].toBool();for(auto evidence:meshEvidence)nativeMesh|=evidence.toObject()["renderSupported"].toBool()||evidence.toObject()["family"].toString().startsWith("Genki");if(findGeometry&&!RayCity::recognized(bytes)&&!fm1Header&&!a3da["metadataOnly"].toBool()&&meshes.isEmpty()&&!nativeMesh&&resources["entries"].toArray().isEmpty()&&!resources.contains("error")){geometrySearch=GeometryCandidates::scan(bytes,cancel);for(auto candidate:geometrySearch["candidates"].toArray())meshes.append(candidate);}
+    QJsonObject geometrySearch;bool nativeMesh=faf["recognized"].toBool();for(auto evidence:meshEvidence)nativeMesh|=evidence.toObject()["renderSupported"].toBool()||evidence.toObject()["family"].toString().startsWith("Genki");if(findGeometry&&blurScene.isEmpty()&&!RayCity::recognized(bytes)&&!fm1Header&&!a3da["metadataOnly"].toBool()&&meshes.isEmpty()&&!nativeMesh&&resources["entries"].toArray().isEmpty()&&!resources.contains("error")){geometrySearch=GeometryCandidates::scan(bytes,cancel);for(auto candidate:geometrySearch["candidates"].toArray())meshes.append(candidate);}
     auto check=source;check.offset=0;check.length=0;auto final=readPage(check);if(!final.error.isEmpty())return {{"error",final.error}};
-    return GenkiTrack::decorate(QJsonObject{{"geometrySearch",geometrySearch},{"resources",resources},{"scannedBytes",QString::number(length)},{"scanTruncated",length<source.expectedSize},{"imageCandidates",images},{"imageEvidence",imageEvidence},{"meshCandidates",meshes},{"meshEvidence",meshEvidence},{"profileMatches",profileResults["matches"]},{"structureRegions",regions},{"notes",notes},{"status","Metadata only. Copy exact settings; run the decoder to confirm. Empty candidates do not prove absence of assets."}},bytes,source,trackContext,cancel);
+    return GenkiTrack::decorate(QJsonObject{{"blurScene",blurScene["summary"]},{"geometrySearch",geometrySearch},{"resources",resources},{"scannedBytes",QString::number(length)},{"scanTruncated",length<source.expectedSize},{"imageCandidates",images},{"imageEvidence",imageEvidence},{"meshCandidates",meshes},{"meshEvidence",meshEvidence},{"profileMatches",profileResults["matches"]},{"structureRegions",regions},{"notes",notes},{"status","Metadata only. Copy exact settings; run the decoder to confirm. Empty candidates do not prove absence of assets."}},bytes,source,trackContext,cancel);
 }

@@ -2,6 +2,8 @@
 #include "mesh_profiles.h"
 #include "genki_geometry.h"
 #include "faf_geometry.h"
+#include "fnf_ps2.h"
+#include "auto_modellista.h"
 #include "linked_scene_surfaces.h"
 #include "ai_decoder_setup.h"
 #include "rtuned_collision.h"
@@ -21,7 +23,9 @@
 #include "nfs_mw_solid.h"
 #include "itc_model.h"
 #include "blur_model.h"
+#include "blur_scene.h"
 #include "raycity_cell.h"
+#include "raycity_vehicle.h"
 #include "rw_model.h"
 #include "idss_model.h"
 #include <QMatrix4x4>
@@ -46,7 +50,11 @@ inline MeshResult decode(ReadRequest source,const PatchList &patches,const QJson
     if(candidate["profileId"]=="native-linked-surface"){QMap<QByteArray,std::shared_ptr<MeshData>> solids;return LinkedSurfaces::decode(source,patches,candidate,cancel,linkedSession,[&](QJsonObject c){return decode(source,patches,c,cancel,&solids);});}
     if(candidate["profileId"]==PspGmo::ProfileId)return PspGmo::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==NfsMw::ProfileId)return NfsMw::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==AutoModellista::ProfileId)return AutoModellista::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==FnfPs2::ProfileId)return FnfPs2::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==RayCityVehicle::ProfileId)return RayCityVehicle::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==RayCity::ProfileId)return RayCity::decode(source,patches,candidate,cancel);
+    if(candidate["profileId"]==BlurScene::Geometry::ProfileId)return BlurScene::Geometry::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==Blur::ProfileId)return Blur::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==Itc::ProfileId)return Itc::decode(source,patches,candidate,cancel);
     if(candidate["profileId"]==InitialDSS::ProfileId)return InitialDSS::decode(source,patches,candidate,cancel);

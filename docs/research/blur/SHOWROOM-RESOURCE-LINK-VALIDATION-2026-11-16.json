@@ -1,0 +1,3442 @@
+{
+  "validation": "All four parser runs returned; parameter byte extents, all texture-named slots, group bounds, global bounds and redundant texture dependencies checked. Not GPU validation or complete resource/image resolution.",
+  "scene": {
+    "resourceGroupCount": 145,
+    "globalTextureMode": 2,
+    "globalTextureCount": 16,
+    "firstGlobalTextureName": "lightflare_diff",
+    "shaderNames": [
+      "DetailColourTwoMtl_LN.fx",
+      "default_LN_NB_NV.fx",
+      "LightFlare_LN.fx",
+      "default_LN_NB_NL.fx",
+      "Road_LN_ND_NG_NW.fx",
+      "Road_LN_ND_NG.fx",
+      "default_LN_NB_NM_NV.fx",
+      "default_LN_NB_NL_NM.fx",
+      "default_LN_NB_NL_NV.fx",
+      "FoliageBillBoard_LN.fx",
+      "Foliage_LN_NL.fx",
+      "RoadTwoSpec_LN_ND_NG_NW.fx",
+      "RoadTwoSpec_LN_NG.fx",
+      "RoadTwoSpecN_LN.fx",
+      "Road_LN_NG.fx",
+      "RoadTwoSpec_LN_NG_NW.fx",
+      "Road_LN_NG_NW.fx",
+      "MeshEffect_LN.fx",
+      "default_LN_NB_NL_NM_NV.fx",
+      "Puddle_LN_NV.fx",
+      "SpeedTreeLeaf_LN.fx",
+      "SpeedTree_LN.fx",
+      "SyntheticBillboard_LN.fx"
+    ]
+  },
+  "renderLists": [
+    {
+      "start": 254,
+      "end": 9632,
+      "recordArrayCounts": [
+        [
+          48,
+          36
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          36,
+          0
+        ],
+        [
+          48,
+          0
+        ]
+      ],
+      "parameterBlockCount": 10,
+      "textureParameterCount": 9,
+      "resourceReferenceCount": 6,
+      "dependencyRecordCount": 5,
+      "textureDependencyCount": 10,
+      "textureParameters": [
+        {
+          "block": 1,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 2,
+          "layout": "LightFlare_LN.fx",
+          "parameter": "g_tColour",
+          "value": 1,
+          "candidateRef": [
+            4294967295,
+            0
+          ]
+        },
+        {
+          "block": 3,
+          "layout": "LightFlare_LN.fx",
+          "parameter": "g_tColour",
+          "value": 1,
+          "candidateRef": [
+            4294967295,
+            0
+          ]
+        },
+        {
+          "block": 4,
+          "layout": "LightFlare_LN.fx",
+          "parameter": "g_tColour",
+          "value": 1,
+          "candidateRef": [
+            4294967295,
+            0
+          ]
+        },
+        {
+          "block": 5,
+          "layout": "MeshEffect_LN.fx",
+          "parameter": "g_tTexture",
+          "value": 2,
+          "candidateRef": [
+            141,
+            0
+          ]
+        },
+        {
+          "block": 6,
+          "layout": "MeshEffect_LN.fx",
+          "parameter": "g_tTexture",
+          "value": 3,
+          "candidateRef": [
+            139,
+            0
+          ]
+        },
+        {
+          "block": 7,
+          "layout": "MeshEffect_LN.fx",
+          "parameter": "g_tTexture",
+          "value": 4,
+          "candidateRef": [
+            138,
+            0
+          ]
+        },
+        {
+          "block": 8,
+          "layout": "MeshEffect_LN.fx",
+          "parameter": "g_tTexture",
+          "value": 5,
+          "candidateRef": [
+            102,
+            0
+          ]
+        },
+        {
+          "block": 9,
+          "layout": "MeshEffect_LN.fx",
+          "parameter": "g_tTexture",
+          "value": 2,
+          "candidateRef": [
+            141,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "start": 10494,
+      "end": 19887,
+      "recordArrayCounts": [
+        [
+          48,
+          25
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          36,
+          0
+        ],
+        [
+          48,
+          0
+        ]
+      ],
+      "parameterBlockCount": 17,
+      "textureParameterCount": 23,
+      "resourceReferenceCount": 21,
+      "dependencyRecordCount": 15,
+      "textureDependencyCount": 74,
+      "textureParameters": [
+        {
+          "block": 1,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 2,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 1,
+          "candidateRef": [
+            79,
+            0
+          ]
+        },
+        {
+          "block": 3,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 2,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 4,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 3,
+          "candidateRef": [
+            80,
+            0
+          ]
+        },
+        {
+          "block": 5,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 4,
+          "candidateRef": [
+            81,
+            0
+          ]
+        },
+        {
+          "block": 6,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 5,
+          "candidateRef": [
+            82,
+            0
+          ]
+        },
+        {
+          "block": 7,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 6,
+          "candidateRef": [
+            83,
+            0
+          ]
+        },
+        {
+          "block": 8,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 7,
+          "candidateRef": [
+            84,
+            0
+          ]
+        },
+        {
+          "block": 9,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 8,
+          "candidateRef": [
+            142,
+            0
+          ]
+        },
+        {
+          "block": 10,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 9,
+          "candidateRef": [
+            137,
+            0
+          ]
+        },
+        {
+          "block": 10,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 10,
+          "candidateRef": [
+            137,
+            1
+          ]
+        },
+        {
+          "block": 11,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 8,
+          "candidateRef": [
+            142,
+            0
+          ]
+        },
+        {
+          "block": 12,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 11,
+          "candidateRef": [
+            140,
+            0
+          ]
+        },
+        {
+          "block": 12,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 12,
+          "candidateRef": [
+            140,
+            1
+          ]
+        },
+        {
+          "block": 13,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 13,
+          "candidateRef": [
+            85,
+            0
+          ]
+        },
+        {
+          "block": 13,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 14,
+          "candidateRef": [
+            85,
+            1
+          ]
+        },
+        {
+          "block": 14,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 15,
+          "candidateRef": [
+            86,
+            0
+          ]
+        },
+        {
+          "block": 14,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 16,
+          "candidateRef": [
+            86,
+            1
+          ]
+        },
+        {
+          "block": 15,
+          "layout": "Puddle_LN_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 17,
+          "candidateRef": [
+            87,
+            0
+          ]
+        },
+        {
+          "block": 15,
+          "layout": "Puddle_LN_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 18,
+          "candidateRef": [
+            87,
+            1
+          ]
+        },
+        {
+          "block": 15,
+          "layout": "Puddle_LN_NV.fx",
+          "parameter": "g_tBlendNormal",
+          "value": 19,
+          "candidateRef": [
+            87,
+            2
+          ]
+        },
+        {
+          "block": 15,
+          "layout": "Puddle_LN_NV.fx",
+          "parameter": "g_tNormal",
+          "value": 20,
+          "candidateRef": [
+            87,
+            3
+          ]
+        },
+        {
+          "block": 16,
+          "layout": "Puddle_LN_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 2,
+          "candidateRef": [
+            144,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "start": 20734,
+      "end": 57533,
+      "recordArrayCounts": [
+        [
+          48,
+          95
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          36,
+          0
+        ],
+        [
+          48,
+          0
+        ]
+      ],
+      "parameterBlockCount": 92,
+      "textureParameterCount": 173,
+      "resourceReferenceCount": 147,
+      "dependencyRecordCount": 25,
+      "textureDependencyCount": 578,
+      "textureParameters": [
+        {
+          "block": 1,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 2,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 1,
+          "candidateRef": [
+            13,
+            0
+          ]
+        },
+        {
+          "block": 2,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 2,
+          "candidateRef": [
+            13,
+            1
+          ]
+        },
+        {
+          "block": 3,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 4,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 4,
+          "candidateRef": [
+            14,
+            0
+          ]
+        },
+        {
+          "block": 4,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 5,
+          "candidateRef": [
+            14,
+            1
+          ]
+        },
+        {
+          "block": 5,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 6,
+          "candidateRef": [
+            15,
+            0
+          ]
+        },
+        {
+          "block": 5,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 7,
+          "candidateRef": [
+            15,
+            1
+          ]
+        },
+        {
+          "block": 6,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 8,
+          "candidateRef": [
+            16,
+            0
+          ]
+        },
+        {
+          "block": 6,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 9,
+          "candidateRef": [
+            16,
+            1
+          ]
+        },
+        {
+          "block": 7,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 10,
+          "candidateRef": [
+            17,
+            0
+          ]
+        },
+        {
+          "block": 7,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 11,
+          "candidateRef": [
+            17,
+            1
+          ]
+        },
+        {
+          "block": 8,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 12,
+          "candidateRef": [
+            103,
+            0
+          ]
+        },
+        {
+          "block": 8,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 13,
+          "candidateRef": [
+            18,
+            0
+          ]
+        },
+        {
+          "block": 9,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 14,
+          "candidateRef": [
+            19,
+            0
+          ]
+        },
+        {
+          "block": 9,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 15,
+          "candidateRef": [
+            19,
+            1
+          ]
+        },
+        {
+          "block": 10,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 16,
+          "candidateRef": [
+            20,
+            0
+          ]
+        },
+        {
+          "block": 10,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 17,
+          "candidateRef": [
+            20,
+            1
+          ]
+        },
+        {
+          "block": 11,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 18,
+          "candidateRef": [
+            21,
+            0
+          ]
+        },
+        {
+          "block": 11,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 19,
+          "candidateRef": [
+            21,
+            1
+          ]
+        },
+        {
+          "block": 12,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 20,
+          "candidateRef": [
+            22,
+            0
+          ]
+        },
+        {
+          "block": 12,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 21,
+          "candidateRef": [
+            22,
+            1
+          ]
+        },
+        {
+          "block": 13,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 22,
+          "candidateRef": [
+            23,
+            0
+          ]
+        },
+        {
+          "block": 13,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 23,
+          "candidateRef": [
+            23,
+            1
+          ]
+        },
+        {
+          "block": 14,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 24,
+          "candidateRef": [
+            24,
+            0
+          ]
+        },
+        {
+          "block": 14,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 25,
+          "candidateRef": [
+            24,
+            1
+          ]
+        },
+        {
+          "block": 15,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 26,
+          "candidateRef": [
+            123,
+            0
+          ]
+        },
+        {
+          "block": 15,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 27,
+          "candidateRef": [
+            123,
+            1
+          ]
+        },
+        {
+          "block": 16,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 28,
+          "candidateRef": [
+            25,
+            0
+          ]
+        },
+        {
+          "block": 16,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 29,
+          "candidateRef": [
+            25,
+            1
+          ]
+        },
+        {
+          "block": 17,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 30,
+          "candidateRef": [
+            26,
+            0
+          ]
+        },
+        {
+          "block": 17,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 31,
+          "candidateRef": [
+            26,
+            1
+          ]
+        },
+        {
+          "block": 18,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 32,
+          "candidateRef": [
+            27,
+            0
+          ]
+        },
+        {
+          "block": 18,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 33,
+          "candidateRef": [
+            27,
+            1
+          ]
+        },
+        {
+          "block": 19,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 34,
+          "candidateRef": [
+            28,
+            0
+          ]
+        },
+        {
+          "block": 19,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 35,
+          "candidateRef": [
+            28,
+            1
+          ]
+        },
+        {
+          "block": 20,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 36,
+          "candidateRef": [
+            104,
+            0
+          ]
+        },
+        {
+          "block": 20,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 37,
+          "candidateRef": [
+            29,
+            0
+          ]
+        },
+        {
+          "block": 21,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 38,
+          "candidateRef": [
+            30,
+            0
+          ]
+        },
+        {
+          "block": 21,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 39,
+          "candidateRef": [
+            30,
+            1
+          ]
+        },
+        {
+          "block": 22,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 40,
+          "candidateRef": [
+            31,
+            0
+          ]
+        },
+        {
+          "block": 22,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 41,
+          "candidateRef": [
+            31,
+            1
+          ]
+        },
+        {
+          "block": 23,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 42,
+          "candidateRef": [
+            32,
+            0
+          ]
+        },
+        {
+          "block": 23,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 43,
+          "candidateRef": [
+            32,
+            1
+          ]
+        },
+        {
+          "block": 24,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 44,
+          "candidateRef": [
+            33,
+            0
+          ]
+        },
+        {
+          "block": 24,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 45,
+          "candidateRef": [
+            33,
+            1
+          ]
+        },
+        {
+          "block": 25,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 46,
+          "candidateRef": [
+            34,
+            0
+          ]
+        },
+        {
+          "block": 25,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 47,
+          "candidateRef": [
+            34,
+            1
+          ]
+        },
+        {
+          "block": 26,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 48,
+          "candidateRef": [
+            35,
+            0
+          ]
+        },
+        {
+          "block": 26,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 49,
+          "candidateRef": [
+            35,
+            1
+          ]
+        },
+        {
+          "block": 27,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 50,
+          "candidateRef": [
+            36,
+            0
+          ]
+        },
+        {
+          "block": 27,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 51,
+          "candidateRef": [
+            36,
+            1
+          ]
+        },
+        {
+          "block": 28,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 52,
+          "candidateRef": [
+            143,
+            0
+          ]
+        },
+        {
+          "block": 29,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 53,
+          "candidateRef": [
+            37,
+            0
+          ]
+        },
+        {
+          "block": 29,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 54,
+          "candidateRef": [
+            37,
+            1
+          ]
+        },
+        {
+          "block": 30,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 55,
+          "candidateRef": [
+            38,
+            0
+          ]
+        },
+        {
+          "block": 30,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 56,
+          "candidateRef": [
+            38,
+            1
+          ]
+        },
+        {
+          "block": 31,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 57,
+          "candidateRef": [
+            39,
+            0
+          ]
+        },
+        {
+          "block": 31,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 58,
+          "candidateRef": [
+            39,
+            1
+          ]
+        },
+        {
+          "block": 32,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 59,
+          "candidateRef": [
+            40,
+            0
+          ]
+        },
+        {
+          "block": 32,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 60,
+          "candidateRef": [
+            40,
+            1
+          ]
+        },
+        {
+          "block": 33,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 61,
+          "candidateRef": [
+            41,
+            0
+          ]
+        },
+        {
+          "block": 33,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 62,
+          "candidateRef": [
+            41,
+            1
+          ]
+        },
+        {
+          "block": 34,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 63,
+          "candidateRef": [
+            42,
+            0
+          ]
+        },
+        {
+          "block": 34,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 64,
+          "candidateRef": [
+            42,
+            1
+          ]
+        },
+        {
+          "block": 35,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 65,
+          "candidateRef": [
+            129,
+            0
+          ]
+        },
+        {
+          "block": 35,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 66,
+          "candidateRef": [
+            129,
+            1
+          ]
+        },
+        {
+          "block": 36,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 67,
+          "candidateRef": [
+            43,
+            0
+          ]
+        },
+        {
+          "block": 36,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 68,
+          "candidateRef": [
+            43,
+            1
+          ]
+        },
+        {
+          "block": 37,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 69,
+          "candidateRef": [
+            44,
+            0
+          ]
+        },
+        {
+          "block": 37,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 70,
+          "candidateRef": [
+            44,
+            1
+          ]
+        },
+        {
+          "block": 38,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 71,
+          "candidateRef": [
+            45,
+            0
+          ]
+        },
+        {
+          "block": 38,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 72,
+          "candidateRef": [
+            45,
+            1
+          ]
+        },
+        {
+          "block": 39,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 73,
+          "candidateRef": [
+            46,
+            0
+          ]
+        },
+        {
+          "block": 39,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 74,
+          "candidateRef": [
+            46,
+            1
+          ]
+        },
+        {
+          "block": 40,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 75,
+          "candidateRef": [
+            105,
+            0
+          ]
+        },
+        {
+          "block": 40,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 76,
+          "candidateRef": [
+            105,
+            1
+          ]
+        },
+        {
+          "block": 41,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 77,
+          "candidateRef": [
+            130,
+            0
+          ]
+        },
+        {
+          "block": 41,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 78,
+          "candidateRef": [
+            130,
+            1
+          ]
+        },
+        {
+          "block": 42,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 79,
+          "candidateRef": [
+            47,
+            0
+          ]
+        },
+        {
+          "block": 42,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 80,
+          "candidateRef": [
+            47,
+            1
+          ]
+        },
+        {
+          "block": 43,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 81,
+          "candidateRef": [
+            48,
+            0
+          ]
+        },
+        {
+          "block": 43,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 82,
+          "candidateRef": [
+            48,
+            1
+          ]
+        },
+        {
+          "block": 44,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 83,
+          "candidateRef": [
+            49,
+            0
+          ]
+        },
+        {
+          "block": 44,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 84,
+          "candidateRef": [
+            49,
+            1
+          ]
+        },
+        {
+          "block": 45,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 85,
+          "candidateRef": [
+            50,
+            0
+          ]
+        },
+        {
+          "block": 45,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 86,
+          "candidateRef": [
+            50,
+            1
+          ]
+        },
+        {
+          "block": 46,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 87,
+          "candidateRef": [
+            51,
+            0
+          ]
+        },
+        {
+          "block": 46,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 88,
+          "candidateRef": [
+            51,
+            1
+          ]
+        },
+        {
+          "block": 47,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 89,
+          "candidateRef": [
+            52,
+            0
+          ]
+        },
+        {
+          "block": 47,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 90,
+          "candidateRef": [
+            52,
+            1
+          ]
+        },
+        {
+          "block": 48,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 91,
+          "candidateRef": [
+            106,
+            0
+          ]
+        },
+        {
+          "block": 48,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 92,
+          "candidateRef": [
+            106,
+            1
+          ]
+        },
+        {
+          "block": 49,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 93,
+          "candidateRef": [
+            142,
+            0
+          ]
+        },
+        {
+          "block": 50,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 94,
+          "candidateRef": [
+            136,
+            0
+          ]
+        },
+        {
+          "block": 50,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 95,
+          "candidateRef": [
+            124,
+            0
+          ]
+        },
+        {
+          "block": 51,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 96,
+          "candidateRef": [
+            53,
+            0
+          ]
+        },
+        {
+          "block": 52,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 52,
+          "candidateRef": [
+            143,
+            0
+          ]
+        },
+        {
+          "block": 53,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 97,
+          "candidateRef": [
+            54,
+            0
+          ]
+        },
+        {
+          "block": 54,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 98,
+          "candidateRef": [
+            55,
+            0
+          ]
+        },
+        {
+          "block": 55,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 99,
+          "candidateRef": [
+            56,
+            0
+          ]
+        },
+        {
+          "block": 56,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 100,
+          "candidateRef": [
+            57,
+            0
+          ]
+        },
+        {
+          "block": 57,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 101,
+          "candidateRef": [
+            133,
+            0
+          ]
+        },
+        {
+          "block": 58,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 59,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 102,
+          "candidateRef": [
+            58,
+            0
+          ]
+        },
+        {
+          "block": 60,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 103,
+          "candidateRef": [
+            59,
+            0
+          ]
+        },
+        {
+          "block": 61,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 104,
+          "candidateRef": [
+            60,
+            0
+          ]
+        },
+        {
+          "block": 62,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 105,
+          "candidateRef": [
+            61,
+            0
+          ]
+        },
+        {
+          "block": 63,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 106,
+          "candidateRef": [
+            62,
+            0
+          ]
+        },
+        {
+          "block": 64,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 93,
+          "candidateRef": [
+            142,
+            0
+          ]
+        },
+        {
+          "block": 65,
+          "layout": "RoadTwoSpec_LN_ND_NG_NW.fx",
+          "parameter": "g_tAlbedo",
+          "value": 107,
+          "candidateRef": [
+            125,
+            0
+          ]
+        },
+        {
+          "block": 65,
+          "layout": "RoadTwoSpec_LN_ND_NG_NW.fx",
+          "parameter": "g_tSpecular",
+          "value": 108,
+          "candidateRef": [
+            125,
+            1
+          ]
+        },
+        {
+          "block": 66,
+          "layout": "RoadTwoSpec_LN_ND_NG_NW.fx",
+          "parameter": "g_tLightmap",
+          "value": 93,
+          "candidateRef": [
+            142,
+            0
+          ]
+        },
+        {
+          "block": 67,
+          "layout": "RoadTwoSpec_LN_ND_NG_NW.fx",
+          "parameter": "g_tAlbedo",
+          "value": 109,
+          "candidateRef": [
+            63,
+            0
+          ]
+        },
+        {
+          "block": 67,
+          "layout": "RoadTwoSpec_LN_ND_NG_NW.fx",
+          "parameter": "g_tSpecular",
+          "value": 110,
+          "candidateRef": [
+            63,
+            1
+          ]
+        },
+        {
+          "block": 68,
+          "layout": "RoadTwoSpec_LN_ND_NG_NW.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 69,
+          "layout": "Road_LN_ND_NG_NW.fx",
+          "parameter": "g_tSpecular",
+          "value": 111,
+          "candidateRef": [
+            64,
+            0
+          ]
+        },
+        {
+          "block": 69,
+          "layout": "Road_LN_ND_NG_NW.fx",
+          "parameter": "g_tAlbedo",
+          "value": 36,
+          "candidateRef": [
+            104,
+            0
+          ]
+        },
+        {
+          "block": 70,
+          "layout": "Road_LN_ND_NG_NW.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 71,
+          "layout": "Road_LN_ND_NG_NW.fx",
+          "parameter": "g_tSpecular",
+          "value": 112,
+          "candidateRef": [
+            126,
+            0
+          ]
+        },
+        {
+          "block": 71,
+          "layout": "Road_LN_ND_NG_NW.fx",
+          "parameter": "g_tAlbedo",
+          "value": 94,
+          "candidateRef": [
+            136,
+            0
+          ]
+        },
+        {
+          "block": 72,
+          "layout": "Road_LN_ND_NG_NW.fx",
+          "parameter": "g_tLightmap",
+          "value": 93,
+          "candidateRef": [
+            142,
+            0
+          ]
+        },
+        {
+          "block": 73,
+          "layout": "RoadTwoSpecN_LN.fx",
+          "parameter": "g_tSpecular",
+          "value": 113,
+          "candidateRef": [
+            107,
+            0
+          ]
+        },
+        {
+          "block": 73,
+          "layout": "RoadTwoSpecN_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 114,
+          "candidateRef": [
+            107,
+            1
+          ]
+        },
+        {
+          "block": 73,
+          "layout": "RoadTwoSpecN_LN.fx",
+          "parameter": "g_tDetailSpecular",
+          "value": 115,
+          "candidateRef": [
+            65,
+            0
+          ]
+        },
+        {
+          "block": 73,
+          "layout": "RoadTwoSpecN_LN.fx",
+          "parameter": "g_tWorldNormal",
+          "value": 116,
+          "candidateRef": [
+            107,
+            2
+          ]
+        },
+        {
+          "block": 73,
+          "layout": "RoadTwoSpecN_LN.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 117,
+          "candidateRef": [
+            65,
+            1
+          ]
+        },
+        {
+          "block": 73,
+          "layout": "RoadTwoSpecN_LN.fx",
+          "parameter": "g_tDirtAlbedo",
+          "value": 118,
+          "candidateRef": [
+            65,
+            2
+          ]
+        },
+        {
+          "block": 74,
+          "layout": "RoadTwoSpecN_LN.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 75,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tSpecular",
+          "value": 119,
+          "candidateRef": [
+            135,
+            0
+          ]
+        },
+        {
+          "block": 75,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tAlbedo",
+          "value": 120,
+          "candidateRef": [
+            135,
+            1
+          ]
+        },
+        {
+          "block": 75,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tDetailSpecular",
+          "value": 121,
+          "candidateRef": [
+            134,
+            0
+          ]
+        },
+        {
+          "block": 75,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tWorldNormal",
+          "value": 122,
+          "candidateRef": [
+            131,
+            0
+          ]
+        },
+        {
+          "block": 75,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 123,
+          "candidateRef": [
+            134,
+            1
+          ]
+        },
+        {
+          "block": 76,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tLightmap",
+          "value": 93,
+          "candidateRef": [
+            142,
+            0
+          ]
+        },
+        {
+          "block": 77,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tSpecular",
+          "value": 113,
+          "candidateRef": [
+            107,
+            0
+          ]
+        },
+        {
+          "block": 77,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tAlbedo",
+          "value": 114,
+          "candidateRef": [
+            107,
+            1
+          ]
+        },
+        {
+          "block": 77,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tDetailSpecular",
+          "value": 121,
+          "candidateRef": [
+            134,
+            0
+          ]
+        },
+        {
+          "block": 77,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tWorldNormal",
+          "value": 116,
+          "candidateRef": [
+            107,
+            2
+          ]
+        },
+        {
+          "block": 77,
+          "layout": "RoadTwoSpec_LN_NG.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 123,
+          "candidateRef": [
+            134,
+            1
+          ]
+        },
+        {
+          "block": 78,
+          "layout": "Road_LN_NG.fx",
+          "parameter": "g_tAlbedo",
+          "value": 124,
+          "candidateRef": [
+            66,
+            0
+          ]
+        },
+        {
+          "block": 78,
+          "layout": "Road_LN_NG.fx",
+          "parameter": "g_tSpecular",
+          "value": 125,
+          "candidateRef": [
+            66,
+            1
+          ]
+        },
+        {
+          "block": 78,
+          "layout": "Road_LN_NG.fx",
+          "parameter": "g_tWorldNormal",
+          "value": 126,
+          "candidateRef": [
+            66,
+            2
+          ]
+        },
+        {
+          "block": 78,
+          "layout": "Road_LN_NG.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 127,
+          "candidateRef": [
+            66,
+            3
+          ]
+        },
+        {
+          "block": 79,
+          "layout": "Road_LN_NG.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 80,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tAlbedo",
+          "value": 128,
+          "candidateRef": [
+            108,
+            0
+          ]
+        },
+        {
+          "block": 80,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tSpecular",
+          "value": 129,
+          "candidateRef": [
+            108,
+            1
+          ]
+        },
+        {
+          "block": 80,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tDetailSpecular",
+          "value": 130,
+          "candidateRef": [
+            108,
+            2
+          ]
+        },
+        {
+          "block": 80,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 131,
+          "candidateRef": [
+            108,
+            3
+          ]
+        },
+        {
+          "block": 81,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tLightmap",
+          "value": 52,
+          "candidateRef": [
+            143,
+            0
+          ]
+        },
+        {
+          "block": 82,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tAlbedo",
+          "value": 120,
+          "candidateRef": [
+            135,
+            1
+          ]
+        },
+        {
+          "block": 82,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tSpecular",
+          "value": 119,
+          "candidateRef": [
+            135,
+            0
+          ]
+        },
+        {
+          "block": 82,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tDetailSpecular",
+          "value": 132,
+          "candidateRef": [
+            67,
+            0
+          ]
+        },
+        {
+          "block": 82,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 133,
+          "candidateRef": [
+            67,
+            1
+          ]
+        },
+        {
+          "block": 83,
+          "layout": "RoadTwoSpec_LN_NG_NW.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 84,
+          "layout": "Road_LN_NG_NW.fx",
+          "parameter": "g_tSpecular",
+          "value": 134,
+          "candidateRef": [
+            68,
+            0
+          ]
+        },
+        {
+          "block": 84,
+          "layout": "Road_LN_NG_NW.fx",
+          "parameter": "g_tAlbedo",
+          "value": 135,
+          "candidateRef": [
+            68,
+            1
+          ]
+        },
+        {
+          "block": 84,
+          "layout": "Road_LN_NG_NW.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 136,
+          "candidateRef": [
+            68,
+            2
+          ]
+        },
+        {
+          "block": 85,
+          "layout": "Road_LN_NG_NW.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 86,
+          "layout": "Road_LN_ND_NG.fx",
+          "parameter": "g_tAlbedo",
+          "value": 137,
+          "candidateRef": [
+            109,
+            0
+          ]
+        },
+        {
+          "block": 86,
+          "layout": "Road_LN_ND_NG.fx",
+          "parameter": "g_tSpecular",
+          "value": 138,
+          "candidateRef": [
+            109,
+            1
+          ]
+        },
+        {
+          "block": 86,
+          "layout": "Road_LN_ND_NG.fx",
+          "parameter": "g_tWorldNormal",
+          "value": 139,
+          "candidateRef": [
+            109,
+            2
+          ]
+        },
+        {
+          "block": 87,
+          "layout": "Road_LN_ND_NG.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 88,
+          "layout": "Road_LN_ND_NG.fx",
+          "parameter": "g_tAlbedo",
+          "value": 140,
+          "candidateRef": [
+            69,
+            0
+          ]
+        },
+        {
+          "block": 88,
+          "layout": "Road_LN_ND_NG.fx",
+          "parameter": "g_tSpecular",
+          "value": 141,
+          "candidateRef": [
+            69,
+            1
+          ]
+        },
+        {
+          "block": 88,
+          "layout": "Road_LN_ND_NG.fx",
+          "parameter": "g_tWorldNormal",
+          "value": 142,
+          "candidateRef": [
+            69,
+            2
+          ]
+        },
+        {
+          "block": 89,
+          "layout": "DetailColourTwoMtl_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 12,
+          "candidateRef": [
+            103,
+            0
+          ]
+        },
+        {
+          "block": 89,
+          "layout": "DetailColourTwoMtl_LN.fx",
+          "parameter": "g_tMaterial",
+          "value": 143,
+          "candidateRef": [
+            70,
+            0
+          ]
+        },
+        {
+          "block": 89,
+          "layout": "DetailColourTwoMtl_LN.fx",
+          "parameter": "g_tDetailMaterial",
+          "value": 143,
+          "candidateRef": [
+            70,
+            0
+          ]
+        },
+        {
+          "block": 89,
+          "layout": "DetailColourTwoMtl_LN.fx",
+          "parameter": "g_tDetailAlbedo",
+          "value": 144,
+          "candidateRef": [
+            70,
+            1
+          ]
+        },
+        {
+          "block": 90,
+          "layout": "DetailColourTwoMtl_LN.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 91,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 145,
+          "candidateRef": [
+            71,
+            0
+          ]
+        },
+        {
+          "block": 91,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 146,
+          "candidateRef": [
+            71,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "start": 59646,
+      "end": 100413,
+      "recordArrayCounts": [
+        [
+          48,
+          23
+        ],
+        [
+          20,
+          138
+        ],
+        [
+          36,
+          0
+        ],
+        [
+          48,
+          47
+        ]
+      ],
+      "parameterBlockCount": 143,
+      "textureParameterCount": 124,
+      "resourceReferenceCount": 67,
+      "dependencyRecordCount": 18,
+      "textureDependencyCount": 153,
+      "textureParameters": [
+        {
+          "block": 1,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 2,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 1,
+          "candidateRef": [
+            72,
+            0
+          ]
+        },
+        {
+          "block": 2,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 2,
+          "candidateRef": [
+            72,
+            1
+          ]
+        },
+        {
+          "block": 3,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            143,
+            0
+          ]
+        },
+        {
+          "block": 4,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 4,
+          "candidateRef": [
+            73,
+            0
+          ]
+        },
+        {
+          "block": 4,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 5,
+          "candidateRef": [
+            73,
+            1
+          ]
+        },
+        {
+          "block": 5,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 6,
+          "candidateRef": [
+            110,
+            0
+          ]
+        },
+        {
+          "block": 5,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 7,
+          "candidateRef": [
+            110,
+            1
+          ]
+        },
+        {
+          "block": 6,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 8,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 7,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 9,
+          "candidateRef": [
+            111,
+            0
+          ]
+        },
+        {
+          "block": 7,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 10,
+          "candidateRef": [
+            111,
+            1
+          ]
+        },
+        {
+          "block": 8,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 11,
+          "candidateRef": [
+            74,
+            0
+          ]
+        },
+        {
+          "block": 8,
+          "layout": "default_LN_NB_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 12,
+          "candidateRef": [
+            74,
+            1
+          ]
+        },
+        {
+          "block": 9,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 13,
+          "candidateRef": [
+            75,
+            0
+          ]
+        },
+        {
+          "block": 10,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 8,
+          "candidateRef": [
+            144,
+            0
+          ]
+        },
+        {
+          "block": 11,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 14,
+          "candidateRef": [
+            76,
+            0
+          ]
+        },
+        {
+          "block": 12,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 15,
+          "candidateRef": [
+            127,
+            0
+          ]
+        },
+        {
+          "block": 13,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 16,
+          "candidateRef": [
+            77,
+            0
+          ]
+        },
+        {
+          "block": 14,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tLightmap",
+          "value": 3,
+          "candidateRef": [
+            143,
+            0
+          ]
+        },
+        {
+          "block": 15,
+          "layout": "default_LN_NB_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 17,
+          "candidateRef": [
+            78,
+            0
+          ]
+        },
+        {
+          "block": 16,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 9,
+          "candidateRef": [
+            111,
+            0
+          ]
+        },
+        {
+          "block": 16,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 10,
+          "candidateRef": [
+            111,
+            1
+          ]
+        },
+        {
+          "block": 17,
+          "layout": "default_LN_NB_NL_NM.fx",
+          "parameter": "g_tAlbedo",
+          "value": 15,
+          "candidateRef": [
+            127,
+            0
+          ]
+        },
+        {
+          "block": 18,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 19,
+          "layout": "default_LN_NB_NL_NM.fx",
+          "parameter": "g_tAlbedo",
+          "value": 18,
+          "candidateRef": [
+            128,
+            0
+          ]
+        },
+        {
+          "block": 20,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 21,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 22,
+          "layout": "default_LN_NB_NL.fx",
+          "parameter": "g_tAlbedo",
+          "value": 19,
+          "candidateRef": [
+            112,
+            0
+          ]
+        },
+        {
+          "block": 22,
+          "layout": "default_LN_NB_NL.fx",
+          "parameter": "g_tMaterial",
+          "value": 20,
+          "candidateRef": [
+            112,
+            1
+          ]
+        },
+        {
+          "block": 23,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 24,
+          "layout": "default_LN_NB_NL.fx",
+          "parameter": "g_tAlbedo",
+          "value": 21,
+          "candidateRef": [
+            113,
+            0
+          ]
+        },
+        {
+          "block": 24,
+          "layout": "default_LN_NB_NL.fx",
+          "parameter": "g_tMaterial",
+          "value": 22,
+          "candidateRef": [
+            113,
+            1
+          ]
+        },
+        {
+          "block": 25,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 26,
+          "layout": "Foliage_LN_NL.fx",
+          "parameter": "g_tAlbedo",
+          "value": 23,
+          "candidateRef": [
+            132,
+            0
+          ]
+        },
+        {
+          "block": 27,
+          "layout": "FoliageBillBoard_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 23,
+          "candidateRef": [
+            132,
+            0
+          ]
+        },
+        {
+          "block": 28,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 29,
+          "layout": "InstanceReset",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 30,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 24,
+          "candidateRef": [
+            88,
+            0
+          ]
+        },
+        {
+          "block": 35,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 25,
+          "candidateRef": [
+            114,
+            0
+          ]
+        },
+        {
+          "block": 37,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 26,
+          "candidateRef": [
+            89,
+            0
+          ]
+        },
+        {
+          "block": 39,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 27,
+          "candidateRef": [
+            115,
+            0
+          ]
+        },
+        {
+          "block": 41,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 28,
+          "candidateRef": [
+            90,
+            0
+          ]
+        },
+        {
+          "block": 44,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 29,
+          "candidateRef": [
+            116,
+            0
+          ]
+        },
+        {
+          "block": 46,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 30,
+          "candidateRef": [
+            91,
+            0
+          ]
+        },
+        {
+          "block": 47,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 31,
+          "candidateRef": [
+            117,
+            0
+          ]
+        },
+        {
+          "block": 49,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 32,
+          "candidateRef": [
+            92,
+            0
+          ]
+        },
+        {
+          "block": 54,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 33,
+          "candidateRef": [
+            118,
+            0
+          ]
+        },
+        {
+          "block": 56,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 34,
+          "candidateRef": [
+            93,
+            0
+          ]
+        },
+        {
+          "block": 59,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 35,
+          "candidateRef": [
+            119,
+            0
+          ]
+        },
+        {
+          "block": 61,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 36,
+          "candidateRef": [
+            94,
+            0
+          ]
+        },
+        {
+          "block": 65,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 37,
+          "candidateRef": [
+            95,
+            0
+          ]
+        },
+        {
+          "block": 67,
+          "layout": "SpeedTree_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 38,
+          "candidateRef": [
+            96,
+            0
+          ]
+        },
+        {
+          "block": 68,
+          "layout": "SpeedTreeLeaf_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 25,
+          "candidateRef": [
+            114,
+            0
+          ]
+        },
+        {
+          "block": 69,
+          "layout": "SpeedTreeLeaf_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 27,
+          "candidateRef": [
+            115,
+            0
+          ]
+        },
+        {
+          "block": 70,
+          "layout": "SpeedTreeLeaf_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 35,
+          "candidateRef": [
+            119,
+            0
+          ]
+        },
+        {
+          "block": 71,
+          "layout": "SpeedTreeLeaf_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 29,
+          "candidateRef": [
+            116,
+            0
+          ]
+        },
+        {
+          "block": 72,
+          "layout": "SpeedTreeLeaf_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 31,
+          "candidateRef": [
+            117,
+            0
+          ]
+        },
+        {
+          "block": 73,
+          "layout": "SpeedTreeLeaf_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 33,
+          "candidateRef": [
+            118,
+            0
+          ]
+        },
+        {
+          "block": 74,
+          "layout": "default_LN_NB_NL_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 39,
+          "candidateRef": [
+            97,
+            0
+          ]
+        },
+        {
+          "block": 79,
+          "layout": "default_LN_NB_NL_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 40,
+          "candidateRef": [
+            98,
+            0
+          ]
+        },
+        {
+          "block": 89,
+          "layout": "default_LN_NB_NL_NM_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 41,
+          "candidateRef": [
+            133,
+            0
+          ]
+        },
+        {
+          "block": 94,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 42,
+          "candidateRef": [
+            120,
+            0
+          ]
+        },
+        {
+          "block": 94,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 43,
+          "candidateRef": [
+            120,
+            1
+          ]
+        },
+        {
+          "block": 95,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 96,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 44,
+          "candidateRef": [
+            4294967295,
+            4
+          ]
+        },
+        {
+          "block": 96,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 45,
+          "candidateRef": [
+            4294967295,
+            5
+          ]
+        },
+        {
+          "block": 97,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 98,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 46,
+          "candidateRef": [
+            4294967295,
+            2
+          ]
+        },
+        {
+          "block": 98,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 47,
+          "candidateRef": [
+            4294967295,
+            3
+          ]
+        },
+        {
+          "block": 99,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 100,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 101,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 102,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 103,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 104,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 105,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 106,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 107,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 108,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 21,
+          "candidateRef": [
+            113,
+            0
+          ]
+        },
+        {
+          "block": 108,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 22,
+          "candidateRef": [
+            113,
+            1
+          ]
+        },
+        {
+          "block": 109,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 110,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 111,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 112,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 113,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 114,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 115,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 116,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 117,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 118,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 119,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 120,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 48,
+          "candidateRef": [
+            4294967295,
+            8
+          ]
+        },
+        {
+          "block": 120,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 49,
+          "candidateRef": [
+            4294967295,
+            9
+          ]
+        },
+        {
+          "block": 121,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 122,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 50,
+          "candidateRef": [
+            4294967295,
+            6
+          ]
+        },
+        {
+          "block": 122,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 51,
+          "candidateRef": [
+            4294967295,
+            7
+          ]
+        },
+        {
+          "block": 123,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 124,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 52,
+          "candidateRef": [
+            121,
+            0
+          ]
+        },
+        {
+          "block": 124,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 53,
+          "candidateRef": [
+            121,
+            1
+          ]
+        },
+        {
+          "block": 125,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 126,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 127,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 54,
+          "candidateRef": [
+            99,
+            0
+          ]
+        },
+        {
+          "block": 127,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 55,
+          "candidateRef": [
+            99,
+            1
+          ]
+        },
+        {
+          "block": 128,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 129,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 56,
+          "candidateRef": [
+            4294967295,
+            14
+          ]
+        },
+        {
+          "block": 129,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 57,
+          "candidateRef": [
+            4294967295,
+            15
+          ]
+        },
+        {
+          "block": 130,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 131,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 132,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 58,
+          "candidateRef": [
+            100,
+            0
+          ]
+        },
+        {
+          "block": 132,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 59,
+          "candidateRef": [
+            100,
+            1
+          ]
+        },
+        {
+          "block": 133,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 134,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 60,
+          "candidateRef": [
+            4294967295,
+            10
+          ]
+        },
+        {
+          "block": 134,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 61,
+          "candidateRef": [
+            4294967295,
+            11
+          ]
+        },
+        {
+          "block": 135,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 136,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 62,
+          "candidateRef": [
+            4294967295,
+            12
+          ]
+        },
+        {
+          "block": 136,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 63,
+          "candidateRef": [
+            4294967295,
+            13
+          ]
+        },
+        {
+          "block": 137,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 64,
+          "candidateRef": [
+            101,
+            0
+          ]
+        },
+        {
+          "block": 137,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 65,
+          "candidateRef": [
+            101,
+            1
+          ]
+        },
+        {
+          "block": 138,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 139,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tAlbedo",
+          "value": 19,
+          "candidateRef": [
+            112,
+            0
+          ]
+        },
+        {
+          "block": 139,
+          "layout": "default_LN_NB_NL_NV.fx",
+          "parameter": "g_tMaterial",
+          "value": 20,
+          "candidateRef": [
+            112,
+            1
+          ]
+        },
+        {
+          "block": 140,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 141,
+          "layout": "Instance",
+          "parameter": "g_tEnvironment",
+          "value": 0,
+          "candidateRef": [
+            4294967295,
+            1
+          ]
+        },
+        {
+          "block": 142,
+          "layout": "SyntheticBillboard_LN.fx",
+          "parameter": "g_tAlbedo",
+          "value": 66,
+          "candidateRef": [
+            122,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -80,13 +80,13 @@ After the last model's RET: UInt32 count, then count x 16-byte records `(UInt32 
 | NFS MW PC | PC | Same chunk family as NFSU2 | Not tested | Test NFSU2 profile; MW chunks 0x134013/17/18/19 |
 | NFS PSP | PSP | BUN, GEOMETRY.BIN with PSP chunks (0x55441122) | Not supported | PSP solid layout |
 | Fast & Furious (`fnf ps2` ARCX) | Xbox-layout banks | ARCX | **Works** (tested) | Damage/skinned resources, external wheels |
-| Fast & Furious ARCP (`fnf ps2/*.arc`) | PS2 | ARCP | Points + strips for `000000c4.arc` (documented) | Materials, hierarchy; other ARCP files not checked |
+| Fast & Furious retail ARCP | PS2 | ARCP | Native static scan/decode: cars +231 track packages; packed ADC/unlit layouts and subinstances,5 scene GLB exports | Primary GS textures/material references integrated (98.65% placed track texture coverage). Original shaders, ambiguous/missing shared pixels, whole-course sector assembly, external car assembly and archive.ar direct browsing pending; see ../fnf-ps2/FNF-PS2-2026-11-15.md |
 | ITC | Xbox 360 | Genki `.sdb` (big-endian, `mdl_Detail`) + `XMD.001` with `XPR2` | Not supported | Everything; XPR2 decoder |
 | Wangan Midnight PS3 | PS3 | `XMD.001` → `XTD.002` (GTF) + `X3D0037` | Not supported | Container + model; GTF textures are a quick win |
 | Street Supremacy | PSP | Genki `.sdb` | Not supported | Not probed in depth |
 | TXR2 | Dreamcast | CARMODEL `.bin`, COURSE.AFS | AFS opens; models not decoded (documented) | Everything inside |
 | Blur | 360/PC | `CPModel` `.model`, ARCH `.levelstream` | Not supported | Bizarre Creations; may share ideas with PGR4 |
-| Auto Modellista | PS2 | `.bin` with 4 TIM2, `.adx` | TIM2 images only | Geometry |
+| Auto Modellista | PS2 | AFS / Meltw BIN / AMO / TIM2; ADX audio | Research: byte-exact decompression, vertices/normals/UV/index records in 3 cars + 3 track blocks; no native reader | Native PS2 track AMO/AHI +primary materials integrated/tested: USA66/EU57 regular sources; bank geometry included. Cars/original shader passes pending. See ../auto-modellista/NATIVE-READER-2026-11-16.md. |
 | D1 Grand Prix | PS2 | `.BIN`/`.D1` with IMGF | Not supported | — |
 | Initial D Special Stage | PS2 | AFS + TBL | AFS opens | Children unidentified |
 | Initial D Street Stage (`initial d`) | PSP | `OMG.00.1PSP` | Not supported | — |

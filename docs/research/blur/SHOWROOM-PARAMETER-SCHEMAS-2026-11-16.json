@@ -1,0 +1,168 @@
+{
+  "start": 375,
+  "end": 1143,
+  "version": 0,
+  "arrayVersion": 0,
+  "descriptors": [
+    {
+      "start": 387,
+      "end": 427,
+      "name": "",
+      "fields": [],
+      "rawMetadata": [
+        0,
+        1,
+        4294967295,
+        0
+      ],
+      "indices": []
+    },
+    {
+      "start": 427,
+      "end": 620,
+      "name": "InstanceReset",
+      "fields": [
+        {
+          "name": "g_mWorld",
+          "type": 6,
+          "count": 16
+        },
+        {
+          "name": "g_vUVOffset",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_lodFade",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_tEnvironment",
+          "type": 7,
+          "count": 1
+        },
+        {
+          "name": "g_SHNode",
+          "type": 6,
+          "count": 12
+        }
+      ],
+      "rawMetadata": [
+        148,
+        4,
+        4294967295,
+        0
+      ],
+      "indices": [
+        0,
+        64,
+        80,
+        96,
+        100
+      ]
+    },
+    {
+      "start": 620,
+      "end": 815,
+      "name": "LightFlare_LN.fx",
+      "fields": [
+        {
+          "name": "g_tColour",
+          "type": 7,
+          "count": 1
+        },
+        {
+          "name": "g_vLightFlareColour",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_fLightFlareIntensity",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_fLightFlareSize",
+          "type": 6,
+          "count": 4
+        }
+      ],
+      "rawMetadata": [
+        52,
+        4,
+        2,
+        0
+      ],
+      "indices": [
+        0,
+        4,
+        20,
+        36
+      ]
+    },
+    {
+      "start": 815,
+      "end": 1143,
+      "name": "MeshEffect_LN.fx",
+      "fields": [
+        {
+          "name": "g_tTexture",
+          "type": 7,
+          "count": 1
+        },
+        {
+          "name": "g_vColour",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_vColourFresnel",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_vFresnelPower",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_vScrollTextureX",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_vScrollTextureY",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_vSpeedScrollTextureX",
+          "type": 6,
+          "count": 4
+        },
+        {
+          "name": "g_vSpeedScrollTextureY",
+          "type": 6,
+          "count": 4
+        }
+      ],
+      "rawMetadata": [
+        116,
+        4,
+        17,
+        0
+      ],
+      "indices": [
+        0,
+        4,
+        20,
+        36,
+        52,
+        68,
+        84,
+        100
+      ]
+    }
+  ]
+}

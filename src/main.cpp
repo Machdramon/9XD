@@ -551,7 +551,7 @@ private:
 #ifndef WORKBENCH_NO_MAIN
 int main(int argc,char **argv){
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
-    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");QGuiApplication::setApplicationDisplayName("9XD");QCoreApplication::setApplicationVersion("0.4.1");
+    QApplication app(argc,argv);QCoreApplication::setOrganizationName("BinaryWorkbench");QCoreApplication::setApplicationName("BinaryWorkbench");QGuiApplication::setApplicationDisplayName("9XD");QCoreApplication::setApplicationVersion("0.4.2");
 #ifdef Q_OS_WIN
     app.setWindowIcon(QIcon(":/branding/windows-runtime-cat.ico"));
 #else

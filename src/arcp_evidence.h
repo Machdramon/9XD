@@ -8,7 +8,7 @@
 #include <cmath>
 #include <cstring>
 // Original bounded analysis of the ARCP sample profile. Not a general archive or VU emulator.
-inline QJsonObject arcpEvidence(const QByteArray &bytes,qint64 sourceSize,const std::atomic_bool &cancel){
+inline QJsonObject arcpEvidence(const QByteArray &bytes,qint64 sourceSize,const std::atomic_bool &cancel,qint64 spanBegin=-1,qint64 spanEnd=-1){
     if(bytes.size()<4||bytes.left(4)!="ARCP")return {};
     QJsonObject out{{"family","ARCP / PS2 VIF"},{"signatureOffset","0x0"},{"renderSupported",false},{"previewSupported",false}};
     auto u32=[&](qint64 p){return qFromLittleEndian<quint32>(bytes.constData()+p);};
@@ -16,15 +16,17 @@ inline QJsonObject arcpEvidence(const QByteArray &bytes,qint64 sourceSize,const 
     auto count=u32(4);qint64 tableEnd=128+qint64(count)*16;
     if(count<1||count>4096||tableEnd>bytes.size()){out["diagnostic"]="Invalid or truncated ARCP resource directory.";return out;}
     for(quint32 i=0;i<count;++i){auto offset=u32(128+i*16+4);if(offset&&offset>=sourceSize){out["diagnostic"]="ARCP resource pointer is outside the document.";return out;}}
+    qint64 scanBegin=tableEnd,scanEnd=bytes.size();
+    if(spanBegin>=0||spanEnd>=0){if(spanBegin<tableEnd||spanEnd<spanBegin||spanEnd>bytes.size()){out["diagnostic"]="Invalid ARCP packet resource span.";return out;}scanBegin=spanBegin;scanEnd=spanEnd;}
     QJsonArray regions,samples,chunks;int packets=0,vertices=0,triangles=0,strips=0,topologyChunks=0;bool capped=false;
     auto region=[&](QString name,qint64 offset,qint64 width,qint64 repetitions=1){if(regions.size()<24)regions.append(QJsonObject{{"name",name},{"offset",QString::number(offset)},{"length",QString::number(width)},{"step",QString::number(width)},{"repetitions",repetitions},{"evidence","ARCP signature, bounded directory and validated inline DMA/VIF stream"}});};
     region("ARCP header",0,128);region("ARCP resource directory",128,16,count);
     struct Unpack{qint64 offset;int command,count,address,cl,wl;quint32 mask;};
     auto hex=[](qint64 n){return QString("0x%1").arg(n,0,16);};
-    for(qint64 a=(tableEnd+15)&~qint64(15);a+16<=bytes.size();a+=16){
+    for(qint64 a=(scanBegin+15)&~qint64(15);a+16<=scanEnd;a+=16){
         if(cancel.load())return {{"family","ARCP / PS2 VIF"},{"diagnostic","Inspection canceled."}};
         auto tag=u32(a);int kind=tag>>28,qwc=tag&65535;qint64 end=a+16+qint64(qwc)*16;
-        if((kind!=1&&kind!=6&&kind!=7)||tag!=((quint32(kind)<<28)|quint32(qwc))||qwc<1||qwc>4096||u32(a+4)!=0||end>bytes.size())continue;
+        if((kind!=1&&kind!=6&&kind!=7)||tag!=((quint32(kind)<<28)|quint32(qwc))||qwc<1||qwc>(spanBegin>=0?65535:4096)||u32(a+4)!=0||end>scanEnd)continue;
         int cl=1,wl=1;quint32 mask=0;bool valid=true;QVector<Unpack> unpacks;qint64 p=a+16;
         while(p<end){if(end-p<4){valid=false;break;}auto w=u32(p);int command=(w>>24)&127,num=(w>>16)&255,immediate=w&65535;p+=4;qint64 extra=0;
             if(command==1){cl=immediate&255;wl=immediate>>8;if(!cl)cl=256;if(!wl)wl=256;}

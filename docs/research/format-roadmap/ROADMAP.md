@@ -69,9 +69,9 @@ No decoder is complete solely because its geometry renders. Record geometry, ima
 
 | Format | Game | What we know | First analysis step |
 |---|---|---|---|
-| Auto Modellista | Auto Modellista (PS2) | In ChatGPT's candidate list; no layout confirmed yet. | Run the generic VIF analysis. If the coverage is low, look for the per-object header table. |
+| Auto Modellista | Auto Modellista (PS2) | 2026-11-16: Meltw verified against original MIPS; AMO XYZ/normals/UV/indices recovered on six samples. Research only. | Native PS2 track AMO/AHI +primary materials integrated/tested: USA66/EU57 regular sources; bank geometry included. Cars/original shader passes pending. See ../auto-modellista/NATIVE-READER-2026-11-16.md. |
 | TXR2 | Tokyo Xtreme Racer 2 (DC) | Dreamcast and not PS2, so VIF does not apply. | Look for PVR texture headers and strip lists (NJ/Ninja chunks such as `NJCM`). |
-| F&F ARCP | Fast & Furious | `arcp_evidence.h` already finds point clouds. Faces are not linked yet. | Find the index stream that pairs with the point sets. |
+| F&F ARCP | Fast & Furious retail PS2 | Native packed ADC15/unlit/lit geometry and subinstances integrated;231 track packages structurally decoded,5 scenes loaded/exported. See ../fnf-ps2/FNF-PS2-2026-11-15.md. | Primary GS textures/material indices implemented (98.65% of placed track meshes textured); original blending/vertex colors/shared-context conflicts, whole-course assembly, external car parts and outer archive browsing remain pending. |
 | Driveclub `EVOSLITL` | Driveclub (PS4) | A community BMS script exists (read only). | Read the BMS logic for the container. Then dump one mesh and confirm the vertex format. |
 
 ## Blocked by encryption or compression

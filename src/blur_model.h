@@ -78,6 +78,9 @@ inline QVector<quint32> faces(const QByteArray &b,const Layout &r){
     QVector<quint32> out;for(quint32 i=2;i<r.indexCount;++i){quint32 a=qFromLittleEndian<quint16>(b.constData()+r.indices+2*(i-2)),c=qFromLittleEndian<quint16>(b.constData()+r.indices+2*i),d=qFromLittleEndian<quint16>(b.constData()+r.indices+2*(i-1));if(a==d||d==c||a==c)continue;if(i&1)std::swap(a,d);out<<a<<d<<c;}return out;
 }
 inline float halfValue(quint16 v){const int e=(v>>10)&31,m=v&1023;double f=e==0?std::ldexp(double(m),-24):e==31?(m?NAN:INFINITY):std::ldexp(1.+double(m)/1024,e-15);return float(v&0x8000?-f:f);}
+// Blur/D3D samples top-origin image rows; MeshData uses bottom-origin V.
+// Preserve tiling/out-of-range coordinates and leave the decoded pixels unchanged.
+inline float meshUv(float source,int component){return component==1?1.f-source:source;}
 inline bool validUvs(const QByteArray &b,const Layout &r){for(quint32 i=0;i<r.vertexCount;++i)for(int k=0;k<2;++k)if(!std::isfinite(halfValue(qFromLittleEndian<quint16>(b.constData()+r.vertices+qint64(i)*20+16+2*k))))return false;return true;}
 // Names belong to the exact serialized image object, not to a global hash/nearest-offset lookup.
 inline QString imageName(const QByteArray &b,qsizetype f,qsizetype first){
@@ -146,7 +149,7 @@ inline MeshResult decode(ReadRequest source,const PatchList &patches,const QJson
     QByteArray b;for(qint64 p=0;p<source.expectedSize;){if(cancel.load())return fail("Blur decoding canceled.");auto req=source;req.offset=p;req.length=qMin<qint64>(1048576,source.expectedSize-p);auto page=readPage(req);if(!page.error.isEmpty()||page.bytes.size()!=req.length)return fail(page.error.isEmpty()?"Incomplete Blur source.":page.error);applyPatches(page.bytes,p,patches);b+=page.bytes;p+=page.bytes.size();}
     auto full=inspect(b,cancel);int draw=c["blurDrawIndex"].toInt(0);if(!full.vertexCount||draw<0||draw>=full.draws.size()||c["objectOffset"].toString()!=drawIdentity(full,draw))return fail("Blur candidate changed or layout unsupported. Scan again.");auto r=drawLayout(full,draw);
     auto mesh=std::make_shared<MeshData>();mesh->hasUvs=validUvs(b,r);mesh->triangles=faces(b,r);if(mesh->triangles.isEmpty())return fail("Blur draw has no nondegenerate triangles.");
-    for(quint32 i=0;i<r.vertexCount;++i){MeshVertex v{};auto p=r.vertices+qint64(i)*20;for(int k=0;k<3;++k)v.position[k]=real(b,p+4*k);if(mesh->hasUvs)for(int k=0;k<2;++k)v.uv[k]=halfValue(qFromLittleEndian<quint16>(b.constData()+p+16+2*k));mesh->vertices.append(v);mesh->vertexOffsets.append(p);}
+    for(quint32 i=0;i<r.vertexCount;++i){MeshVertex v{};auto p=r.vertices+qint64(i)*20;for(int k=0;k<3;++k)v.position[k]=real(b,p+4*k);if(mesh->hasUvs)for(int k=0;k<2;++k)v.uv[k]=meshUv(halfValue(qFromLittleEndian<quint16>(b.constData()+p+16+2*k)),k);mesh->vertices.append(v);mesh->vertexOffsets.append(p);}
     // Remove unused prefix/hole vertices so local sections frame and export only their own data.
     if(full.draws.size()>1){QVector<qint32> remap(mesh->vertices.size(),-1);QVector<MeshVertex> used;QVector<qint64> offsets;
         for(auto &index:mesh->triangles){if(remap[index]<0){remap[index]=used.size();used.append(mesh->vertices[index]);offsets.append(mesh->vertexOffsets[index]);}index=quint32(remap[index]);}
@@ -157,7 +160,7 @@ inline MeshResult decode(ReadRequest source,const PatchList &patches,const QJson
     for(qsizetype i=0;i<mesh->vertices.size();++i){auto n=sums[i];double len=std::hypot(n[0],n[1],n[2]);for(int k=0;k<3;++k)mesh->vertices[i].normal[k]=len>1e-12?float(n[k]/len):float(k==1);}
     if(cancel.load())return fail("Blur decoding canceled.");auto check=source;check.offset=0;check.length=0;auto final=readPage(check);if(!final.error.isEmpty())return fail(final.error);
     result.mesh=mesh;result.surface=std::make_shared<MeshSurface>();result.surface->material.name="Blur static draw";result.surface->material.sourceBindings=QJsonObject{{"format","Blur PC CPModel"},{"textureAssigned",false},{"gameShaderApplied",false},{"normalsGenerated",true},
-{"sourceBasisPreserved",true},{"uvDecoded",mesh->hasUvs},{"uvFormat","Float16x2, offset16 stride20; source coordinates retained"},{"textureWrapU","Repeat"},{"textureWrapV","Repeat"}};
+{"sourceBasisPreserved",true},{"uvDecoded",mesh->hasUvs},{"sourceUvTopLeft",true},{"uvVFlipped",mesh->hasUvs},{"uvFormat","Float16x2, offset16 stride20; U retained, V adapted from top-left to bottom-left"},{"textureWrapU","Repeat"},{"textureWrapV","Repeat"}};
     auto &sourceBindings=result.surface->material.sourceBindings;sourceBindings["drawIndex"]=draw;sourceBindings["drawCount"]=full.draws.size();sourceBindings["streamByteOffset"]=qint64(full.draws[draw].streamOffset);sourceBindings["firstIndex"]=qint64(full.draws[draw].first);sourceBindings["objectTransformsResolved"]=full.draws.size()==1;sourceBindings["localSectionPreview"]=full.draws.size()>1;
     const auto named=mesh->hasUvs&&full.draws.size()==1?diffusePreview(images(b,cancel)):QJsonObject();
     if(!named.isEmpty()){

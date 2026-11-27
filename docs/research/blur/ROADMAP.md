@@ -1,7 +1,67 @@
 # Blur native analysis roadmap
 
-Updated: 2026-10-28. Owner: Codex/native analysis; UI refinement may be handled by Claude.
-Status: first bounded native single-static-draw profile and inline images integrated; broad ARCH/multibuffer/scene support still pending. See the implementation receipt at the end.
+Updated: 2026-11-17. Owner: Codex/native analysis; UI refinement may be handled by Claude.
+Status: native CPModel, paired texture inspection and bounded static scene geometry integrated; focused validation passed; development EXE rebuilt. Showroom subset313 sections/58,857 faces; Haruna25,450 sections/4,876,380 faces with large companion reading and shared sessions corrected; base-colour textures linked for accepted sections; full shaders, additional packet kinds and race-map coverage pending. See NATIVE-SCENE-GEOMETRY-2026-11-17.md.
+
+## Blur UV origin — 2026-11-17 (tested; EXE updated)
+
+- [x] Owner reports upside-down cars, advertising and some trees; road/buildings appear correct. Confirmed viewer samples image row `1-V`, while Blur readers previously forwarded source D3D/top-origin UVs unchanged. Repeated/symmetric surfaces can conceal this discrepancy; no source texture swizzle change inferred.
+- [x] Read-only original PC shaders-speed.pak: 1,256 directory entries; nine selected FXB resources decompressed to exact declared sizes and DX9 programs disassembled with D3DDisassemble. Default_LN_NB_NV vertex shader forwards UV0.xy directly; base pixel sampler reads those XY. SpeedTree and SpeedTreeLeaf_LN also forward primary XY, not 1-Y. g_vUVOffset audit in parsed Haruna instance sets found no nonzero offsets. Private shader binaries/disassembly remain outside repository.
+- [x] src/blur_model.h + src/blur_scene_geometry.inc now adapt `V=1-sourceV` once to MeshData convention, preserving U, tiling, source offsets, geometry and decoded pixels. Bindings expose sourceUvTopLeft/uvVFlipped. No common shader/export flip added. Secondary UV channels, original wind and billboards remain pending.
+- [x] Validation12 passed/0 failed/0 skipped,31,284ms: asymmetric four-corner sampling/tiling; standalone decoder; real showroom source-half UV comparison; static/multidraw/material/scan and Haruna geometry/billboard regressions. Counts remain showroom313/58,857 and Haruna25,450/4,876,380. Both targets rebuilt after touching translation units; development EXE SHA256 4e83db180108de6c7fa3bf2a4527ecf992853ef14ab2675c2588403c4b333b1b. Logs build/windows-local/blur-uv-origin-tests.txt and blur-bulk-final-build.txt; blur-uv-origin-receipt.json records hashes. App left closed. No new visual Vulkan verification; do not claim all material-specific UV issues resolved.
+- Handoff: docs/research/blur/UV-ORIGIN-2026-11-17.md. Next owner: owner visual recheck after clearing/reloading old Mesh Collection results.
+
+
+## Blur explicit placed instances — 2026-11-17 (tested; full batch passed; EXE updated)
+
+- [x] Identified second RenderList array(stride20) as placement records: prototype index into fourth array(stride48), typed instance-parameter reference, optional secondary binding override and flags. Haruna22,966 records reference3,182 prototypes. Previous reader discarded both arrays. No nearest-geometry/transform matching; exact serialized indices used.
+- [x] Native resolves g_mWorld affine matrices, composes stored XYZ into world space, corrects negative-determinant winding, and checks output against corresponding serialized instance bounds. Every accepted ordinary rigid placement fits bounds within0.05 world units; stored SpeedTree leaf quads allow5% of bound extent due fixed camera-facing representation. Source colour-only stream overrides are validated as4-byte semantic9 records; baked colours/wind remain unapplied. Skeletal palettes are explicitly excluded rather than placed with identity.
+- [x] Independent sequential analysis and native probe agree:19,837 new placements/3,973,320 faces,3 exact duplicate placements suppressed,3,126 skeletal instances pending,0 other unsupported placement records. Haruna total25,450 sections/4,876,380 faces; showroom313/58,857 (+137 placed sections). Leaf/billboard poses remain fixed. All placement matrices in this corpus have negative determinant; bounds corroborate row-vector convention.
+- [x] Candidate vertex count now reports used retained vertices, not the entire shared source pool for each mesh. Indexed session identity lookup removes linear searches across25k sections. Cached source/images retain revision/patch guards. Scene notes expose placed/pending/duplicate counts; unassigned primary global references stay neutral and explicitly marked, never remove geometry.
+- [x] Resume audit: previous23 focused checks passed and EXE linked; interrupted prior full-scene run had no final result. Repeated full-batch validation exposed ARGB32 -> RGBA8888 conversion in MeshScene::add making a new image for every instance, defeating source image cache sharing and inflating retained texture memory. Blur now normalizes to RGBA8888 once before caching. New regression verifies two actual MeshScene entries share one cache key and exactly one image allocation. Native/full-batch tests and EXE refresh repeated after this correction.
+- [x] RGBA correction passes23 focused checks including actual scene image sharing. Profiling the long Qt test showed~2ms decode but~18ms worker-to-GUI delay from its polling wait. Full-scene harness now waits on batch completion in a normal nested event loop with the same300s deadline and exact25,450/4,876,380 assertions; it does not relax completion or alter product behavior. Final completion-driven full batch passed; see final validation below.
+- [x] Large trace also measured26.7s between auto-preview and first bulk item. Bulk tree selection now submits contiguous model ranges once; batch extraction uses selected model rows rather than per-item selection queries. Default/alternative/heuristic/part and hidden-row rules are preserved; no visual redesign. Added deterministic selection-contract test. Native/full-batch validation repeated for this necessary25k-row path.
+- [x] Final focused checks24 passed/0 failed/0 skipped,56,682ms; separate full Haruna Render All3 passed/0 failed/0 skipped,66,107ms. All25,450 admitted pieces/4,876,380 faces and19,837 placements reached MeshScene. Trace compared every expected model identity and per-mesh vertex/face count:0 missing/unexpected/duplicate/mismatched results;64 pieces remain neutral for unresolved global images. Shared RGBA cache and bulk selection/filter/current-row tests pass. Development EXE rebuilt; build/windows-local/blur-placed-instances-receipt.json records SHA/source hashes. Logs blur-instance-tests.txt, blur-haruna-render-all-tests.txt and blur-bulk-final-build.txt. App left closed; real Vulkan appearance not claimed.
+- [ ] Next Codex:3,126 skeletal instances (crowds; require actual palette/bind-pose/animation evaluation), global texture table64 untextured Haruna sections/29 showroom sections, original wind/camera-facing effects and source LOD/pass selection. Do not claim complete map/original rendering.
+- Handoff: docs/research/blur/PLACED-INSTANCES-2026-11-17.md. Private analyze_rigid_instances.py, rigid-instance-analysis.json, verify_instance_bounds.py / instance-bounds-validation.json and native probe in Codex workspace. No source assets/pixels added, interactive app launch, commit/push/release.
+
+## Blur Haruna geometry gaps versus texture alpha — 2026-11-17 (tested; development EXE updated)
+
+- [x] Confirmed geometry loss independently of texture alpha.22 RenderLists failed on framed typed parameter references(types8/9) and nonempty extra descriptor/value groups. Original readers0x6d96e0/0x6d61c0 and0x6e9800/0x6e90e0/0x6e8e60 traced; native parser now includes reference framing overhead in declared byte validation and consumes complete extra parameter groups.
+- [x] All98 Haruna RenderList prefixes now parse. First-array Float3 subset rises3,718->4,513 sections and561,672->704,254 faces.1,100 additional stored Float4 quads belong specifically to BillBoard_LN.fx/FoliageBillBoard_LN.fx; admitted only with verified identity world matrix, finite XYZ, zero W, valid declaration/ranges. Fixed-orientation preview, two-sided alpha-masked export; original camera-facing behavior not implemented. Two light-flare packets remain excluded.
+- [x] Native probe total: Haruna5,613 sections/903,060 faces (+1,895 sections/+341,388 faces over prior build); showroom176 sections/36,794 faces (three stored foliage quads added). Remaining3,182 fourth-array packets have separate instance/bone parameter semantics and are not automatically treated as identity static draws.
+- [x] Native alpha audit:450 referenced primary identities;441 available images (354 opaque,87 partial-alpha), zero fully-transparent images;26 sections lack a decoded primary image and remain neutral. Thus alpha cannot explain all missing geometry. Viewport already supports Ignore texture alpha(show textures opaque), bypassing discard/blending opacity for diagnosis; actual fragment shader discards alpha<0.01 and otherwise blends, so partial alpha can still affect visibility.
+- [x] Focused Qt run21 passed/0 failed/0 skipped,54,733ms (19 methods plus setup/cleanup). Exact Haruna5,613/903,060 and billboard1,100 counts,441-image alpha audit, malformed reference/size and nonzero-W rejection; showroom Render All176/36,794, Haruna scan/textured preview, cache/budget and original static/UI/alpha-toggle regressions pass. Development EXE rebuilt and billboard provenance marker/SHA verified; build/windows-local/blur-geometry-alpha-receipt.json. Logs blur-geometry-alpha-tests.txt / blur-scene-app-build.txt. App left closed; full Haruna Render All/GPU appearance not tested.
+- [ ] Next Codex: owner's visual recheck after rescan; source extra-array instance/animation transforms, billboard camera orientation and original render states/shaders. No whole-map completeness or alpha-perfect claim.
+- Evidence/handoff: docs/research/blur/HARUNA-GEOMETRY-AND-ALPHA-2026-11-17.md; private haruna-probe.json, haruna-alpha-audit.json, check_float4.py and original-reader disassembly in Codex workspace. No game pixels/source binaries added, interactive app launch, commit/push/release.
+
+## Blur Haruna empty scan / large scene loading — 2026-11-17 (tested; development EXE updated)
+
+- [x] Reproduced on owner's exact levels/jpn_mharuna/Level.levelstream(307,269,632bytes), paired Level.levelrender(7,434,653bytes). Raw native parser found3,718 sections/561,672 faces while filesystem wrapper returned0. Root cause: companion requested in a single readPage call, whose hard limit is1MiB. Showroom companion978,033bytes hid the defect.
+- [x] Added shared paged readComplete helper used by scan and decode; preserves size/mtime/cancel checks and surfaces companion read errors. Removed decoder's fixed128MiB cap in favor of configured asset budget/4. Low configured budget still rejects explicitly.
+- [x] Shared immutable parsed-scene session keyed by both file revisions and pending patches avoids reading/parsing307MiB per mesh. Decoded QImages are shared by exact resource identity with a bounded cache, so repeated sections can share retained image storage. Native paired scene discovery bypasses unrelated whole-file heuristics.
+- [x] Standalone production-header probe:441 blocks,221 base buffer groups,3,718 admitted sections/561,672 faces; paged filesystem wrapper now returns3,718 candidates. Representative sections0/1859/3717 decode with images. Snapshot remains a partial static subset: additional22 RenderLists and1,102 Float4-position packets not admitted by current reader.
+- [x] Focused Qt run18 passed/0 failed/0 skipped,25,433ms (16 methods plus setup/cleanup). Real discoverAssets returns3,718 Haruna rows/561,672 faces; offscreen application scan and textured preview pass. Companion paging, large source decode, session/image reuse, budget/cancel rejection and all previous Blur focused regressions covered. Development EXE rebuilt and native fast-path marker/SHA verified; build/windows-local/blur-haruna-receipt.json. Logs blur-haruna-tests.txt / blur-scene-app-build.txt. Left closed; full Haruna Render All/GPU appearance not tested.
+- [ ] Next Codex: owner's Haruna rendering check; remaining RenderList/Float4/instance formats, actual full-map completeness and runtime material/LOD behavior. No full-map or100% material claim from the static subset.
+- Handoff: docs/research/blur/HARUNA-LARGE-SCENE-2026-11-17.md; source blur_scene.h / blur_scene_geometry.inc / asset_discovery.h. Private probe_haruna.py, probe_scene.cpp and haruna-probe.json in Codex workspace. No interactive app launch, commit/push/release.
+
+## Blur scene base-colour textures — 2026-11-17 (tested; development EXE updated)
+
+- [x] Native material descriptors retain type7 slots; draw stream0 parameter -> RenderList +0xb0 pair -> exact resource(group,index). g_tAlbedo is preferred; g_tTexture used only as explicit alternative. No name/proximity/hash matching. Nonnegative local groups supported; unresolved globals left pending.
+- [x] Unified bounded mixed-resource image catalog follows empty texture updates and complete base buffer arrays; largest decoded image variant selected for preview, original runtime mip/LOD selection remains unverified. Tightened image successor to complete serialized resource/image prefix, resolving false RA signatures inside DXT data (light_paint_01 group102). Existing89 image-inspection recipes retained.
+- [x] Recovered missing UV declaration type9 (8-byte half4); decode XY as primary UV0, preserving source coordinates. Type8 half2 remains supported. Independent research:217 texture identities,96 primary identities referenced by all173 accepted showroom sections. All173 now have resolvable base-colour and UV0; not full game shader coverage.
+- [x] Focused Qt tests16 passed/0 failed/0 skipped,20,296ms (14 methods plus setup/cleanup). Actual images verified on all173 Render All entries; representative exact image names,217-entry catalog,96 referenced identities, corrupted padding/cancel and prior Blur regressions covered. Development EXE rebuilt and new material marker verified; receipt build/windows-local/blur-scene-material-receipt.json; logs blur-scene-material-tests.txt / blur-scene-app-build.txt. Application left closed.
+- [ ] Next Codex: inspect textured rendering with owner; original additive/alpha/detail/normal/specular/vertex-colour shader behavior and runtime variant selection, remaining scene packet kinds and race-map validation. No complete-map/full-material claim.
+- Evidence: docs/research/blur/NATIVE-SCENE-TEXTURES-2026-11-17.md; source src/blur_scene.h and src/blur_scene_geometry.inc; private check_material_coverage.py / scene-material-coverage.json. No game assets committed; no push/release or interactive app launch.
+
+## Blur native scene geometry — 2026-11-17 (tested; development EXE updated)
+
+- [x] Recovered original PC mixed resource vertex/index serializers and native RenderList prefix through its index/vertex reference tables. Parser derives offsets from the paired directory, ordered resources, declarations and draw records; no fixture offsets or emulation snapshots in production.
+- [x] Added src/blur_scene_geometry.inc, integrated through blur_scene.h, asset_discovery.h and mesh_profile_decode.h. Scan for 3D Data now emits native scene section candidates; decoder reparses sources, compacts used vertices, retains half UVs and generates normals. Identity world matrix is required; each strip range resets independently and validates exact min/max indices.
+- [x] Independent Python comparison against isolated original-reader snapshots: showroom first packet arrays179 records;173 admitted Float3 sections /36,750 nondegenerate faces;6 Float4/billboard records excluded. Six resource groups recovered end-to-end. All referenced instance matrices of this subset are identity.
+- [x] Focused native tests15 passed/0 failed/0 skipped,16,631ms. Offscreen Render All173 meshes/36,750 faces; second click no duplicates. Corrupt used indices/cancellation/stale identity/RAM context and five representative native decodes covered. Development EXE rebuilt, native profile marker/SHA receipt verified; left closed. Logs build/windows-local/blur-scene-geometry-tests.txt and blur-scene-app-build.txt; receipt blur-scene-geometry-receipt.json.
+- [ ] Next Codex: additional47 fourth-array packets,138 alternate records, mixed textures/nonzero node groups, nonidentity placement and exact original per-draw material/variant binding. No complete race-map support claimed; geometry is currently the validated static scene subset. Claude UI work need not infer materials from names.
+- Evidence/handoff: docs/research/blur/NATIVE-SCENE-GEOMETRY-2026-11-17.md; private scripts under Codex workspace blur-research. No extracted game assets added; no app launch, commit/push/release.
 
 ## Scope and evidence
 
@@ -285,3 +345,55 @@ zero failed or omitted, existing first section deduplicated. Both recognizable; 
 and pallet in adjacent document. Lamp all-sections view overlays bent/alternative components,
 so dynamic state selection is explicitly unresolved. Expected texture warnings: multi-draw
 material assignment remains pending. No complete-state/full-map fidelity claimed or release made.
+
+
+## Executable serializer follow-up — 2026-11-16
+
+Research-only receipt: [original reader findings](EXECUTABLE-SERIALIZERS-2026-11-16.md).
+CullNode reader/writer and inherited Node field order traced in the PC executable;
+full record/object identity and RenderNode/MaterialNode graph still pending.
+No new app support or complete map render claimed. Next owner: Codex/native analysis.
+
+
+## Bounded nodes and parameter layouts — 2026-11-16 follow-up
+
+- [x] 3,082 named CullNode bodies across38 scene files accepted by bounded reader; four showroom endpoints agree with isolated original-reader emulation.
+- [x] First showroom RenderList material parameter descriptions decoded, including typed fields and offsets; generic value reader dispatch traced.
+- [ ] RenderList complete traversal, type7 resource lookup, actual draw/material/texture links and full map assembly remain pending.
+- Evidence and exact limits: [node/parameter progress](NODE-PARAMETER-PROGRESS-2026-11-16.md), coverage CSV and schema JSON. No app code/build change.
+
+
+## Current resource-link result — 2026-11-16
+
+- [x] Four showroom RenderList file paths consumed;262 parameter blocks,329 local texture slots and815 redundant texture dependencies checked.
+- [x] Original two-level resolver traced: local slot -> (resource group, texture index), with global scope separate. First named link: LightFlare g_tColour -> global0 lightflare_diff.
+- [x] Scene header:145 allocated groups,23 shader names,16 declared globals. Allocation is not decoded group coverage.
+- [ ] Actual source group-to-stream locations/contents, remaining global images and packet-to-buffer/parameter binding; alternate138 records need semantics.
+- Receipt: [resource links](RESOURCE-LINKS-2026-11-16.md); validation JSON alongside it. Earlier TLS1151 limitation is superseded for the four tested RenderList file paths only; no new production app support.
+
+
+## Stream locations and texture variants — 2026-11-16
+
+- [x] Actual31-record directory recovered from levelrender; exact contiguous stream coverage and all ARCH pair counts validated.
+- [x] Ordered(group,variant) subrecords identified; do not iterate unique group IDs or apply last-copy-wins.
+- [x]20 complete texture-only blocks +5 partial prefixes,582 decoded images,663 inherited entries,89 named pairs;96/329 reviewed texture parameter slots resolve to names (not mesh coverage).
+- [ ] Mixed resource buffers, partial/compressed updates, correct variant selection, packet/material/geometry binding and full-map/native integration.
+- Receipt: [stream directory and variants](STREAM-DIRECTORY-AND-TEXTURE-VARIANTS-2026-11-16.md); directory/validation JSON alongside it.
+
+
+## Native texture integration — 2026-11-16 current
+
+- [x] Native directory/ordered texture variants wired to discovery; filesystem stream automatically uses same-folder render metadata.89 named current-document recipes, no original mesh material binding claimed.
+- [x] Integration test corrected pixel alignment:25 complete texture blocks,712 nonempty records,868 inherited; prior20/5/582/663 receipt counts superseded. All89 production image decodes pass.
+- [x] Focused12 passed/0 failed/0 skipped including prior CPModel/UI paths. Build/link status in coordination plan.
+- [ ] Mixed-resource geometry, original variant choice and actual textured map draw. Receipt: [native integration](NATIVE-TEXTURE-INTEGRATION-2026-11-16.md).
+
+
+### Quick object preview — 2026-11-16
+
+Textured software preview of trashcontainer_small.model generated/inspected:100 vertices,52 faces. Workspace blur-research/quick-render/blur-object-render.png. Single existing-compatible scenery object; not a map or new scene-link validation. Native mixed-buffer/map work remains pending.
+
+
+### Owner scan clarification — 2026-11-16
+
+Owner used Scan for3D Data on showroom level.levelstream; empty model list is expected until mixed scene buffers are integrated. Current paired-scene integration is exposed via image scan. Standalone CPModel preview is not evidence of map support.

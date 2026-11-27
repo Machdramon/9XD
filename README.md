@@ -8,7 +8,7 @@ The project is under active development. Some tools and format variants are stil
 
 ## Download and run
 
-Download **[9XD 0.4.1 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.4.1/9XD-0.4.1-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.4.1) for the SHA-256 checksum and [release notes](docs/releases/v0.4.1.md).
+Download **[9XD 0.4.2 for Windows x64](https://github.com/Machdramon/9XD/releases/download/v0.4.2/9XD-0.4.2-windows-x64.zip)**. See the [release page](https://github.com/Machdramon/9XD/releases/tag/v0.4.2) for the SHA-256 checksum and [release notes](docs/releases/v0.4.2.md).
 
 1. Extract the **entire ZIP** to a writable folder.
 2. Open `9XD.exe` inside the extracted folder.
@@ -67,6 +67,10 @@ Geometry settings support Int8/16/32, UInt8/16/32, Float16/32, SNorm/UNorm 8/16 
 The [Scripting Library Manager](docs/scripting-libraries.md) lists the active runtime libraries and supports creating, editing, pasting, importing and enabling/disabling user Python modules/packages and C++ headers shared across documents. **Default Modules** and **My Modules** clearly separate included and user code; **Add Module...** unifies creation/paste and imports, with Documentation and Code views.
 
 Python scripting uses the bundled interpreter and standard library in the Windows package. Additional third-party Python packages are not included. C++ scripting requires a compatible local compiler. Run scripts only when you trust their contents: scripts execute local code.
+
+## New in 0.4.2
+
+Blur scene import now supports placed geometry and base textures. This release also expands RayCity vehicle, Auto Modellista and The Fast and the Furious PS2 support. See the [release notes](docs/releases/v0.4.2.md).
 
 ## New in 0.4.1
 
