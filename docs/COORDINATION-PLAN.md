@@ -1,6 +1,6 @@
 # 9XD coordination plan
 
-Updated: 2026-11-27. Preparing stable Windows release 0.4.2. Changes and scope in docs/releases/v0.4.2.md.
+Updated: 2026-11-27. Published stable Windows release 0.4.2 at commit 22520a2. Verified ZIP integrity, runtime contents and matching GitHub SHA-256. Changes and scope in docs/releases/v0.4.2.md.
 
 
 
